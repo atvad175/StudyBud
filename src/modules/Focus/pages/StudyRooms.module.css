@@ -1,0 +1,308 @@
+.page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    padding-bottom: 4rem;
+}
+
+.intro {
+    margin-bottom: 2.5rem;
+    max-width: 42rem;
+}
+
+.eyebrow {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.title {
+    font-family: var(--font-serif);
+    font-size: clamp(2.25rem, 4vw, 3.25rem);
+    color: var(--color-soft-black);
+    margin: 0 0 1rem;
+    line-height: 1.1;
+}
+
+.lead {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    line-height: 1.65;
+    margin: 0 0 1rem;
+}
+
+.principles {
+    margin: 1.5rem 0 0;
+    padding: 1.25rem 1.5rem;
+    background: var(--color-beige);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+}
+
+.principles h3 {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-gold-hover);
+    margin: 0 0 0.75rem;
+}
+
+.principles ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    padding: 1.75rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 24px;
+    cursor: pointer;
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: left;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-soft);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.iconBox {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.livePill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--color-beige);
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-soft-black);
+    white-space: nowrap;
+}
+
+.pulseDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
+    }
+    100% {
+        transform: scale(0.95);
+    }
+}
+
+.card h3 {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    margin: 0 0 0.35rem;
+    color: var(--color-soft-black);
+}
+
+.purpose {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-gold-hover);
+    margin-bottom: 0.35rem;
+}
+
+.desc {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+/* Active session */
+.session {
+    min-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    position: relative;
+}
+
+.sessionGlow {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(120vw, 900px);
+    height: min(120vw, 900px);
+    border-radius: 50%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.35;
+}
+
+.sessionInner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+}
+
+.intentionBox {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    text-align: left;
+}
+
+.intentionBox label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.intentionBox textarea {
+    width: 100%;
+    min-height: 72px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.75rem;
+}
+
+.btn {
+    padding: 0.9rem 1.5rem;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    font-family: inherit;
+    transition: transform 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btnSecondary {
+    background: #fff;
+    color: var(--color-soft-black);
+    border: 1px solid var(--color-border);
+}
+
+.btnPrimary {
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: none;
+}
+
+.panel {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--shadow-soft);
+}
+
+.panel h4 {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    margin: 0 0 1rem;
+    color: var(--color-soft-black);
+}
+
+.timerDisplay {
+    font-family: var(--font-serif);
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--color-soft-black);
+    margin: 0.5rem 0;
+}
+
+.rhythmNote {
+    font-size: 0.88rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-top: 1rem;
+    text-align: left;
+}
+
+.activityRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.9rem;
+}
+
+.activityRow:last-child {
+    border-bottom: none;
+}

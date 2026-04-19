@@ -1,0 +1,364 @@
+.onboardingRoot {
+    min-height: 100vh;
+    background-color: var(--color-cream);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.glowTop {
+    position: absolute;
+    top: -20%;
+    left: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(221, 168, 93, 0.18) 0%, transparent 70%);
+    filter: blur(60px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.glowBottom {
+    position: absolute;
+    bottom: -20%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(107, 157, 100, 0.12) 0%, transparent 70%);
+    filter: blur(60px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.topBar {
+    position: relative;
+    z-index: 10;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.progressRow {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.progressSeg {
+    width: 28px;
+    height: 4px;
+    border-radius: 4px;
+    background-color: rgba(26, 25, 22, 0.1);
+    transition: background-color 0.4s ease;
+}
+
+.progressSegActive {
+    background-color: var(--color-gold);
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.inner {
+    width: 100%;
+    max-width: 640px;
+}
+
+/* Global-style class names used inside JSX (paired with :global in parent) */
+.onboardingRoot :global(.step-title) {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    line-height: 1.12;
+    color: var(--color-soft-black);
+}
+
+.onboardingRoot :global(.step-subtitle) {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+    line-height: 1.55;
+}
+
+.onboardingRoot :global(.hitech-input) {
+    width: 100%;
+    padding: 1.25rem 1.35rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    color: var(--color-soft-black);
+    font-size: 1.1rem;
+    font-family: inherit;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+
+.onboardingRoot :global(.hitech-input:focus) {
+    outline: none;
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 3px rgba(221, 168, 93, 0.2);
+}
+
+.onboardingRoot :global(.hitech-input::placeholder) {
+    color: rgba(92, 90, 83, 0.55);
+}
+
+.onboardingRoot :global(.hitech-choice) {
+    padding: 1.25rem 1.35rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    color: var(--color-text-secondary);
+    font-size: 1.05rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.onboardingRoot :global(.hitech-choice:hover) {
+    border-color: rgba(221, 168, 93, 0.45);
+    color: var(--color-soft-black);
+}
+
+.onboardingRoot :global(.hitech-choice.selected) {
+    background: var(--color-gold);
+    border-color: var(--color-gold);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(221, 168, 93, 0.28);
+}
+
+.onboardingRoot :global(.hitech-pill) {
+    padding: 0.85rem 1.35rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 100px;
+    color: var(--color-text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.onboardingRoot :global(.hitech-pill:hover) {
+    border-color: rgba(221, 168, 93, 0.4);
+    color: var(--color-soft-black);
+}
+
+.onboardingRoot :global(.hitech-pill.selected) {
+    background: rgba(221, 168, 93, 0.15);
+    border-color: var(--color-gold);
+    color: var(--color-gold-hover);
+    font-weight: 600;
+}
+
+.onboardingRoot :global(.hitech-box-choice) {
+    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.onboardingRoot :global(.hitech-box-choice:hover) {
+    border-color: rgba(221, 168, 93, 0.35);
+}
+
+.onboardingRoot :global(.hitech-box-choice.selected) {
+    background: rgba(221, 168, 93, 0.1);
+    border-color: var(--color-gold);
+    color: var(--color-soft-black);
+}
+
+.onboardingRoot :global(.icon-wrapper) {
+    opacity: 0.85;
+}
+
+.onboardingRoot :global(.hitech-box-choice.selected .icon-wrapper) {
+    opacity: 1;
+}
+
+.onboardingRoot :global(.auth-btn) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1.05rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.onboardingRoot :global(.google-btn) {
+    background: #fff;
+    color: var(--color-soft-black);
+    border: 1px solid var(--color-border);
+}
+
+.onboardingRoot :global(.google-btn:hover) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.onboardingRoot :global(.microsoft-btn) {
+    background: var(--color-soft-black);
+    color: #fff;
+    border: 1px solid var(--color-soft-black);
+}
+
+.onboardingRoot :global(.microsoft-btn:hover) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(26, 25, 22, 0.2);
+}
+
+.onboardingRoot :global(.nav-btn-back) {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 1rem;
+    transition: color 0.2s;
+    font-family: inherit;
+}
+
+.onboardingRoot :global(.nav-btn-back:hover) {
+    color: var(--color-soft-black);
+}
+
+.onboardingRoot :global(.nav-btn-next) {
+    padding: 1rem 2.25rem;
+    background: rgba(26, 25, 22, 0.06);
+    color: rgba(26, 25, 22, 0.35);
+    border: none;
+    border-radius: 100px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: not-allowed;
+    transition: all 0.3s;
+}
+
+.onboardingRoot :global(.nav-btn-next.active) {
+    background: var(--color-soft-black);
+    color: #fff;
+    cursor: pointer;
+}
+
+.onboardingRoot :global(.nav-btn-next.active:hover) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(26, 25, 22, 0.15);
+}
+
+.onboardingRoot :global(.fade-in-up) {
+    animation: fadeInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(16px);
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.step9Wrap {
+    text-align: center;
+}
+
+.step9Wrap :global(.step-title),
+.step9Wrap :global(.step-subtitle) {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.step9Wrap :global(.step-subtitle) {
+    max-width: 26rem;
+}
+
+.step9Logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.dividerRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.5rem 0;
+}
+
+.dividerLine {
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+
+.dividerText {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.skipBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    margin-top: 1rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.navRow {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3rem;
+    align-items: center;
+}
+
+.authCol {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
