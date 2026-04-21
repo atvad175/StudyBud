@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 import StudyBudLogo from '../../../components/brand/StudyBudLogo';
 import { useToast } from '../../../context/ToastContext';
+import { Eye, EyeOff } from 'lucide-react';
 import styles from './Auth.module.css';
 
 const LoginPage = () => {
@@ -10,6 +11,7 @@ const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -67,17 +69,52 @@ const LoginPage = () => {
                         placeholder="Email address" 
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        style={{ padding: '0.8rem', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.95rem' }}
+                        style={{ 
+                            padding: '0.8rem', 
+                            borderRadius: '10px', 
+                            border: '1px solid rgba(0,0,0,0.1)', 
+                            fontSize: '0.95rem',
+                            color: '#333',
+                            backgroundColor: '#fff'
+                        }}
                         required
                     />
-                    <input 
-                        type="password" 
-                        placeholder="Password" 
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        style={{ padding: '0.8rem', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.95rem' }}
-                        required
-                    />
+                    <div style={{ position: 'relative' }}>
+                        <input 
+                            type={showPassword ? 'text' : 'password'} 
+                            placeholder="Password" 
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            style={{ 
+                                padding: '0.8rem', 
+                                borderRadius: '10px', 
+                                border: '1px solid rgba(0,0,0,0.1)', 
+                                fontSize: '0.95rem',
+                                color: '#333',
+                                backgroundColor: '#fff',
+                                width: '100%',
+                                boxSizing: 'border-box'
+                            }}
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{
+                                position: 'absolute',
+                                right: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: '#666',
+                                padding: '4px'
+                            }}
+                        >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
                     <button type="submit" disabled={isLoading} className={styles.googleBtn} style={{ background: '#C9883A', color: 'white', border: 'none', height: '48px', fontWeight: '600' }}>
                         {isLoading ? 'Processing...' : (mode === 'login' ? 'Sign In' : 'Sign Up')}
                     </button>
@@ -105,7 +142,7 @@ const LoginPage = () => {
                         window.location.reload();
                     }}
                     className={styles.googleBtn}
-                    style={{ background: 'transparent', color: '#666', border: '1px solid #ddd', height: '48px' }}
+                    style={{ background: 'transparent', color: '#333', border: '1px solid rgba(0,0,0,0.2)', height: '48px', fontWeight: '500' }}
                 >
                     Continue as Guest
                 </button>
