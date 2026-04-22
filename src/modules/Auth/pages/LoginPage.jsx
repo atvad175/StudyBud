@@ -5,6 +5,7 @@ import { useToast } from '../../../context/ToastContext';
 import { Eye, EyeOff } from 'lucide-react';
 import styles from './Auth.module.css';
 
+// Deployment trigger: Sign-in improvements with password visibility toggle
 const LoginPage = () => {
     const { toast } = useToast();
     const [mode, setMode] = useState('login'); // 'login' or 'signup'
