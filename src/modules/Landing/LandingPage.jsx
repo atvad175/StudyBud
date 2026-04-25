@@ -58,7 +58,7 @@ const LandingPage = () => {
                 >
                     <button
                         type="button"
-                        onClick={() => navigate('/onboarding/setup')}
+                        onClick={() => navigate('/login', { state: { mode: 'signup' } })}
                         className="btn-primary large-btn pulse-glow"
                     >
                         Start free <ArrowRight size={20} aria-hidden />
@@ -317,7 +317,7 @@ const LandingPage = () => {
                     </p>
                     <button
                         type="button"
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/login', { state: { mode: 'signup' } })}
                         className="btn-primary large-btn pulse-glow"
                         style={{ fontSize: '1.15rem', padding: '1.1rem 2.75rem' }}
                     >

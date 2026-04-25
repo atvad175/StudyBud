@@ -53,10 +53,10 @@ const LandingLayout = ({ children }) => {
                 </div>
 
                 <div className="landing-nav__right landing-nav__actions">
-                    <button type="button" className="btn-ghost" onClick={go('/login')}>
+                    <button type="button" className="btn-secondary" onClick={go('/login')}>
                         Sign in
                     </button>
-                    <button type="button" className="btn-primary" onClick={go('/onboarding/setup')}>
+                    <button type="button" className="btn-primary" onClick={go('/login')}>
                         Get started
                     </button>
                 </div>
@@ -67,4 +67,4 @@ const LandingLayout = ({ children }) => {
     );
 };
 
-export default LandingLayout;
+export default LandingLayout; 
