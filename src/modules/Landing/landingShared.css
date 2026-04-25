@@ -82,6 +82,7 @@
     0% {
         background-position: 0 0;
     }
+
     100% {
         background-position: 50px 50px;
     }
@@ -91,6 +92,7 @@
     0% {
         transform: translate(0, 0) scale(1.1);
     }
+
     100% {
         transform: translate(-5%, 10%) scale(0.9);
     }
@@ -320,9 +322,11 @@
     0% {
         box-shadow: 0 0 0 0 rgba(201, 136, 58, 0.7);
     }
+
     70% {
         box-shadow: 0 0 0 20px rgba(201, 136, 58, 0);
     }
+
     100% {
         box-shadow: 0 0 0 0 rgba(201, 136, 58, 0);
     }
@@ -373,10 +377,12 @@
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(201, 136, 58, 0.7);
     }
+
     70% {
         transform: scale(1);
         box-shadow: 0 0 0 8px rgba(201, 136, 58, 0);
     }
+
     100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(201, 136, 58, 0);
@@ -555,10 +561,12 @@
         transform: scale(1);
         opacity: 0.5;
     }
+
     50% {
         transform: scale(1.1);
         opacity: 1;
     }
+
     100% {
         transform: scale(1);
         opacity: 0.5;
@@ -583,9 +591,11 @@
     0% {
         stroke-dashoffset: 400;
     }
+
     50% {
         stroke-dashoffset: 0;
     }
+
     100% {
         stroke-dashoffset: -400;
     }
