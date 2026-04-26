@@ -35,7 +35,7 @@ const OnboardingSetup = () => {
     const [step, setStep] = useState(1);
 
     // Step 1
-    const [name, setName] = useState('');
+    const [name, setName] = useState(localStorage.getItem('studybud_username') || '');
     const [role, setRole] = useState('');
 
     // Step 2
@@ -173,7 +173,21 @@ const OnboardingSetup = () => {
         return true;
     };
 
-    const nextStep = () => { if (isStepValid()) setStep(s => s + 1); };
+    const nextStep = async () => {
+        if (isStepValid()) {
+            if (step === 8) {
+                // If they have a session or are already a guest, skip step 9 and finish
+                const { data } = await supabase.auth.getSession();
+                const isGuest = localStorage.getItem('studybud_guest') === 'true';
+                if (data?.session || isGuest) {
+                    await finishOnboarding(data?.session?.user?.id || 'guest-user');
+                    navigate('/', { replace: true });
+                    return;
+                }
+            }
+            setStep(s => s + 1);
+        }
+    };
 
     return (
         <div className={styles.onboardingRoot}>
