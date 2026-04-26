@@ -8,7 +8,7 @@ import styles from './Auth.module.css';
 const LoginPage = () => {
     const { toast } = useToast();
     const location = useLocation();
-    const [mode, setMode] = useState(location.state?.mode || 'login'); // 'login' or 'signup'
+    const [mode, setMode] = useState(location.state?.mode || 'login');
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -22,8 +22,16 @@ const LoginPage = () => {
 
         setIsLoading(true);
         try {
+            // Create a timeout promise to prevent infinite hanging on stubborn networks
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Network timeout: The connection took too long. If you are on a school or work network, it might be blocking the request.")), 15000)
+            );
+
             if (mode === 'login') {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                const { error } = await Promise.race([
+                    supabase.auth.signInWithPassword({ email, password }),
+                    timeoutPromise
+                ]);
                 if (error) {
                     toast.error(error.message);
                 } else {
@@ -31,11 +39,16 @@ const LoginPage = () => {
                     window.location.href = '/';
                 }
             } else {
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: { data: { full_name: fullName } },
-                });
+                const result = await Promise.race([
+                    supabase.auth.signUp({
+                        email,
+                        password,
+                        options: { data: { full_name: fullName } },
+                    }),
+                    timeoutPromise
+                ]);
+
+                const { data, error } = result;
 
                 if (error) {
                     toast.error(error.message);
@@ -50,7 +63,10 @@ const LoginPage = () => {
                         // We ensure the user enters the app regardless of email confirmation
                         setTimeout(async () => {
                             try {
-                                const { data: sessionData } = await supabase.auth.getSession();
+                                const { data: sessionData } = await Promise.race([
+                                    supabase.auth.getSession(),
+                                    new Promise(resolve => setTimeout(() => resolve({ data: { session: null } }), 3000))
+                                ]);
                                 if (!sessionData?.session) {
                                     localStorage.setItem('studybud_guest', 'true');
                                 }
@@ -77,7 +93,7 @@ const LoginPage = () => {
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
                     <StudyBudLogo variant="onLight" size="xl" stacked showTagline tagline="Learn at your own pace." />
                 </div>
-                <h2 style={{ textAlign: 'center', marginBottom: '0.5rem', color: '#ffffff', fontWeight: '700', fontSize: '2.2rem', fontFamily: 'Cormorant Garamond, serif' }}>
+                <h2 style={{ textAlign: 'center', marginBottom: '0.5rem', color: '#111', fontWeight: '700', fontSize: '2.2rem', fontFamily: 'Cormorant Garamond, serif' }}>
                     {mode === 'login' ? 'Welcome Back' : 'Create Account'}
                 </h2>
                 <p className={styles.subtitle}>
