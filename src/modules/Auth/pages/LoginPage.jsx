@@ -21,44 +21,54 @@ const LoginPage = () => {
         if (mode === 'signup' && !fullName) return toast.error("Please enter your full name.");
 
         setIsLoading(true);
-        if (mode === 'login') {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                toast.error(error.message);
-            } else {
-                toast.success("Successfully signed in!");
-                window.location.href = '/';
-            }
-        } else {
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: { data: { full_name: fullName } },
-            });
-
-            if (error) {
-                toast.error(error.message);
-            } else {
-                if (data?.user?.identities?.length === 0) {
-                    toast.info("This email is already registered. Try logging in instead.");
-                    setMode('login');
+        try {
+            if (mode === 'login') {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) {
+                    toast.error(error.message);
                 } else {
-                    localStorage.setItem('studybud_username', fullName);
-                    setSuccessState(true);
+                    toast.success("Successfully signed in!");
+                    window.location.href = '/';
+                }
+            } else {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { full_name: fullName } },
+                });
 
-                    // We ensure the user enters the app regardless of email confirmation
-                    setTimeout(async () => {
-                        const { data: sessionData } = await supabase.auth.getSession();
-                        if (!sessionData?.session) {
-                            // If email confirmation prevented immediate login, allow guest entry
-                            localStorage.setItem('studybud_guest', 'true');
-                        }
-                        window.location.href = '/onboarding/setup';
-                    }, 2500);
+                if (error) {
+                    toast.error(error.message);
+                } else {
+                    if (data?.user?.identities?.length === 0) {
+                        toast.info("This email is already registered. Try logging in instead.");
+                        setMode('login');
+                    } else {
+                        localStorage.setItem('studybud_username', fullName);
+                        setSuccessState(true);
+
+                        // We ensure the user enters the app regardless of email confirmation
+                        setTimeout(async () => {
+                            try {
+                                const { data: sessionData } = await supabase.auth.getSession();
+                                if (!sessionData?.session) {
+                                    localStorage.setItem('studybud_guest', 'true');
+                                }
+                                window.location.href = '/onboarding/setup';
+                            } catch (err) {
+                                localStorage.setItem('studybud_guest', 'true');
+                                window.location.href = '/onboarding/setup';
+                            }
+                        }, 2500);
+                    }
                 }
             }
+        } catch (err) {
+            toast.error(err?.message || "An unexpected error occurred. Please try again.");
+            console.error(err);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     return (
