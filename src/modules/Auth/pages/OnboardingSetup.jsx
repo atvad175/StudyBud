@@ -62,6 +62,7 @@ const OnboardingSetup = () => {
     // Step 9 – sign up
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isSigningUp, setIsSigningUp] = useState(false);
 
     const isWorkingPro = role === 'Working professional';
     const topicList = isWorkingPro ? PROFESSIONS : SUBJECTS;
@@ -128,18 +129,46 @@ const OnboardingSetup = () => {
 
     const handleEmailSignup = async (e) => {
         e.preventDefault();
+        
+        // Validation
+        if (!email.trim() || !password.trim()) {
+            toast.error('Please fill in all fields.');
+            return;
+        }
+        
+        if (password.length < 6) {
+            toast.error('Password must be at least 6 characters.');
+            return;
+        }
+
+        setIsSigningUp(true);
+        
         try {
             const { data, error } = await supabase.auth.signUp({
-                email,
+                email: email.trim(),
                 password,
                 options: { data: { full_name: name, role } },
             });
-            if (error) { toast.error(error.message); return; }
+            
+            if (error) {
+                toast.error(error.message);
+                setIsSigningUp(false);
+                return;
+            }
+
+            // Check for duplicate account (unconfirmed email)
+            if (data?.user?.identities?.length === 0) {
+                toast.info('This email is already registered. Please sign in instead.');
+                setIsSigningUp(false);
+                return;
+            }
+
             await finishOnboarding(data?.user?.id);
             navigate('/', { replace: true });
-        } catch {
-            await finishOnboarding(null);
-            navigate('/', { replace: true });
+        } catch (err) {
+            console.error('Signup error:', err);
+            toast.error('Something went wrong. Please try again.');
+            setIsSigningUp(false);
         }
     };
 
@@ -396,8 +425,8 @@ const OnboardingSetup = () => {
                                     <input type="password" placeholder="Create password" value={password}
                                         onChange={e => setPassword(e.target.value)}
                                         className="hitech-input" style={{ padding: '1rem', fontSize: '1rem' }} required />
-                                    <button type="submit" className="auth-btn" style={{ backgroundColor: '#C9883A', color: '#fff', border: 'none', marginTop: '0.5rem' }}>
-                                        Create account
+                                    <button type="submit" className="auth-btn" style={{ backgroundColor: '#C9883A', color: '#fff', border: 'none', marginTop: '0.5rem' }} disabled={isSigningUp}>
+                                        {isSigningUp ? 'Creating account...' : 'Create account'}
                                     </button>
                                 </form>
 
