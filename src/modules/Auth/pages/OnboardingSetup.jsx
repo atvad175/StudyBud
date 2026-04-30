@@ -144,26 +144,44 @@ const OnboardingSetup = () => {
         setIsSigningUp(true);
         
         try {
-            const { data, error } = await supabase.auth.signUp({
+            // First, try to sign up
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email: email.trim(),
                 password,
-                options: { data: { full_name: name, role } },
+                options: { 
+                    data: { full_name: name, role },
+                    emailRedirectTo: `${window.location.origin}/`
+                },
             });
             
-            if (error) {
-                toast.error(error.message);
+            if (signUpError) {
+                toast.error(signUpError.message);
                 setIsSigningUp(false);
                 return;
             }
 
             // Check for duplicate account (unconfirmed email)
-            if (data?.user?.identities?.length === 0) {
+            if (signUpData?.user?.identities?.length === 0) {
                 toast.info('This email is already registered. Please sign in instead.');
                 setIsSigningUp(false);
                 return;
             }
 
-            await finishOnboarding(data?.user?.id);
+            // Sign the user in immediately to ensure they're logged in
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+            });
+
+            if (signInError) {
+                console.error('Sign in after signup failed:', signInError);
+                // Even if sign in fails, continue with onboarding using the user ID from signup
+                await finishOnboarding(signUpData?.user?.id);
+                navigate('/', { replace: true });
+                return;
+            }
+
+            await finishOnboarding(signInData?.user?.id);
             navigate('/', { replace: true });
         } catch (err) {
             console.error('Signup error:', err);
