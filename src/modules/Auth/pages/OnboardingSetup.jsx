@@ -130,6 +130,8 @@ const OnboardingSetup = () => {
     const handleEmailSignup = async (e) => {
         e.preventDefault();
         
+        console.log('Starting signup process...');
+        
         // Validation
         if (!email.trim() || !password.trim()) {
             toast.error('Please fill in all fields.');
@@ -144,6 +146,7 @@ const OnboardingSetup = () => {
         setIsSigningUp(true);
         
         try {
+            console.log('Step 1: Signing up with Supabase...');
             // First, try to sign up
             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email: email.trim(),
@@ -154,7 +157,10 @@ const OnboardingSetup = () => {
                 },
             });
             
+            console.log('Signup response:', { signUpData, signUpError });
+            
             if (signUpError) {
+                console.error('Signup error:', signUpError);
                 toast.error(signUpError.message);
                 setIsSigningUp(false);
                 return;
@@ -162,26 +168,33 @@ const OnboardingSetup = () => {
 
             // Check for duplicate account (unconfirmed email)
             if (signUpData?.user?.identities?.length === 0) {
+                console.log('Duplicate email detected');
                 toast.info('This email is already registered. Please sign in instead.');
                 setIsSigningUp(false);
                 return;
             }
 
+            console.log('Step 2: Signing in after signup...');
             // Sign the user in immediately to ensure they're logged in
             const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email: email.trim(),
                 password,
             });
 
+            console.log('Signin response:', { signInData, signInError });
+
+            const userId = signInData?.user?.id || signUpData?.user?.id;
+            console.log('User ID to use:', userId);
+
             if (signInError) {
                 console.error('Sign in after signup failed:', signInError);
                 // Even if sign in fails, continue with onboarding using the user ID from signup
-                await finishOnboarding(signUpData?.user?.id);
-                navigate('/', { replace: true });
-                return;
             }
 
-            await finishOnboarding(signInData?.user?.id);
+            console.log('Step 3: Finishing onboarding...');
+            await finishOnboarding(userId);
+            
+            console.log('Step 4: Navigating to home...');
             navigate('/', { replace: true });
         } catch (err) {
             console.error('Signup error:', err);
