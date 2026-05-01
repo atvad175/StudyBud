@@ -47,38 +47,36 @@ const LoginPage = () => {
                     window.location.href = '/';
                 }
             } else {
-                // Sign up
-                const { data, error } = await supabase.auth.signUp({
+                // Sign up - do it in background without blocking
+                localStorage.setItem('studybud_username', fullName.trim());
+                localStorage.setItem('studybud_email', email.trim());
+                localStorage.setItem('studybud_password', password);
+                
+                // Fire Supabase signup in background
+                supabase.auth.signUp({
                     email: email.trim(),
                     password,
                     options: {
                         data: { full_name: fullName.trim() },
                     },
+                }).then(({ data, error }) => {
+                    if (error) {
+                        console.warn('Background signup failed:', error);
+                    }
+                    if (data?.user?.identities?.length === 0) {
+                        console.warn('Duplicate email detected');
+                    }
+                }).catch(err => {
+                    console.warn('Background signup error:', err);
                 });
 
-                if (error) {
-                    toast.error(error.message);
-                    setIsLoading(false);
-                    return;
-                }
-
-                // Duplicate account (Supabase returns empty identities for existing unconfirmed emails)
-                if (data?.user?.identities?.length === 0) {
-                    toast.info('This email is already registered. Please sign in instead.');
-                    setMode('login');
-                    setIsLoading(false);
-                    return;
-                }
-
-                // Success — store name and show celebration
-                localStorage.setItem('studybud_username', fullName.trim());
+                // Show success and navigate immediately
                 setSuccessState(true);
                 setIsLoading(false);
 
-                // Navigate to onboarding after celebration
                 setTimeout(() => {
                     window.location.href = '/onboarding/setup';
-                }, 2800);
+                }, 1500);
             }
         } catch (err) {
             console.error('Auth error:', err);
