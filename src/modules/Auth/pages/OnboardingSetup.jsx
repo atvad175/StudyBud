@@ -143,48 +143,31 @@ const OnboardingSetup = () => {
 
         setIsSigningUp(true);
         
-        try {
-            // Sign up with auto-confirm disabled
-            const { data, error } = await supabase.auth.signUp({
-                email: email.trim(),
-                password,
-                options: { 
-                    data: { full_name: name, role },
-                    emailRedirectTo: `${window.location.origin}/`
-                },
-            });
-            
-            if (error) {
-                toast.error(error.message);
-                setIsSigningUp(false);
-                return;
+        // Save all onboarding data locally
+        persistLocalData();
+        localStorage.setItem('studybud_onboarded', 'true');
+        localStorage.setItem('studybud_first_visit', 'true');
+        localStorage.setItem('studybud_email', email.trim());
+        localStorage.setItem('studybud_password', password);
+        
+        // Try Supabase signup in background without blocking
+        supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: { 
+                data: { full_name: name, role },
+                emailRedirectTo: `${window.location.origin}/`
+            },
+        }).then(({ data, error }) => {
+            if (data?.user?.id) {
+                persistToSupabase(data.user.id).catch(err => console.warn('Supabase save failed:', err));
             }
+        }).catch(err => {
+            console.warn('Background signup failed:', err);
+        });
 
-            // Check for duplicate account
-            if (data?.user?.identities?.length === 0) {
-                toast.info('This email is already registered. Please sign in instead.');
-                setIsSigningUp(false);
-                return;
-            }
-
-            // Save onboarding data locally first
-            persistLocalData();
-            localStorage.setItem('studybud_onboarded', 'true');
-            localStorage.setItem('studybud_first_visit', 'true');
-
-            // Try to save to Supabase but don't block on it
-            const userId = data?.user?.id;
-            if (userId) {
-                persistToSupabase(userId).catch(err => console.warn('Supabase save failed:', err));
-            }
-
-            // Navigate immediately
-            window.location.href = '/';
-        } catch (err) {
-            console.error('Signup error:', err);
-            toast.error('Something went wrong. Please try again.');
-            setIsSigningUp(false);
-        }
+        // Navigate immediately - don't wait for anything
+        window.location.href = '/';
     };
 
     const handleOAuthLogin = async (provider) => {
