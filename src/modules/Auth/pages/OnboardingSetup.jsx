@@ -130,8 +130,6 @@ const OnboardingSetup = () => {
     const handleEmailSignup = async (e) => {
         e.preventDefault();
         
-        console.log('Starting signup process...');
-        
         // Validation
         if (!email.trim() || !password.trim()) {
             toast.error('Please fill in all fields.');
@@ -146,9 +144,8 @@ const OnboardingSetup = () => {
         setIsSigningUp(true);
         
         try {
-            console.log('Step 1: Signing up with Supabase...');
-            // First, try to sign up
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            // Sign up with auto-confirm disabled
+            const { data, error } = await supabase.auth.signUp({
                 email: email.trim(),
                 password,
                 options: { 
@@ -157,45 +154,32 @@ const OnboardingSetup = () => {
                 },
             });
             
-            console.log('Signup response:', { signUpData, signUpError });
-            
-            if (signUpError) {
-                console.error('Signup error:', signUpError);
-                toast.error(signUpError.message);
+            if (error) {
+                toast.error(error.message);
                 setIsSigningUp(false);
                 return;
             }
 
-            // Check for duplicate account (unconfirmed email)
-            if (signUpData?.user?.identities?.length === 0) {
-                console.log('Duplicate email detected');
+            // Check for duplicate account
+            if (data?.user?.identities?.length === 0) {
                 toast.info('This email is already registered. Please sign in instead.');
                 setIsSigningUp(false);
                 return;
             }
 
-            console.log('Step 2: Signing in after signup...');
-            // Sign the user in immediately to ensure they're logged in
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                email: email.trim(),
-                password,
-            });
+            // Save onboarding data locally first
+            persistLocalData();
+            localStorage.setItem('studybud_onboarded', 'true');
+            localStorage.setItem('studybud_first_visit', 'true');
 
-            console.log('Signin response:', { signInData, signInError });
-
-            const userId = signInData?.user?.id || signUpData?.user?.id;
-            console.log('User ID to use:', userId);
-
-            if (signInError) {
-                console.error('Sign in after signup failed:', signInError);
-                // Even if sign in fails, continue with onboarding using the user ID from signup
+            // Try to save to Supabase but don't block on it
+            const userId = data?.user?.id;
+            if (userId) {
+                persistToSupabase(userId).catch(err => console.warn('Supabase save failed:', err));
             }
 
-            console.log('Step 3: Finishing onboarding...');
-            await finishOnboarding(userId);
-            
-            console.log('Step 4: Navigating to home...');
-            navigate('/', { replace: true });
+            // Navigate immediately
+            window.location.href = '/';
         } catch (err) {
             console.error('Signup error:', err);
             toast.error('Something went wrong. Please try again.');
