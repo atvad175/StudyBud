@@ -124,7 +124,7 @@ const SettingsPage = () => {
             if (
                 key &&
                 key.startsWith('studybud_') &&
-                !/(password|secret|token|api[_-]?key)/i.test(key)
+                !/(password|secret|token|api[_-]?key|flashcards_backup_)/i.test(key)
             ) {
                 data[key] = localStorage.getItem(key);
             }
