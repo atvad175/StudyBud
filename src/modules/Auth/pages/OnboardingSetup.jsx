@@ -125,14 +125,22 @@ const OnboardingSetup = () => {
         if (lookupError) throw lookupError;
         if (existing) return;
 
-        const { error } = await supabase.from('atoms').insert({
-            user_id: userId,
-            title: starter.label,
-            frequency: 'daily',
-            category: starter.category,
-            fission_entry: starter.fissionEntry,
-        });
+        const { data: createdHabit, error } = await supabase
+            .from('atoms')
+            .insert({
+                user_id: userId,
+                title: starter.label,
+                frequency: 'daily',
+                category: starter.category,
+                fission_entry: starter.fissionEntry,
+            })
+            .select()
+            .single();
         if (error) throw error;
+
+        window.dispatchEvent(new CustomEvent('studybud-starter-habit-created', {
+            detail: { userId, habit: createdHabit },
+        }));
     };
 
     const finishOnboarding = async () => {
