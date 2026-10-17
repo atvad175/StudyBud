@@ -5,6 +5,13 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 // Model fallback chain — tries each in order on quota errors
 const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
 
+const CHAT_CONTEXT_PROMPTS = {
+    study: 'You are a strict but supportive study coach. Teach with questions, clear explanations, and evidence-based learning methods. Do not shame the student.',
+    habits: 'You are a practical habit coach. Recommend small, realistic steps and help the student learn from setbacks without guilt.',
+    mind: 'You are a warm, non-clinical wellbeing companion. Listen respectfully, avoid diagnosis, and encourage a trusted adult or qualified professional when a problem needs more support.',
+    general: 'You are Bud, a helpful assistant inside StudyBud. Be clear, warm, practical, and honest about uncertainty.',
+};
+
 let genAI = null;
 
 const getClient = () => {
@@ -53,14 +60,14 @@ const parseAIError = (error) => {
 export const isAIAvailable = () => !!getClient();
 
 // Core generation with model fallback
-const generateWithFallback = async (buildPrompt) => {
+const generateWithFallback = async (buildPrompt, modelOptions = {}) => {
     const client = getClient();
     if (!client) throw new Error('🔑 AI not configured. Add VITE_GEMINI_API_KEY to your .env file.');
 
     let lastError;
     for (const modelName of MODELS) {
         try {
-            const model = client.getGenerativeModel({ model: modelName });
+            const model = client.getGenerativeModel({ model: modelName, ...modelOptions });
             return await buildPrompt(model);
         } catch (err) {
             if (isQuotaError(err) && modelName !== MODELS[MODELS.length - 1]) {
@@ -125,13 +132,6 @@ Be warm, non-judgmental, empowering. Under 150 words. Do NOT say you are an AI.`
 };
 
 export const chat = async (messages, context = 'general') => {
-    const contextPrompts = {
-        study: 'You are a strict but supportive discipline coach pushing the user to mastery using inquiry-based coaching.',
-        habits: 'You are an elite habit coach helping the user forge iron routines and break bad cycles.',
-        mind: 'You are a resilient mindset coach for mental toughness and emotional balance. Never mention you are an AI.',
-        general: 'You are Bud, a high-performance AI life coach inside the StudyBud app. Push the user to design an extraordinary life.',
-    };
-
     const conversationHistory = messages.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }],
@@ -146,7 +146,7 @@ export const chat = async (messages, context = 'general') => {
             const lastMsg = messages[messages.length - 1];
             const result = await chatSession.sendMessage(lastMsg.content);
             return result.response.text();
-        });
+        }, { systemInstruction: CHAT_CONTEXT_PROMPTS[context] || CHAT_CONTEXT_PROMPTS.general });
     } catch (error) {
         throw new Error(parseAIError(error));
     }
@@ -172,7 +172,7 @@ export const chatStream = async (messages, context = 'general', onChunk) => {
                 if (onChunk) onChunk(chunkText, fullText);
             }
             return fullText;
-        });
+        }, { systemInstruction: CHAT_CONTEXT_PROMPTS[context] || CHAT_CONTEXT_PROMPTS.general });
     } catch (error) {
         throw new Error(parseAIError(error));
     }
