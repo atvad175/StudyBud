@@ -41,7 +41,7 @@ const LandingPage = () => {
                 </h1>
 
                 <p className="hero-subtitle fade-in-up" style={{ animationDelay: '0.35s', maxWidth: '900px', margin: '0 auto', lineHeight: '1.6', fontSize: '1.1rem' }}>
-                    StudyBud is an app that helps you pave your way towards ultimate success, build your dream life, discipline, and a completely new identity. It is aligned with the United Nations Sustainability Development Goals, SDG 3 (Good health and well-being) and SDG 4 (Quality education). It helps you build small compounding habits, focus and the ability to do deep work and not procrastinate, manage your time to achieve maximum productivity, maintain your mental health and take care of your mental wellbeing while working through all of this, and as a student provides you with the tools to excel at academics. StudyBud is not just for students but for working professionals, college students, and self-learners who want to live a life they will love.
+                    Study, focus, and build better routines in one place. StudyBud brings together subject-specific study strategies, flashcards, exam practice, focus tools, and small habits—so you know what to work on next and can see your progress over time.
                 </p>
 
                 <div
