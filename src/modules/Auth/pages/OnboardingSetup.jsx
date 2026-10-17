@@ -209,7 +209,13 @@ const OnboardingSetup = () => {
                                             <button
                                                 key={option}
                                                 type="button"
-                                                onClick={() => setRole(option)}
+                                                onClick={() => {
+                                                    setRole(option);
+                                                    if (option !== 'School student') {
+                                                        setBoard('');
+                                                        setGrade('');
+                                                    }
+                                                }}
                                                 aria-pressed={role === option}
                                                 className={`hitech-choice ${role === option ? 'selected' : ''}`}
                                             >
