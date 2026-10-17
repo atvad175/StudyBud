@@ -61,7 +61,7 @@ const FocusSession = () => {
                     const style = document.createElement('style');
                     style.textContent = cssRules;
                     pipWindow.document.head.appendChild(style);
-                } catch (e) {
+                } catch {
                     // Cross-origin styles might fail
                 }
             });
