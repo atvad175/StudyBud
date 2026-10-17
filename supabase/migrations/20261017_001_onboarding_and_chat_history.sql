@@ -6,6 +6,8 @@ create table if not exists public.user_onboarding (
   user_id uuid primary key references auth.users(id) on delete cascade,
   name text not null default '',
   role text not null default 'School student',
+  board text not null default '',
+  grade text not null default '',
   struggles jsonb not null default '[]'::jsonb,
   learning_style text not null default '',
   fav_topics jsonb not null default '[]'::jsonb,
@@ -17,6 +19,8 @@ create table if not exists public.user_onboarding (
   updated_at timestamptz not null default now()
 );
 
+alter table public.user_onboarding add column if not exists board text not null default '';
+alter table public.user_onboarding add column if not exists grade text not null default '';
 alter table public.user_onboarding enable row level security;
 
 drop policy if exists "Users can read own onboarding" on public.user_onboarding;
