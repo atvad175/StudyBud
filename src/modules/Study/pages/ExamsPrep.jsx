@@ -3,7 +3,6 @@ import styles from '../StudyShared.module.css';
 import { Target, Play, TrendingUp, Clock, CheckCircle, AlertTriangle, FileText, X, Sparkles } from 'lucide-react';
 import { useStudy } from '../../../context/StudyContext';
 import { useToast } from '../../../context/ToastContext';
-import { analyzeMistakePatterns } from '../studyUtils';
 import { getMockExam } from '../../../services/aiService';
 import { extractTextFromFile } from '../../../utils/fileParser';
 
@@ -15,7 +14,7 @@ const EXAM_TYPES = [
 ];
 
 const ExamsPrep = () => {
-    const { practiceLogs, logPractice } = useStudy();
+    const { practiceLogs } = useStudy();
     const { toast } = useToast();
     const [mode, setMode] = useState('dashboard'); // dashboard, config, exam, review
     const [activeExam, setActiveExam] = useState(null);
