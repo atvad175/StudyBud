@@ -260,7 +260,10 @@ const App = () => {
   if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>Loading...</div>;
 
   return (
-    <AIProvider>
+    {/* The provider subtree owns account-scoped in-memory data. Changing this key
+        on sign-in/sign-out unmounts old study/focus/habit/chat state before a new
+        account can render it; database RLS remains the actual access-control layer. */}
+    <AIProvider key={session?.user?.id || 'signed-out'}>
       <MusicProvider>
         <HabitsProvider>
           <FocusProvider>
