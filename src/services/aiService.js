@@ -9,13 +9,7 @@ const getAccessToken = async () => {
 };
 
 const requestAI = async (payload) => {
-    let accessToken;
-    try {
-        accessToken = await getAccessToken();
-    } catch (error) {
-        throw error;
-    }
-
+    const accessToken = await getAccessToken();
     let response;
     try {
         response = await fetch('/api/ai', {
