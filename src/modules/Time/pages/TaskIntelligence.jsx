@@ -168,9 +168,7 @@ const TaskIntelligence = () => {
 const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#999', fontWeight: '700' };
 const inputStyle = { width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #eee', fontSize: '1rem', fontFamily: 'inherit', background: '#fcfcfc', color: '#333' };
 const rowStyle = { display: 'flex', gap: '1.5rem' };
-const btnStyle = { padding: '16px', borderRadius: '16px', background: 'var(--color-gold)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '1rem', marginTop: '1rem', boxShadow: '0 8px 16px rgba(221, 168, 93, 0.3)', transition: 'transform 0.2s' };
-const secondaryBtn = { padding: '8px 16px', borderRadius: '100px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' };
-const sectionBox = { background: '#fcfcfc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f0f0f0' };
+const btnStyle = { padding: '16px', borderRadius: '16px', background: 'var(--color-gold)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '1rem', marginTop: '1rem', boxShadow: '0 8px 16px rgba(221, 168, 93, 0.3)', transition: 'transform 0.2s' };const sectionBox = { background: '#fcfcfc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f0f0f0' };
 
 const chipGrid = { display: 'flex', flexWrap: 'wrap', gap: '8px' };
 const chip = { padding: '8px 16px', borderRadius: '100px', border: '1px solid #eee', background: 'white', cursor: 'pointer', fontSize: '0.9rem', color: '#666', transition: 'all 0.2s' };
