@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../StudyShared.module.css';
 import { Target, Play, TrendingUp, Clock, CheckCircle, AlertTriangle, FileText, X, Sparkles } from 'lucide-react';
 import { useStudy } from '../../../context/StudyContext';
@@ -14,7 +14,7 @@ const EXAM_TYPES = [
 ];
 
 const ExamsPrep = () => {
-    const { practiceLogs } = useStudy();
+    const { practiceLogs, logPractice } = useStudy();
     const { toast } = useToast();
     const [mode, setMode] = useState('dashboard'); // dashboard, config, exam, review
     const [activeExam, setActiveExam] = useState(null);
@@ -31,6 +31,7 @@ const ExamsPrep = () => {
     const [currentQuestion, setCurrentQuestion] = useState(1);
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
+    const examSubmittedRef = useRef(false);
 
     // Start predefined AI Exam
     const generateAiExam = async () => {
@@ -38,6 +39,7 @@ const ExamsPrep = () => {
         setIsGenerating(true);
         try {
             const generated = await getMockExam(aiTopic, aiNumQs);
+            examSubmittedRef.current = false;
             setExamQuestions(generated);
             setActiveExam({ label: 'AI Custom Mock Exam', duration: aiTime, questions: generated.length });
             setTimer(aiTime * 60);
@@ -58,17 +60,53 @@ const ExamsPrep = () => {
         setMode('config');
     };
 
-    // Timer Logic. When time expires, submit on the next task turn so the
-    // component doesn't update state synchronously inside an effect.
+    // Score once and save the result to this account's private study history.
+    const submitExam = useCallback(() => {
+        if (examSubmittedRef.current || !activeExam || examQuestions.length === 0) return;
+        examSubmittedRef.current = true;
+
+        const total = examQuestions.length;
+        const correct = examQuestions.reduce((sum, question, index) =>
+            sum + (userAnswers[index] === question.correctAnswer ? 1 : 0), 0);
+        const answered = Object.keys(userAnswers).length;
+        const percentage = Math.round((correct / total) * 100);
+        const wrongAnswers = examQuestions.map((question, index) => ({
+            question: question.question,
+            selectedAnswer: userAnswers[index] || null,
+            correctAnswer: question.correctAnswer,
+            isCorrect: userAnswers[index] === question.correctAnswer,
+        }));
+
+        setScore(correct);
+        setMode('review');
+
+        const topicTitle = aiTopic.trim().split(/\\r?\\n/)[0].slice(0, 120) || activeExam.label;
+        const record = {
+            subject: topicTitle,
+            mistake_type: 'practice_exam',
+            question_content: JSON.stringify({
+                exam: activeExam.label,
+                questions: wrongAnswers,
+            }),
+            notes: `Score: ${correct}/${total} (${percentage}%). Answered ${answered}/${total} questions.`,
+            tags: ['practice-exam', 'ai-generated', activeExam.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')],
+        };
+
+        void logPractice(record)
+            .then(() => toast.success('Practice result saved to your Study history.'))
+            .catch((error) => {
+                console.error('Unable to save practice result:', error);
+                toast.error('Your exam is complete, but its result could not be saved. Please check your connection.');
+            });
+    }, [activeExam, aiTopic, examQuestions, logPractice, toast, userAnswers]);
+
+    // Timer expiry uses the same guarded submit path as the manual button.
     useEffect(() => {
         if (mode !== 'exam') return undefined;
 
         if (timer <= 0) {
             const submitTimeout = window.setTimeout(() => {
-                const correct = examQuestions.reduce((total, question, index) =>
-                    total + (userAnswers[index] === question.correctAnswer ? 1 : 0), 0);
-                setScore(correct);
-                setMode('review');
+                submitExam();
             }, 0);
             return () => window.clearTimeout(submitTimeout);
         }
@@ -77,22 +115,12 @@ const ExamsPrep = () => {
             setTimer(current => Math.max(0, current - 1));
         }, 1000);
         return () => window.clearInterval(interval);
-    }, [mode, timer, examQuestions, userAnswers]);
+    }, [mode, timer, submitExam]);
 
     const formatTime = (s) => {
         const mins = Math.floor(s / 60);
         const secs = s % 60;
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    };
-
-    const submitExam = () => {
-        // Calculate score
-        let correct = 0;
-        examQuestions.forEach((q, idx) => {
-            if(userAnswers[idx] === q.correctAnswer) correct++;
-        });
-        setScore(correct);
-        setMode('review');
     };
 
     const handleOptionSelect = (opt) => {
