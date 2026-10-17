@@ -9,9 +9,9 @@ import { extractTextFromFile } from '../../../utils/fileParser';
 
 // Mock Exam Configs
 const EXAM_TYPES = [
-    { id: 'quick', label: 'Quick Quiz', duration: 15, questions: 10 },
-    { id: 'standard', label: 'Standard Unit Test', duration: 45, questions: 25 },
-    { id: 'mock', label: 'Full Mock Exam', duration: 120, questions: 50 },
+    { id: 'quick', label: 'Quick Quiz', duration: 5, questions: 5 },
+    { id: 'standard', label: 'Unit Practice', duration: 15, questions: 10 },
+    { id: 'mock', label: 'Practice Mock', duration: 30, questions: 20 },
 ];
 
 const ExamsPrep = () => {
@@ -52,20 +52,11 @@ const ExamsPrep = () => {
         }
     };
 
-    // Start basic placeholder Exam
+    // Presets set up an actual AI practice paper; they no longer launch dummy questions.
     const startExam = (exam) => {
-        // Dummy questions if not AI generated
-        const dummies = Array.from({length: exam.questions}).map((_, i) => ({
-            question: `Sample Question ${i+1} for ${exam.label}?`,
-            options: ['Option A', 'Option B', 'Option C', 'Option D'],
-            correctAnswer: 'Option A'
-        }));
-        setExamQuestions(dummies);
-        setActiveExam(exam);
-        setTimer(exam.duration * 60);
-        setCurrentQuestion(1);
-        setUserAnswers({});
-        setMode('exam');
+        setAiNumQs(exam.questions);
+        setAiTime(exam.duration);
+        setMode('config');
     };
 
     // Timer Logic
@@ -74,10 +65,13 @@ const ExamsPrep = () => {
         if (mode === 'exam' && timer > 0) {
             interval = setInterval(() => setTimer(t => t - 1), 1000);
         } else if (timer === 0 && mode === 'exam') {
-            // Auto submit or alert
+            const correct = examQuestions.reduce((total, question, index) =>
+                total + (userAnswers[index] === question.correctAnswer ? 1 : 0), 0);
+            setScore(correct);
+            setMode('review');
         }
         return () => clearInterval(interval);
-    }, [mode, timer]);
+    }, [mode, timer, examQuestions, userAnswers]);
 
     const formatTime = (s) => {
         const mins = Math.floor(s / 60);
@@ -153,7 +147,7 @@ const ExamsPrep = () => {
                                             {exam.duration} min • {exam.questions} Questions
                                         </div>
                                         <button onClick={() => startExam(exam)} style={startBtn}>
-                                            Begin Exam
+                                            Set up
                                         </button>
                                     </div>
                                 ))}
