@@ -67,6 +67,11 @@ const Flashcards = () => {
                     localStorage.getItem('studybud_flashcards_user_id') === user.id
                         ? 'studybud_flashcards'
                         : null,
+                    // Legacy cards without a trustworthy account marker remain
+                    // unassigned until the student explicitly confirms import.
+                    !localStorage.getItem(ownerBackupKey)
+                        ? 'studybud_flashcards_backup_unassigned'
+                        : null,
                 ].filter(Boolean);
 
                 for (const key of candidateKeys) {
@@ -368,7 +373,7 @@ const Flashcards = () => {
                         <section style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--color-gold)', background: '#fffaf0', marginBottom: '1.5rem' }}>
                             <h2 style={{ fontSize: '1.15rem', marginBottom: '0.5rem' }}>Older flashcards found on this device</h2>
                             <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                                An earlier version stored these cards only in this browser. Import them into this signed-in account only if you created them. They will then be saved to your account.
+                                These cards are not linked to an account. Only import them if they are yours; on a shared device, choose Not now if you are unsure. Imported cards will be saved to this signed-in account.
                             </p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                                 <button type="button" onClick={handleImportLegacy} disabled={isImportingLegacy} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: 'none', background: 'var(--color-soft-black)', color: 'white', cursor: isImportingLegacy ? 'wait' : 'pointer' }}>
