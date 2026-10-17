@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
 const FocusContext = createContext();
@@ -57,48 +57,7 @@ export const FocusProvider = ({ children }) => {
         return () => { active = false; };
     }, []);
 
-    // Timer Logic
-    useEffect(() => {
-        if (isActive && !isPaused) {
-            timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (mode === 'TIMER') {
-                        if (prev <= 1) {
-                            handleSessionComplete();
-                            return 0;
-                        }
-                        return prev - 1;
-                    } else {
-                        return prev + 1;
-                    }
-                });
-            }, 1000);
-        } else {
-            clearInterval(timerRef.current);
-        }
-
-        return () => clearInterval(timerRef.current);
-    }, [isActive, isPaused, mode]);
-
-    const handleSessionComplete = async () => {
-        clearInterval(timerRef.current);
-        setIsActive(false);
-        setIsPaused(true);
-
-        const finalDuration = mode === 'TIMER' ? duration : timeLeft;
-        try {
-            await saveSession(finalDuration);
-            setSaveError('');
-        } catch (error) {
-            console.error('Unable to save completed focus session:', error);
-            setSaveError('Your focus timer finished, but the session could not be saved. Check your connection and try again.');
-        }
-
-        if (mode === 'TIMER') setTimeLeft(duration);
-        else setTimeLeft(0);
-    };
-
-    const saveSession = async (actualDuration) => {
+    const saveSession = useCallback(async (actualDuration) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError) throw authError;
         if (!user) throw new Error('Sign in to save focus sessions.');
@@ -107,7 +66,7 @@ export const FocusProvider = ({ children }) => {
             user_id: user.id,
             category,
             duration_seconds: actualDuration,
-            mode
+            mode,
         };
 
         const { data, error } = await supabase
@@ -117,11 +76,60 @@ export const FocusProvider = ({ children }) => {
             .single();
 
         if (error) throw error;
-        setSessions(prev => [data, ...prev]);
+        setSessions(previous => [data, ...previous]);
         return data;
-    };
+    }, [category, mode]);
+
+    const handleSessionComplete = useCallback(async () => {
+        clearInterval(timerRef.current);
+        setIsActive(false);
+        setIsPaused(true);
+
+        try {
+            await saveSession(duration);
+            setSaveError('');
+        } catch (error) {
+            console.error('Unable to save completed focus session:', error);
+            setSaveError('Your focus timer finished, but the session could not be saved. Check your connection and try again.');
+        }
+
+        setTimeLeft(duration);
+    }, [duration, saveSession]);
+
+    // Keep interval callbacks pure: the zero-time transition is handled separately,
+    // outside the React state updater.
+    useEffect(() => {
+        if (isActive && !isPaused) {
+            timerRef.current = window.setInterval(() => {
+                setTimeLeft(previous => mode === 'TIMER'
+                    ? Math.max(0, previous - 1)
+                    : previous + 1
+                );
+            }, 1000);
+        } else {
+            window.clearInterval(timerRef.current);
+        }
+
+        return () => window.clearInterval(timerRef.current);
+    }, [isActive, isPaused, mode]);
+
+    const completionStartedRef = useRef(false);
+    useEffect(() => {
+        if (!isActive || isPaused || mode !== 'TIMER' || timeLeft > 0) {
+            if (!isActive) completionStartedRef.current = false;
+            return undefined;
+        }
+        if (completionStartedRef.current) return undefined;
+
+        completionStartedRef.current = true;
+        const timeoutId = window.setTimeout(() => {
+            void handleSessionComplete();
+        }, 0);
+        return () => window.clearTimeout(timeoutId);
+    }, [isActive, isPaused, mode, timeLeft, handleSessionComplete]);
 
     const startSession = () => {
+        completionStartedRef.current = false;
         setSaveError('');
         setIsActive(true);
         setIsPaused(false);
