@@ -11,6 +11,7 @@ export const useStudy = () => {
 
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
 
     // State
     const [techniques, setTechniques] = useState([]);
@@ -364,6 +365,7 @@ export const StudyProvider = ({ children }) => {
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
+            setLoadError('');
             try {
                 const results = await Promise.all([
                     supabase.from('study_techniques').select('*'),
@@ -372,6 +374,17 @@ export const StudyProvider = ({ children }) => {
                     supabase.from('study_practice_logs').select('*').order('created_at', { ascending: false }).limit(50),
                     supabase.from('study_reviews').select('*').order('next_review_date', { ascending: true })
                 ]);
+
+                const privateQueryFailed = results.slice(2).some(result => Boolean(result.error));
+                const publicQueryFailed = results.slice(0, 2).some(result => Boolean(result.error));
+
+                if (publicQueryFailed) {
+                    console.warn('Some public study-library content could not be loaded.');
+                }
+                if (privateQueryFailed) {
+                    console.warn('Some saved study records could not be loaded.');
+                    setLoadError('Some saved Study data could not be loaded. Your records have not been deleted; refresh to try again.');
+                }
 
                 if (results[0].data) setTechniques(results[0].data);
                 
@@ -386,8 +399,9 @@ export const StudyProvider = ({ children }) => {
                 if (results[2].data) setAssignments(results[2].data);
                 if (results[3].data) setPracticeLogs(results[3].data);
                 if (results[4].data) setReviews(results[4].data);
-            } catch (e) {
-                console.error("Error fetching study data:", e);
+            } catch (error) {
+                console.error('Error fetching Study data:', error?.code || 'unknown');
+                setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
             } finally {
                 setLoading(false);
             }
@@ -403,6 +417,7 @@ export const StudyProvider = ({ children }) => {
             practiceLogs,
             reviews,
             boards,
+            loadError,
             addAssignment,
             updateAssignment,
             logPractice,
