@@ -3,6 +3,7 @@ import styles from '../MindShared.module.css';
 import { Send, User, Heart, ShieldCheck, Sparkles, Wind, Waves } from 'lucide-react';
 import { useMind } from '../../../context/MindContext';
 import { useAI } from '../../../context/AIContext';
+import { useToast } from '../../../context/ToastContext';
 import { supabase } from '../../../supabaseClient';
 
 const VIBES = [
@@ -14,6 +15,7 @@ const VIBES = [
 const EmotionalBuddy = () => {
     const { addLog } = useMind();
     const { sendMessage } = useAI();
+    const { toast } = useToast();
     const [nickname, setNickname] = useState('Friend');
     const [messages, setMessages] = useState([
         { id: 1, sender: 'buddy', text: "I'm here. Whenever you're ready to share, I'm listening." }
@@ -59,11 +61,17 @@ const EmotionalBuddy = () => {
             const buddyMsg = { id: Date.now() + 1, sender: 'buddy', text: response };
             setMessages(prev => [...prev, buddyMsg]);
 
-            addLog({
-                type: 'chat',
-                content: { user: userMsgText, buddy: response },
-                tags: ['support-session', currentVibe]
-            });
+            // A saved reply should remain visible even if optional history persistence fails.
+            try {
+                await addLog({
+                    type: 'chat',
+                    content: { user: userMsgText, buddy: response },
+                    tags: ['support-session', currentVibe]
+                });
+            } catch (saveError) {
+                console.error('Unable to save support conversation:', saveError);
+                toast.error('Bud replied, but this conversation could not be saved.');
+            }
         } catch (error) {
             console.error('Support error:', error);
             setMessages(prev => [...prev, { id: Date.now() + 2, sender: 'buddy', text: "I'm here, but I'm having a bit of trouble connecting right now. Can we try again in a moment?" }]);
