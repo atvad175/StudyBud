@@ -2,8 +2,6 @@
    Auth page — premium cream / warm-neutral theme
    ───────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
-
 /* ── Container ────────────────────────────── */
 .authContainer {
     position: relative;
@@ -92,7 +90,7 @@
 }
 
 .logoStudy {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-weight: 600;
     font-size: 1.45rem;
     color: #1a1a1a;
@@ -100,7 +98,7 @@
 }
 
 .logoBud {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-weight: 700;
     font-size: 1.45rem;
     color: #C9883A;
@@ -123,7 +121,7 @@
 }
 
 .heading {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: 2rem;
     font-weight: 700;
     color: #111;
@@ -332,7 +330,7 @@
 }
 
 .successTitle {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: 2rem;
     font-weight: 700;
     color: #111;
