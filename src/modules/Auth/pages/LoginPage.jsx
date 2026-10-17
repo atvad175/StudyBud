@@ -31,6 +31,9 @@ const LoginPage = () => {
         if (mode === 'signup' && !fullName.trim()) {
             return toast.error('Please enter your full name.');
         }
+        if (mode === 'signup' && password.length < 8) {
+            return toast.error('Choose a password with at least 8 characters.');
+        }
 
         setIsLoading(true);
 
@@ -185,7 +188,7 @@ const LoginPage = () => {
                         <label className={styles.label}>Password</label>
                         <input
                             type="password"
-                            placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
+                            placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             className={styles.input}
