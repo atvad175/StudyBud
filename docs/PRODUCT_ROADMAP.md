@@ -51,13 +51,15 @@ Security, authentication and reliable saving take priority over new features.
 **Exit gate:** a first-time student can explain what StudyBud does and reach a useful study action without help.
 
 ### Phase 4 — AI, speed and maintainability
-- Route Gemini requests through a server-side API, with rate limits, timeouts and usage monitoring.
+- [x] Route Gemini requests through an authenticated Vercel serverless endpoint; provider keys are read from server-side environment variables only.
+- [x] Validate operation types and input sizes, validate generated exam structure, and add a best-effort per-user rate limit.
+- [ ] Replace the in-memory limiter with shared server-side rate limiting and add usage monitoring/timeouts before public launch.
 - Use shared prompt/context logic and validate structured model output.
 - Measure real loading/interaction timings; don't promise sub-100 ms for network operations.
 - Add safe retry/rollback patterns, bounded database queries and tests for high-use flows.
 - Add a service for error reporting and performance monitoring after privacy settings have been reviewed.
 
-**Exit gate:** AI keys are not present in browser bundles; model failures have safe user-facing messages; study data remains correct when requests fail.
+**Exit gate:** AI keys are not present in browser bundles; model failures have safe user-facing messages; shared rate limiting/usage monitoring are enabled; study data remains correct when requests fail.
 
 ### Phase 5 — School pilot and growth
 - Pilot with a small, school-approved group before opening wider access.
