@@ -23,13 +23,13 @@ const BOARDS = ['ICSE', 'ISC', 'IGCSE', 'IB', 'CBSE', 'Other'];
 const GRADES = ['6', '7', '8', '9', '10', '11', '12', 'Other'];
 
 const ATOM_OPTIONS = [
-    { id: 'early', label: 'Wake up early', icon: <Sun size={20} /> },
-    { id: 'read', label: 'Read 20 minutes', icon: <BookOpen size={20} /> },
-    { id: 'nophone', label: 'Phone-free first hour', icon: <Activity size={20} /> },
-    { id: 'exercise', label: 'Exercise', icon: <Zap size={20} /> },
-    { id: 'meditate', label: 'Meditate', icon: <Wind size={20} /> },
-    { id: 'plan', label: 'Plan the day', icon: <CheckSquare size={20} /> },
-    { id: 'sleep11', label: 'Consistent sleep time', icon: <Moon size={20} /> },
+    { id: 'early', label: 'Wake up early', icon: <Sun size={20} />, category: 'health', fissionEntry: 'Set your alarm and place your feet on the floor when it rings.' },
+    { id: 'read', label: 'Read 20 minutes', icon: <BookOpen size={20} />, category: 'study', fissionEntry: 'Open your book and read one page.' },
+    { id: 'nophone', label: 'Phone-free first hour', icon: <Activity size={20} />, category: 'mind', fissionEntry: 'Put your phone out of reach for the next two minutes.' },
+    { id: 'exercise', label: 'Exercise', icon: <Zap size={20} />, category: 'health', fissionEntry: 'Do two minutes of comfortable movement.' },
+    { id: 'meditate', label: 'Meditate', icon: <Wind size={20} />, category: 'mind', fissionEntry: 'Sit comfortably and take five slow, natural breaths.' },
+    { id: 'plan', label: 'Plan the day', icon: <CheckSquare size={20} />, category: 'study', fissionEntry: 'Write down the single most important task for today.' },
+    { id: 'sleep11', label: 'Consistent sleep time', icon: <Moon size={20} />, category: 'health', fissionEntry: 'Choose a realistic wind-down time for tonight.' },
 ];
 
 const LEARNING_STYLES = [
@@ -110,6 +110,31 @@ const OnboardingSetup = () => {
         }
     };
 
+    const createStarterHabit = async (userId) => {
+        const starter = ATOM_OPTIONS.find(option => option.id === firstAtom);
+        if (!starter) return;
+
+        // Do not create duplicate starter habits when setup is retried or revisited.
+        const { data: existing, error: lookupError } = await supabase
+            .from('atoms')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('title', starter.label)
+            .limit(1)
+            .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (existing) return;
+
+        const { error } = await supabase.from('atoms').insert({
+            user_id: userId,
+            title: starter.label,
+            frequency: 'daily',
+            category: starter.category,
+            fission_entry: starter.fissionEntry,
+        });
+        if (error) throw error;
+    };
+
     const finishOnboarding = async () => {
         setIsSaving(true);
         try {
@@ -139,6 +164,15 @@ const OnboardingSetup = () => {
             }, { onConflict: 'user_id' });
 
             if (error) throw error;
+
+            // The starter habit is optional: profile setup should still complete if
+            // the separate Habits write fails, but the student must be told clearly.
+            try {
+                await createStarterHabit(userId);
+            } catch (habitError) {
+                console.warn('Starter habit was not saved:', habitError?.code || 'unknown');
+                toast.info('Your setup was saved, but the starter habit could not be added. You can create it later from Habits.');
+            }
 
             persistLocalData();
             localStorage.setItem('studybud_onboarded_user_id', userId);
