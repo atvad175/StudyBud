@@ -60,9 +60,6 @@ const OnboardingSetup = () => {
     const [motivation, setMotivation] = useState('');
 
     // Step 9 – sign up
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isSigningUp, setIsSigningUp] = useState(false);
 
     const isWorkingPro = role === 'Working professional';
     const topicList = isWorkingPro ? PROFESSIONS : SUBJECTS;
@@ -70,10 +67,6 @@ const OnboardingSetup = () => {
     const step4Subtitle = isWorkingPro
         ? 'Pick your field or fields — Bud will tailor support to your professional context.'
         : 'Pick everything you study or care about.';
-
-    useEffect(() => {
-        if (localStorage.getItem('studybud_onboarded') === 'true') setStep(9);
-    }, []);
 
     const toggleStruggle = (s) =>
         setStruggles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -116,76 +109,25 @@ const OnboardingSetup = () => {
                 motivation,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'user_id' });
-        } catch (e) { console.warn('Supabase onboarding save failed:', e); }
+        } catch (e) {
+            console.error('Supabase onboarding save failed:', e);
+            throw e;
+        }
     };
 
     const finishOnboarding = async (userId) => {
-        persistLocalData();
-        localStorage.setItem('studybud_onboarded', 'true');
-        localStorage.setItem('studybud_first_visit', 'true');
+        if (!userId || userId === 'guest-user') {
+            throw new Error('Please sign in before saving your StudyBud profile.');
+        }
+
+        // Persist the database profile first. Only mark onboarding complete after
+        // the server confirms the write, so the next screen cannot hide a failed save.
         await persistToSupabase(userId);
-        window.dispatchEvent(new Event('studybud-onboarded'));
-    };
-
-    const handleEmailSignup = async (e) => {
-        e.preventDefault();
-        
-        // Validation
-        if (!email.trim() || !password.trim()) {
-            toast.error('Please fill in all fields.');
-            return;
-        }
-        
-        if (password.length < 6) {
-            toast.error('Password must be at least 6 characters.');
-            return;
-        }
-
-        setIsSigningUp(true);
-        
-        // Save all onboarding data locally
         persistLocalData();
-        localStorage.setItem('studybud_onboarded', 'true');
+        localStorage.setItem('studybud_onboarded_user_id', userId);
         localStorage.setItem('studybud_first_visit', 'true');
-        localStorage.setItem('studybud_email', email.trim());
-        localStorage.setItem('studybud_password', password);
-        
-        // Try Supabase signup in background without blocking
-        supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: { 
-                data: { full_name: name, role },
-                emailRedirectTo: `${window.location.origin}/`
-            },
-        }).then(({ data, error }) => {
-            if (data?.user?.id) {
-                persistToSupabase(data.user.id).catch(err => console.warn('Supabase save failed:', err));
-            }
-        }).catch(err => {
-            console.warn('Background signup failed:', err);
-        });
-
-        // Navigate immediately - don't wait for anything
-        window.location.href = '/';
-    };
-
-    const handleOAuthLogin = async (provider) => {
-        persistLocalData();
-        localStorage.setItem('studybud_onboarded', 'true');
-        localStorage.setItem('studybud_first_visit', 'true');
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider,
-            options: { redirectTo: `${window.location.origin}/` },
-        });
-        if (error) {
-            alert(`${error.message} — Enable this provider in Supabase → Authentication → Providers, and add ${window.location.origin}/ to Redirect URLs.`);
-        }
-    };
-
-    const handleSkipAuth = async () => {
-        await finishOnboarding(null);
-        navigate('/', { replace: true });
+        localStorage.removeItem('studybud_onboarded');
+        window.dispatchEvent(new CustomEvent('studybud-onboarded', { detail: { userId } }));
     };
 
     const isStepValid = () => {
@@ -201,18 +143,25 @@ const OnboardingSetup = () => {
     };
 
     const nextStep = async () => {
-        if (isStepValid()) {
-            if (step === 8) {
-                // If they have a session or are already a guest, skip step 9 and finish
-                const { data } = await supabase.auth.getSession();
-                const isGuest = localStorage.getItem('studybud_guest') === 'true';
-                if (data?.session || isGuest) {
-                    await finishOnboarding(data?.session?.user?.id || 'guest-user');
-                    navigate('/', { replace: true });
-                    return;
-                }
-            }
-            setStep(s => s + 1);
+        if (!isStepValid()) return;
+
+        if (step < 8) {
+            setStep(current => current + 1);
+            return;
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data?.session?.user?.id) {
+            toast.error('Please sign in to save your profile, then continue setup.');
+            navigate('/login', { replace: true, state: { mode: 'login' } });
+            return;
+        }
+
+        try {
+            await finishOnboarding(data.session.user.id);
+            navigate('/', { replace: true });
+        } catch (saveError) {
+            toast.error('We could not save your setup. Check your connection and try again.');
         }
     };
 
@@ -224,7 +173,7 @@ const OnboardingSetup = () => {
             <header className={styles.topBar}>
                 <StudyBudLogo variant="onLight" size="md" stacked showTagline />
                 <div className={styles.progressRow}>
-                    {[1,2,3,4,5,6,7,8,9].map(i => (
+                    {[1,2,3,4,5,6,7,8].map(i => (
                         <div key={i}
                             className={`${styles.progressSeg} ${i <= step ? styles.progressSegActive : ''}`}
                         />
@@ -406,39 +355,8 @@ const OnboardingSetup = () => {
                         </div>
                     )}
 
-                    {/* ── Step 9: Sign Up / In ─────────────────────────────── */}
-                    {step === 9 && (
-                        <div className={`fade-in-up ${styles.step9Wrap}`}>
-                            <div className={styles.step9Logo}>
-                                <StudyBudLogo variant="onLight" size="hero" stacked showTagline={false} />
-                            </div>
-                            <h1 className="step-title">You're all set{name ? `, ${name}` : ''}!</h1>
-                            <p className="step-subtitle">Create an account to save everything, or skip and keep it on this device.</p>
-
-                            <div className={styles.authCol}>
-                                <form onSubmit={handleEmailSignup} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', textAlign: 'left' }}>
-                                    <input type="email" placeholder="Email address" value={email}
-                                        onChange={e => setEmail(e.target.value)}
-                                        className="hitech-input" style={{ padding: '1rem', fontSize: '1rem' }} required />
-                                    <input type="password" placeholder="Create password" value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        className="hitech-input" style={{ padding: '1rem', fontSize: '1rem' }} required />
-                                    <button type="submit" className="auth-btn" style={{ backgroundColor: '#C9883A', color: '#fff', border: 'none', marginTop: '0.5rem' }} disabled={isSigningUp}>
-                                        {isSigningUp ? 'Creating account...' : 'Create account'}
-                                    </button>
-                                </form>
-
-
-
-                                <button type="button" onClick={handleSkipAuth} className={styles.skipBtn}>
-                                    Skip sign-in (this device only)
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* ── Navigation ───────────────────────────────────────── */}
-                    {step < 9 && (
+                    {step <= 8 && (
                         <div className={styles.navRow}>
                             {step > 1 ? (
                                 <button type="button" onClick={() => setStep(s => s - 1)} className="nav-btn-back">
@@ -450,7 +368,7 @@ const OnboardingSetup = () => {
                                 disabled={!isStepValid()}
                                 className={`nav-btn-next ${isStepValid() ? 'active' : ''}`}
                             >
-                                Continue →
+                                {step === 8 ? 'Finish setup' : 'Continue →'}
                             </button>
                         </div>
                     )}
