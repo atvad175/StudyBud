@@ -68,6 +68,12 @@ export const chatStream = async (messages, context = 'general', onChunk) => {
     return result;
 };
 
+export const getCompanionWelcome = async (profile, persona = 'candid') =>
+    requestAI({ operation: 'companionWelcome', profile, persona });
+
+export const chatCompanion = async (messages, persona = 'candid', profile = {}) =>
+    requestAI({ operation: 'companionChat', messages, persona, profile });
+
 export const getMockExam = async (topic, numQuestions = 5) => {
     if (typeof topic !== 'string' || !topic.trim()) {
         throw new Error('Add a subject, topic, or study extract to generate a practice exam.');
@@ -83,6 +89,8 @@ export default {
     getStudyRecommendation,
     getHabitCoaching,
     getSupportiveGuidance,
+    getCompanionWelcome,
+    chatCompanion,
     chat,
     chatStream,
     getMockExam,
