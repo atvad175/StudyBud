@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, BookOpen, Activity, Wind, CheckSquare, Moon, Zap } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
@@ -95,7 +95,7 @@ const OnboardingSetup = () => {
     const persistToSupabase = async (userId) => {
         if (!userId || userId === 'guest-user') return;
         try {
-            await supabase.from('user_onboarding').upsert({
+            const { error } = await supabase.from('user_onboarding').upsert({
                 user_id: userId,
                 name,
                 role,
@@ -109,6 +109,7 @@ const OnboardingSetup = () => {
                 motivation,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'user_id' });
+            if (error) throw error;
         } catch (e) {
             console.error('Supabase onboarding save failed:', e);
             throw e;
