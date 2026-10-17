@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, BookOpen, Clock, ChevronLeft, Check, X } from 'lucide-react';
+import { supabase } from '../../../supabaseClient';
+import { useToast } from '../../../context/ToastContext';
 
 const Flashcards = () => {
+    const { toast } = useToast();
     const [data, setData] = useState({ decks: [], cards: [] });
     const [viewMode, setViewMode] = useState('DECKS'); // DECKS, DECK_VIEW, STUDY
     const [activeDeckId, setActiveDeckId] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [legacyBackup, setLegacyBackup] = useState(null);
+    const [isImportingLegacy, setIsImportingLegacy] = useState(false);
 
     // Modals & Inputs
     const [showNewDeck, setShowNewDeck] = useState(false);
     const [newDeckName, setNewDeckName] = useState('');
     const [newDeckSubject, setNewDeckSubject] = useState('');
-
     const [showNewCard, setShowNewCard] = useState(false);
     const [newCardFront, setNewCardFront] = useState('');
     const [newCardBack, setNewCardBack] = useState('');
@@ -21,115 +28,314 @@ const Flashcards = () => {
     const [isFlipped, setIsFlipped] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem('studybud_flashcards');
-        if (stored) {
-            setData(JSON.parse(stored));
-        } else {
-            setData({ decks: [], cards: [] });
-        }
+        let active = true;
+
+        const loadFlashcards = async () => {
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) {
+                    throw new Error('Sign in to view and save your flashcards.');
+                }
+
+                const [deckResult, cardResult] = await Promise.all([
+                    supabase
+                        .from('flashcard_decks')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('flashcards')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false }),
+                ]);
+
+                if (deckResult.error) throw deckResult.error;
+                if (cardResult.error) throw cardResult.error;
+                if (!active) return;
+
+                setData({
+                    decks: deckResult.data || [],
+                    cards: (cardResult.data || []).map(card => ({ ...card, deckId: card.deck_id })),
+                });
+
+                // Older releases stored flashcards only in this browser. Keep them
+                // separate from the database until the signed-in user explicitly imports.
+                const ownerBackupKey = 'studybud_flashcards_backup_' + user.id;
+                const candidateKeys = [
+                    ownerBackupKey,
+                    localStorage.getItem('studybud_flashcards_user_id') === user.id
+                        ? 'studybud_flashcards'
+                        : null,
+                ].filter(Boolean);
+
+                for (const key of candidateKeys) {
+                    const stored = localStorage.getItem(key);
+                    if (!stored) continue;
+                    try {
+                        const parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed.decks) && Array.isArray(parsed.cards)) {
+                            setLegacyBackup({ sourceKey: key, data: parsed });
+                            break;
+                        }
+                    } catch (parseError) {
+                        console.warn('Could not read older flashcard backup:', parseError);
+                    }
+                }
+            } catch (error) {
+                if (active) setLoadError(error?.message || 'Flashcards could not be loaded. Please try again.');
+            } finally {
+                if (active) setIsLoading(false);
+            }
+        };
+
+        loadFlashcards();
+        return () => { active = false; };
     }, []);
 
-    const saveData = (newData) => {
-        setData(newData);
-        localStorage.setItem('studybud_flashcards', JSON.stringify(newData));
-    };
+    const handleImportLegacy = async () => {
+        if (!legacyBackup || isImportingLegacy) return;
+        setIsImportingLegacy(true);
 
-    // --- DECKS ---
-    const handleCreateDeck = () => {
-        if (!newDeckName || !newDeckSubject) return;
-        const newDeck = {
-            id: Date.now().toString(),
-            name: newDeckName,
-            subject: newDeckSubject,
-            last_reviewed: null
-        };
-        saveData({ ...data, decks: [...data.decks, newDeck] });
-        setShowNewDeck(false);
-        setNewDeckName('');
-        setNewDeckSubject('');
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in before importing flashcards.');
+
+            const importedDecks = [];
+            const deckIdMap = new Map();
+
+            for (const [index, oldDeck] of legacyBackup.data.decks.entries()) {
+                if (!oldDeck?.name) continue;
+                const legacyId = String(oldDeck.id ?? ('legacy-deck-' + index));
+                const { data: deck, error } = await supabase
+                    .from('flashcard_decks')
+                    .upsert({
+                        user_id: user.id,
+                        legacy_id: legacyId,
+                        name: String(oldDeck.name).trim(),
+                        subject: String(oldDeck.subject || 'Uncategorized').trim(),
+                        last_reviewed: oldDeck.last_reviewed || null,
+                    }, { onConflict: 'user_id,legacy_id' })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                importedDecks.push(deck);
+                deckIdMap.set(String(oldDeck.id ?? ('legacy-deck-' + index)), deck.id);
+            }
+
+            const importedCards = [];
+            for (const [index, oldCard] of legacyBackup.data.cards.entries()) {
+                const newDeckId = deckIdMap.get(String(oldCard.deckId));
+                if (!newDeckId || !oldCard.front || !oldCard.back) continue;
+
+                const legacyId = String(oldCard.id ?? ('legacy-card-' + index));
+                const { data: card, error } = await supabase
+                    .from('flashcards')
+                    .upsert({
+                        user_id: user.id,
+                        legacy_id: legacyId,
+                        deck_id: newDeckId,
+                        front: String(oldCard.front),
+                        back: String(oldCard.back),
+                        next_review_date: oldCard.next_review_date || new Date().toISOString(),
+                    }, { onConflict: 'user_id,legacy_id' })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                importedCards.push({ ...card, deckId: card.deck_id });
+            }
+
+            setData(previous => ({
+                decks: [...new Map([...previous.decks, ...importedDecks].map(deck => [String(deck.id), deck])).values()],
+                cards: [...new Map([...previous.cards, ...importedCards].map(card => [String(card.id), card])).values()],
+            }));
+            localStorage.removeItem(legacyBackup.sourceKey);
+            setLegacyBackup(null);
+            toast.success('Your older flashcards were imported into this account.');
+        } catch (error) {
+            console.error('Flashcard import failed:', error);
+            toast.error(error?.message || 'Flashcards could not be imported. Your backup has been kept.');
+        } finally {
+            setIsImportingLegacy(false);
+        }
     };
 
     const getDueCardsCount = (deckId) => {
         const now = new Date();
-        return data.cards.filter(c => c.deckId === deckId && (!c.next_review_date || new Date(c.next_review_date) <= now)).length;
+        return data.cards.filter(card =>
+            String(card.deckId) === String(deckId) &&
+            (!card.next_review_date || new Date(card.next_review_date) <= now)
+        ).length;
     };
 
-    const getTotalCardsCount = (deckId) => {
-        return data.cards.filter(c => c.deckId === deckId).length;
+    const getTotalCardsCount = (deckId) =>
+        data.cards.filter(card => String(card.deckId) === String(deckId)).length;
+
+    const handleCreateDeck = async () => {
+        const name = newDeckName.trim();
+        const subject = newDeckSubject.trim();
+        if (!name || !subject || isSaving) return;
+
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save flashcard decks.');
+
+            const { data: deck, error } = await supabase
+                .from('flashcard_decks')
+                .insert({ user_id: user.id, name, subject })
+                .select()
+                .single();
+            if (error) throw error;
+
+            setData(previous => ({ ...previous, decks: [deck, ...previous.decks] }));
+            setShowNewDeck(false);
+            setNewDeckName('');
+            setNewDeckSubject('');
+            toast.success('Flashcard deck created.');
+        } catch (error) {
+            toast.error(error?.message || 'The deck could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    // --- DECK_VIEW ---
     const handleOpenDeck = (deckId) => {
         setActiveDeckId(deckId);
         setViewMode('DECK_VIEW');
     };
 
-    const handleCreateCard = () => {
-        if (!newCardFront || !newCardBack) return;
-        const newCard = {
-            id: Date.now().toString(),
-            deckId: activeDeckId,
-            front: newCardFront,
-            back: newCardBack,
-            next_review_date: new Date().toISOString() // Due immediately
-        };
-        saveData({ ...data, cards: [...data.cards, newCard] });
-        setShowNewCard(false);
-        setNewCardFront('');
-        setNewCardBack('');
+    const handleCreateCard = async () => {
+        const front = newCardFront.trim();
+        const back = newCardBack.trim();
+        if (!front || !back || !activeDeckId || isSaving) return;
+
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save flashcards.');
+
+            const { data: card, error } = await supabase
+                .from('flashcards')
+                .insert({
+                    user_id: user.id,
+                    deck_id: activeDeckId,
+                    front,
+                    back,
+                    next_review_date: new Date().toISOString(),
+                })
+                .select()
+                .single();
+            if (error) throw error;
+
+            setData(previous => ({
+                ...previous,
+                cards: [{ ...card, deckId: card.deck_id }, ...previous.cards],
+            }));
+            setShowNewCard(false);
+            setNewCardFront('');
+            setNewCardBack('');
+            toast.success('Flashcard saved.');
+        } catch (error) {
+            toast.error(error?.message || 'The flashcard could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    // --- STUDY MODE ---
-    const handleStartStudy = () => {
+    const handleStartStudy = async () => {
         const now = new Date();
-        const due = data.cards.filter(c => c.deckId === activeDeckId && (!c.next_review_date || new Date(c.next_review_date) <= now));
-        
-        if (due.length === 0) {
-            alert('No cards due for review in this deck!');
-            return;
-        }
-
-        // Update deck's last_reviewed date
-        const updatedDecks = data.decks.map(d => d.id === activeDeckId ? { ...d, last_reviewed: new Date().toISOString() } : d);
-        saveData({ ...data, decks: updatedDecks });
-
-        setStudyQueue(due);
-        setCurrentStudyIndex(0);
-        setIsFlipped(false);
-        setViewMode('STUDY');
-    };
-
-    const handleRateCard = (isEasy) => {
-        const currentCard = studyQueue[currentStudyIndex];
-        const now = new Date();
-        
-        if (isEasy) {
-            now.setDate(now.getDate() + 3); // next review in 3 days
-        } else {
-            // Next session (due immediately or tomorrow? prompt says "next session" meaning immediately due again or just leave as now)
-            // Let's set it to 1 hour from now so they don't see it this exact second, but next time they open it
-            now.setHours(now.getHours() + 1);
-        }
-
-        const updatedCards = data.cards.map(c => 
-            c.id === currentCard.id ? { ...c, next_review_date: now.toISOString() } : c
+        const due = data.cards.filter(card =>
+            String(card.deckId) === String(activeDeckId) &&
+            (!card.next_review_date || new Date(card.next_review_date) <= now)
         );
 
-        saveData({ ...data, cards: updatedCards });
+        if (due.length === 0) {
+            toast.info('No cards are due for review in this deck yet.');
+            return;
+        }
+        if (isSaving) return;
 
-        // Next card
-        if (currentStudyIndex + 1 < studyQueue.length) {
-            setCurrentStudyIndex(currentStudyIndex + 1);
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to start a review session.');
+
+            const lastReviewed = new Date().toISOString();
+            const { error } = await supabase
+                .from('flashcard_decks')
+                .update({ last_reviewed: lastReviewed })
+                .eq('id', activeDeckId)
+                .eq('user_id', user.id);
+            if (error) throw error;
+
+            setData(previous => ({
+                ...previous,
+                decks: previous.decks.map(deck =>
+                    String(deck.id) === String(activeDeckId)
+                        ? { ...deck, last_reviewed: lastReviewed }
+                        : deck
+                ),
+            }));
+            setStudyQueue(due);
+            setCurrentStudyIndex(0);
             setIsFlipped(false);
-        } else {
-            alert('Study session complete!');
-            setViewMode('DECK_VIEW');
+            setViewMode('STUDY');
+        } catch (error) {
+            toast.error(error?.message || 'The review session could not start. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
+    const handleRateCard = async (isEasy) => {
+        const currentCard = studyQueue[currentStudyIndex];
+        if (!currentCard || isSaving) return;
 
-    const activeDeck = data.decks.find(d => d.id === activeDeckId);
-    const activeDeckCards = data.cards.filter(c => c.deckId === activeDeckId);
+        const nextReview = new Date();
+        if (isEasy) nextReview.setDate(nextReview.getDate() + 3);
+        else nextReview.setHours(nextReview.getHours() + 1);
+
+        const nextReviewDate = nextReview.toISOString();
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save your review progress.');
+
+            const { error } = await supabase
+                .from('flashcards')
+                .update({ next_review_date: nextReviewDate })
+                .eq('id', currentCard.id)
+                .eq('user_id', user.id);
+            if (error) throw error;
+
+            setData(previous => ({
+                ...previous,
+                cards: previous.cards.map(card =>
+                    String(card.id) === String(currentCard.id)
+                        ? { ...card, next_review_date: nextReviewDate }
+                        : card
+                ),
+            }));
+
+            if (currentStudyIndex + 1 < studyQueue.length) {
+                setCurrentStudyIndex(currentStudyIndex + 1);
+                setIsFlipped(false);
+            } else {
+                setViewMode('DECK_VIEW');
+                toast.success('Review complete. Your next review times are saved.');
+            }
+        } catch (error) {
+            toast.error(error?.message || 'Your review progress could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const activeDeck = data.decks.find(deck => String(deck.id) === String(activeDeckId));
+    const activeDeckCards = data.cards.filter(card => String(card.deckId) === String(activeDeckId));
 
     return (
         <div className="page-container" style={{ paddingBottom: '80px', maxWidth: '900px', margin: '0 auto' }}>
