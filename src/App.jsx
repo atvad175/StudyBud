@@ -92,6 +92,8 @@ const App = () => {
 
       const personalKeys = [
         'studybud_role',
+        'studybud_board',
+        'studybud_grade',
         'studybud_struggles',
         'studybud_intention',
         'studybud_learning_style',
@@ -116,6 +118,8 @@ const App = () => {
 
       localStorage.setItem('studybud_username', onboarding.name || user.user_metadata?.full_name || 'Student');
       localStorage.setItem('studybud_role', onboarding.role || 'School student');
+      localStorage.setItem('studybud_board', onboarding.board || '');
+      localStorage.setItem('studybud_grade', onboarding.grade || '');
       localStorage.setItem('studybud_struggles', JSON.stringify(onboarding.struggles || []));
       localStorage.setItem('studybud_intention', onboarding.intention || '');
       localStorage.setItem('studybud_learning_style', onboarding.learning_style || '');
@@ -140,7 +144,7 @@ const App = () => {
     const loadOnboardingState = async (user) => {
       const { data, error } = await supabase
         .from('user_onboarding')
-        .select('user_id, name, role, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
+        .select('user_id, name, role, board, grade, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
         .eq('user_id', user.id)
         .maybeSingle();
 
