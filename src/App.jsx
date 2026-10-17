@@ -65,63 +65,98 @@ import MainDashboard from './modules/Dashboard/pages/MainDashboard';
 
 const App = () => {
   const [session, setSession] = useState(null);
-  const [hasProfile, setHasProfile] = useState(false);
+  const [isOnboarded, setIsOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isOnboarded, setIsOnboarded] = useState(
-    localStorage.getItem('studybud_onboarded') === 'true'
-  );
 
   useEffect(() => {
-    const isGuest = localStorage.getItem('studybud_guest') === 'true';
+    let active = true;
+    // Remove credentials written by older versions of the signup flow.
+    localStorage.removeItem('studybud_password');
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-        checkProfile(session.user.id);
-      } else {
-        // Force guest mode if no Supabase session exists
-        setSession({ user: { id: 'guest-user', email: 'guest@studybud.local' } });
-        setHasProfile(true);
-        setLoading(false);
+    const loadOnboardingState = async (userId) => {
+      const { data, error } = await supabase
+        .from('user_onboarding')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!active) return false;
+      if (error) {
+        console.error('Unable to check onboarding status:', error.message);
+        setIsOnboarded(false);
+        return false;
       }
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setSession(session);
-        checkProfile(session.user.id);
-      } else {
-        // Fallback to guest if user logs out or session is lost
-        setSession({ user: { id: 'guest-user', email: 'guest@studybud.local' } });
-        setHasProfile(true);
-        setLoading(false);
-      }
-    });
-
-    // Listen for storage changes so the route re-evaluates after onboarding completes
-    const handleStorage = () => {
-      setIsOnboarded(localStorage.getItem('studybud_onboarded') === 'true');
+      const complete = Boolean(data);
+      if (complete) localStorage.setItem('studybud_onboarded_user_id', userId);
+      setIsOnboarded(complete);
+      return complete;
     };
-    window.addEventListener('studybud-onboarded', handleStorage);
+
+    const syncSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (!active) return;
+      if (error) console.error('Unable to restore authentication session:', error.message);
+
+      const currentSession = data?.session ?? null;
+      setSession(currentSession);
+
+      if (currentSession) {
+        await loadOnboardingState(currentSession.user.id);
+      } else {
+        setIsOnboarded(false);
+      }
+      if (active) setLoading(false);
+    };
+
+    syncSession().catch((error) => {
+      console.error('Unable to initialize StudyBud:', error);
+      if (active) {
+        setSession(null);
+        setIsOnboarded(false);
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null);
+      if (!nextSession) {
+        setIsOnboarded(false);
+        setLoading(false);
+        return;
+      }
+
+      // Avoid another Supabase request inside the auth callback. The stored marker is
+      // only a UI hint; database RLS remains the source of authorization.
+      setIsOnboarded(
+        localStorage.getItem('studybud_onboarded_user_id') === nextSession.user.id
+      );
+      setLoading(false);
+    });
+
+    const handleOnboardingComplete = (event) => {
+      const userId = event?.detail?.userId;
+      if (userId) {
+        const complete = localStorage.getItem('studybud_onboarded_user_id') === userId;
+        setIsOnboarded(complete);
+      }
+    };
+
+    const handleStorage = () => {
+      const userId = localStorage.getItem('studybud_onboarded_user_id');
+      setIsOnboarded(Boolean(session?.user?.id && userId === session.user.id));
+    };
+
+    window.addEventListener('studybud-onboarded', handleOnboardingComplete);
     window.addEventListener('storage', handleStorage);
 
     return () => {
+      active = false;
       subscription.unsubscribe();
-      window.removeEventListener('studybud-onboarded', handleStorage);
+      window.removeEventListener('studybud-onboarded', handleOnboardingComplete);
       window.removeEventListener('storage', handleStorage);
     };
   }, []);
-
-  const checkProfile = async (userId) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .single();
-
-    setHasProfile(!!data);
-    setLoading(false);
-  };
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>Loading...</div>;
 
@@ -147,10 +182,10 @@ const App = () => {
                       {/* Auth Required Routes */}
                       <Route
                         path="/onboarding/setup"
-                        element={<OnboardingSetup />}
+                        element={session ? (isOnboarded ? <Navigate to="/" replace /> : <OnboardingSetup />) : <Navigate to="/login" replace />}
                       />
 
-                      <Route path="/" element={session ? (isOnboarded ? <MainLayout /> : <Navigate to="/landing" replace />) : <Navigate to="/landing" replace />}>
+                      <Route path="/" element={session ? (isOnboarded ? <MainLayout /> : <Navigate to="/onboarding/setup" replace />) : <Navigate to="/landing" replace />}>
                         <Route index element={<MainDashboard />} />
                         <Route path="settings" element={<SettingsPage />} />
 
