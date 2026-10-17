@@ -271,7 +271,7 @@ const App = () => {
   if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>Loading...</div>;
 
   return (
-    <AIProvider key={`${session?.user?.id || 'signed-out'}:${isOnboarded ? 'complete' : 'incomplete'}`}>
+    <AIProvider key={session?.user?.id || 'signed-out'}>
       <MusicProvider>
         <HabitsProvider>
           <FocusProvider>
