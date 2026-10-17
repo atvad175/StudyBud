@@ -16,22 +16,53 @@ export const HabitsProvider = ({ children }) => {
     const [logs, setLogs] = useState({});
     const [loading, setLoading] = useState(true);
 
-    // Fetch initial data
+    // Refresh provider state when onboarding creates its optional starter habit.
     useEffect(() => {
+        let active = true;
+
+        const handleStarterHabitCreated = async (event) => {
+            const userId = event.detail?.userId;
+            const habit = event.detail?.habit;
+            if (!userId || !habit) return;
+
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                if (error) throw error;
+                if (!active || !user || user.id !== userId) return;
+
+                setAtoms(current => {
+                    const byId = new Map(current.map(item => [String(item.id), item]));
+                    byId.set(String(habit.id), habit);
+                    return [...byId.values()];
+                });
+            } catch (error) {
+                console.error('Unable to refresh the new starter habit:', error?.code || 'unknown');
+            }
+        };
+
+        window.addEventListener('studybud-starter-habit-created', handleStarterHabitCreated);
+
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Fetch Atoms
                 const { data: atomsData, error: atomsError } = await supabase
                     .from('atoms')
                     .select('*')
                     .order('created_at', { ascending: true });
 
                 if (atomsError) throw atomsError;
-                setAtoms(atomsData || []);
+                if (!active) return;
 
-                // Fetch Logs
-                // Ideally filtering by recent dates, but fetching all for now for simplicity
+                // Merge rather than replace so a habit created while initial loading
+                // is in flight is not erased by a stale query response.
+                setAtoms(current => {
+                    const byId = new Map(current.map(item => [String(item.id), item]));
+                    (atomsData || []).forEach(item => byId.set(String(item.id), item));
+                    return [...byId.values()].sort((a, b) =>
+                        new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+                    );
+                });
+
                 const { data: logsData, error: logsError } = await supabase
                     .from('logs')
                     .select('*')
@@ -39,26 +70,27 @@ export const HabitsProvider = ({ children }) => {
                     .limit(400);
 
                 if (logsError) throw logsError;
+                if (!active) return;
 
-                // Process logs into dictionary structure: { [date]: { [atomId]: { status: ... } } }
                 const logsDict = {};
-                if (logsData) {
-                    logsData.forEach(log => {
-                        const date = log.date_logged; // Assuming YYYY-MM-DD
-                        if (!logsDict[date]) logsDict[date] = {};
-                        logsDict[date][log.atom_id] = { status: log.status, id: log.id };
-                    });
-                }
+                (logsData || []).forEach(log => {
+                    const date = log.date_logged;
+                    if (!logsDict[date]) logsDict[date] = {};
+                    logsDict[date][log.atom_id] = { status: log.status, id: log.id };
+                });
                 setLogs(logsDict);
-
             } catch (error) {
-                console.error('Error fetching data:', error);
+                if (active) console.error('Error fetching habits data:', error?.code || 'unknown');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
 
-        fetchData();
+        void fetchData();
+        return () => {
+            active = false;
+            window.removeEventListener('studybud-starter-habit-created', handleStarterHabitCreated);
+        };
     }, []);
 
     const addAtom = async (atom) => {
