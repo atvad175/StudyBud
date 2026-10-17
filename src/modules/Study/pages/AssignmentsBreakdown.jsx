@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import styles from '../StudyShared.module.css';
 import { FileText, Plus, Calendar, CheckSquare } from 'lucide-react';
 import { useStudy } from '../../../context/StudyContext';
+import { useToast } from '../../../context/ToastContext';
 
 const AssignmentsBreakdown = () => {
     const { assignments, addAssignment, updateAssignment } = useStudy();
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [newAssignment, setNewAssignment] = useState({
         title: '',
@@ -20,19 +23,40 @@ const AssignmentsBreakdown = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        addAssignment(newAssignment);
-        setNewAssignment({ title: '', subject: '', deadline: '', steps: [] });
-        setShowForm(false);
+        if (!newAssignment.title.trim() || isSaving) return;
+
+        setIsSaving(true);
+        try {
+            await addAssignment({
+                ...newAssignment,
+                title: newAssignment.title.trim(),
+                subject: newAssignment.subject.trim(),
+                steps: newAssignment.steps.filter(step => step.name.trim()),
+            });
+            setNewAssignment({ title: '', subject: '', deadline: '', steps: [] });
+            setShowForm(false);
+            toast.success('Assignment saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Assignment could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const toggleStep = (assignmentId, stepIndex) => {
-        const assignment = assignments.find(a => a.id === assignmentId);
-        const updatedSteps = assignment.steps.map((step, i) =>
-            i === stepIndex ? { ...step, done: !step.done } : step
+    const toggleStep = async (assignmentId, stepIndex) => {
+        const assignment = assignments.find(item => item.id === assignmentId);
+        if (!assignment) return;
+
+        const updatedSteps = (assignment.steps || []).map((step, index) =>
+            index === stepIndex ? { ...step, done: !step.done } : step
         );
-        updateAssignment(assignmentId, { steps: updatedSteps });
+        try {
+            await updateAssignment(assignmentId, { steps: updatedSteps });
+        } catch (error) {
+            toast.error(error?.message || 'Progress could not be saved. Please try again.');
+        }
     };
 
     return (
@@ -117,8 +141,8 @@ const AssignmentsBreakdown = () => {
                         </button>
                     </div>
 
-                    <button type="submit" style={{ padding: '12px 24px', borderRadius: '12px', border: 'none', background: '#f39c12', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
-                        Create Assignment
+                    <button type="submit" disabled={isSaving} style={{ padding: '12px 24px', borderRadius: '12px', border: 'none', background: '#f39c12', color: 'white', fontWeight: '600', cursor: isSaving ? 'wait' : 'pointer', opacity: isSaving ? 0.7 : 1 }}>
+                        {isSaving ? 'Saving…' : 'Create Assignment'}
                     </button>
                 </form>
             )}
