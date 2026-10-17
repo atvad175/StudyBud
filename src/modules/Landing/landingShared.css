@@ -5,7 +5,7 @@
     min-height: 100vh;
     background-color: #050505;
     color: #f5f1ea;
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-sans, 'Inter'), sans-serif;
     overflow-x: hidden;
     position: relative;
 }
@@ -147,7 +147,7 @@
 }
 
 .landing-nav__logo {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: 2.2rem;
     font-weight: 700;
     cursor: pointer;
@@ -398,7 +398,7 @@
 }
 
 .hero-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: clamp(2.75rem, 7vw, 5rem);
     line-height: 1.1;
     margin: 0 auto 1.5rem;
@@ -493,7 +493,7 @@
 }
 
 .bento-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: clamp(1.5rem, 3vw, 2rem);
     margin-bottom: 0.85rem;
     color: #fff;
@@ -642,7 +642,7 @@
 }
 
 .landing-inner h1 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: clamp(2.25rem, 5vw, 3.75rem);
     font-weight: 700;
     line-height: 1.12;
@@ -677,7 +677,7 @@
 .landing-glass-panel h3,
 .landing-glass-panel h4 {
     color: #fff;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
 }
 
 .landing-glass-panel p {
@@ -720,7 +720,7 @@
 }
 
 .landing-feature-card h3 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: var(--font-serif, 'Playfair Display'), serif;
     font-size: 1.45rem;
     margin: 0 0 0.65rem;
     color: #fff;
