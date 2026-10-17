@@ -59,18 +59,25 @@ const ExamsPrep = () => {
         setMode('config');
     };
 
-    // Timer Logic
+    // Timer Logic. When time expires, submit on the next task turn so the
+    // component doesn't update state synchronously inside an effect.
     useEffect(() => {
-        let interval;
-        if (mode === 'exam' && timer > 0) {
-            interval = setInterval(() => setTimer(t => t - 1), 1000);
-        } else if (timer === 0 && mode === 'exam') {
-            const correct = examQuestions.reduce((total, question, index) =>
-                total + (userAnswers[index] === question.correctAnswer ? 1 : 0), 0);
-            setScore(correct);
-            setMode('review');
+        if (mode !== 'exam') return undefined;
+
+        if (timer <= 0) {
+            const submitTimeout = window.setTimeout(() => {
+                const correct = examQuestions.reduce((total, question, index) =>
+                    total + (userAnswers[index] === question.correctAnswer ? 1 : 0), 0);
+                setScore(correct);
+                setMode('review');
+            }, 0);
+            return () => window.clearTimeout(submitTimeout);
         }
-        return () => clearInterval(interval);
+
+        const interval = window.setInterval(() => {
+            setTimer(current => Math.max(0, current - 1));
+        }, 1000);
+        return () => window.clearInterval(interval);
     }, [mode, timer, examQuestions, userAnswers]);
 
     const formatTime = (s) => {
