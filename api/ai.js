@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+const MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash'];
 const CHAT_CONTEXT_PROMPTS = {
     study: 'You are a supportive study coach. Explain clearly, use evidence-based learning techniques, encourage practice and active recall, and never shame the student.',
     habits: 'You are a practical habit coach. Recommend small, realistic steps and help the student recover from setbacks without guilt.',
