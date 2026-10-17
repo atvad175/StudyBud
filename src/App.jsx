@@ -73,22 +73,80 @@ const App = () => {
     // Remove credentials written by older versions of the signup flow.
     localStorage.removeItem('studybud_password');
 
-    const loadOnboardingState = async (userId) => {
+    const hydrateAccountState = (user, onboarding) => {
+      const userId = user.id;
+      const previousChatOwner = localStorage.getItem('studybud_bud_chat_user_id');
+
+      // Bud's local history must never silently carry over to another account.
+      if (previousChatOwner !== userId) {
+        localStorage.removeItem('studybud_bud_chat');
+        localStorage.removeItem('studybud_bud_persona');
+        localStorage.setItem('studybud_bud_chat_user_id', userId);
+      }
+
+      const personalKeys = [
+        'studybud_role',
+        'studybud_struggles',
+        'studybud_intention',
+        'studybud_learning_style',
+        'studybud_fav_subjects',
+        'studybud_fav_topics',
+        'studybud_topic_type',
+        'studybud_productive_time',
+        'studybud_motivation',
+        'studybud_onboarding_atom',
+        'studybud_avatar',
+      ];
+
+      if (!onboarding) {
+        personalKeys.forEach((key) => localStorage.removeItem(key));
+        localStorage.removeItem('studybud_first_visit');
+        localStorage.removeItem('studybud_onboarded_user_id');
+        const name = user.user_metadata?.full_name;
+        if (name) localStorage.setItem('studybud_username', name);
+        else localStorage.removeItem('studybud_username');
+        return false;
+      }
+
+      localStorage.setItem('studybud_username', onboarding.name || user.user_metadata?.full_name || 'Student');
+      localStorage.setItem('studybud_role', onboarding.role || 'School student');
+      localStorage.setItem('studybud_struggles', JSON.stringify(onboarding.struggles || []));
+      localStorage.setItem('studybud_intention', onboarding.intention || '');
+      localStorage.setItem('studybud_learning_style', onboarding.learning_style || '');
+      localStorage.setItem('studybud_fav_subjects', JSON.stringify(onboarding.fav_topics || []));
+      localStorage.setItem('studybud_fav_topics', JSON.stringify(onboarding.fav_topics || []));
+      localStorage.setItem('studybud_topic_type', onboarding.topic_type || 'subjects');
+      localStorage.setItem('studybud_productive_time', onboarding.productive_time || '');
+      localStorage.setItem('studybud_motivation', onboarding.motivation || '');
+      if (onboarding.first_atom) {
+        localStorage.setItem('studybud_onboarding_atom', JSON.stringify({
+          id: onboarding.first_atom,
+          label: onboarding.first_atom,
+        }));
+      } else {
+        localStorage.removeItem('studybud_onboarding_atom');
+      }
+
+      localStorage.setItem('studybud_onboarded_user_id', userId);
+      return true;
+    };
+
+    const loadOnboardingState = async (user) => {
       const { data, error } = await supabase
         .from('user_onboarding')
-        .select('user_id')
-        .eq('user_id', userId)
+        .select('user_id, name, role, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (!active) return false;
       if (error) {
         console.error('Unable to check onboarding status:', error.message);
+        hydrateAccountState(user, null);
         setIsOnboarded(false);
         return false;
       }
 
-      const complete = Boolean(data);
-      if (complete) localStorage.setItem('studybud_onboarded_user_id', userId);
+      const complete = hydrateAccountState(user, data);
       setIsOnboarded(complete);
       return complete;
     };
@@ -102,7 +160,7 @@ const App = () => {
       setSession(currentSession);
 
       if (currentSession) {
-        await loadOnboardingState(currentSession.user.id);
+        await loadOnboardingState(currentSession.user);
       } else {
         setIsOnboarded(false);
       }
@@ -133,18 +191,17 @@ const App = () => {
         try {
           const { data, error } = await supabase
             .from('user_onboarding')
-            .select('user_id')
+            .select('user_id, name, role, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
             .eq('user_id', nextSession.user.id)
             .maybeSingle();
 
           if (!active) return;
           if (error) {
             console.error('Unable to check onboarding status:', error.message);
+            hydrateAccountState(nextSession.user, null);
             setIsOnboarded(false);
           } else {
-            const complete = Boolean(data);
-            if (complete) localStorage.setItem('studybud_onboarded_user_id', nextSession.user.id);
-            setIsOnboarded(complete);
+            setIsOnboarded(hydrateAccountState(nextSession.user, data));
           }
         } catch (error) {
           if (active) {
@@ -165,9 +222,11 @@ const App = () => {
       }
     };
 
-    const handleStorage = () => {
-      const userId = localStorage.getItem('studybud_onboarded_user_id');
-      setIsOnboarded(Boolean(session?.user?.id && userId === session.user.id));
+    const handleStorage = async () => {
+      const { data } = await supabase.auth.getSession();
+      const userId = data?.session?.user?.id;
+      const marker = localStorage.getItem('studybud_onboarded_user_id');
+      setIsOnboarded(Boolean(userId && marker === userId));
     };
 
     window.addEventListener('studybud-onboarded', handleOnboardingComplete);
