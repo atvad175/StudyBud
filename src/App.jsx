@@ -86,6 +86,13 @@ const App = () => {
 
       const previousFlashcardOwner = localStorage.getItem('studybud_flashcards_user_id');
       if (previousFlashcardOwner !== userId) {
+        const existingFlashcards = localStorage.getItem('studybud_flashcards');
+        if (existingFlashcards) {
+          // Preserve device-only flashcards under the account that was active when
+          // they were stored. The Flashcards page will ask before importing them.
+          const backupOwner = previousFlashcardOwner || userId;
+          localStorage.setItem(`studybud_flashcards_backup_${backupOwner}`, existingFlashcards);
+        }
         localStorage.removeItem('studybud_flashcards');
         localStorage.setItem('studybud_flashcards_user_id', userId);
       }
