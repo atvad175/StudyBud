@@ -24,6 +24,7 @@ const ExamsPrep = () => {
     const [aiTopic, setAiTopic] = useState('');
     const [aiNumQs, setAiNumQs] = useState(5);
     const [aiTime, setAiTime] = useState(15);
+    const [requestedExamLabel, setRequestedExamLabel] = useState('AI Custom Mock Exam');
     const [isGenerating, setIsGenerating] = useState(false);
 
     // Exam State
@@ -41,7 +42,7 @@ const ExamsPrep = () => {
             const generated = await getMockExam(aiTopic, aiNumQs);
             examSubmittedRef.current = false;
             setExamQuestions(generated);
-            setActiveExam({ label: 'AI Custom Mock Exam', duration: aiTime, questions: generated.length });
+            setActiveExam({ label: requestedExamLabel, duration: aiTime, questions: generated.length });
             setTimer(aiTime * 60);
             setCurrentQuestion(1);
             setUserAnswers({});
@@ -55,6 +56,7 @@ const ExamsPrep = () => {
 
     // Presets set up an actual AI practice paper; they no longer launch dummy questions.
     const startExam = (exam) => {
+        setRequestedExamLabel(exam.label);
         setAiNumQs(exam.questions);
         setAiTime(exam.duration);
         setMode('config');
@@ -195,7 +197,7 @@ const ExamsPrep = () => {
                                     <div style={{ fontSize: '0.9rem', color: 'var(--study-secondary)', marginBottom: '1.5rem' }}>
                                         Paste study material or topics and let AI generate a customized test for you.
                                     </div>
-                                    <button onClick={() => setMode('config')} style={{...startBtn, background: '#8e24aa'}}>
+                                    <button onClick={() => { setRequestedExamLabel('AI Custom Mock Exam'); setMode('config'); }} style={{...startBtn, background: '#8e24aa'}}>
                                         Configure
                                     </button>
                                 </div>
