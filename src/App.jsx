@@ -84,6 +84,12 @@ const App = () => {
         localStorage.setItem('studybud_bud_chat_user_id', userId);
       }
 
+      const previousFlashcardOwner = localStorage.getItem('studybud_flashcards_user_id');
+      if (previousFlashcardOwner !== userId) {
+        localStorage.removeItem('studybud_flashcards');
+        localStorage.setItem('studybud_flashcards_user_id', userId);
+      }
+
       const personalKeys = [
         'studybud_role',
         'studybud_struggles',
