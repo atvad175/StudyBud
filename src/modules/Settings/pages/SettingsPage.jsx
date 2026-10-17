@@ -45,7 +45,7 @@ const SettingsPage = () => {
                 // Default 15%
                 document.documentElement.style.setProperty('--night-light-intensity', 0.15);
             }
-        } catch(e){}
+        } catch (error) { console.warn('Unable to load saved appearance settings:', error); }
     }, []);
 
     const handleSaveProfile = () => {
@@ -83,7 +83,11 @@ const SettingsPage = () => {
 
     const handleAppearanceChange = (key, value) => {
         let settings = {};
-        try { settings = JSON.parse(localStorage.getItem('studybud_settings') || '{}'); } catch(e){}
+        try {
+            settings = JSON.parse(localStorage.getItem('studybud_settings') || '{}');
+        } catch (error) {
+            console.warn('Unable to read saved appearance settings:', error);
+        }
         
         if (key === 'warmMode') {
             setWarmMode(value);
