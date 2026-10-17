@@ -20,66 +20,87 @@ export const TimeProvider = ({ children }) => {
     const fetchTasks = async () => {
         setLoading(true);
         try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) {
+                setTasks([]);
+                return;
+            }
+
             const { data, error } = await supabase
                 .from('tasks')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(200);
 
             if (error) throw error;
             setTasks(data || []);
         } catch (error) {
             console.error('Error fetching tasks:', error);
-            // Fallback for demo if DB fails:
-            // setTasks([]); 
+            setTasks([]);
         } finally {
             setLoading(false);
         }
     };
 
     const createTask = async (taskData) => {
-        // Optimistic
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save tasks.');
+
         const tempId = Date.now();
-        const newTask = { ...taskData, id: tempId, status: 'Planned', created_at: new Date() };
-        setTasks(prev => [newTask, ...prev]);
+        const payload = { ...taskData, user_id: user.id, status: taskData.status || 'Planned' };
+        const optimisticTask = { ...payload, id: tempId, created_at: new Date() };
+        setTasks(prev => [optimisticTask, ...prev]);
 
         try {
             const { data, error } = await supabase
                 .from('tasks')
-                .insert([taskData])
-                .select();
+                .insert([payload])
+                .select()
+                .single();
 
             if (error) throw error;
-
-            // Replace temp
-            if (data) {
-                setTasks(prev => prev.map(t => t.id === tempId ? data[0] : t));
-            }
+            setTasks(prev => prev.map(task => task.id === tempId ? data : task));
+            return data;
         } catch (error) {
-            console.error("Error creating task:", error);
+            setTasks(prev => prev.filter(task => task.id !== tempId));
+            console.error('Error creating task:', error);
+            throw error;
         }
     };
 
     const updateTask = async (id, updates) => {
-        // Optimistic
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+        const previous = tasks.find(task => task.id === id);
+        const safeUpdates = { ...updates };
+        delete safeUpdates.id;
+        delete safeUpdates.user_id;
+        setTasks(prev => prev.map(task => task.id === id ? { ...task, ...safeUpdates } : task));
 
         try {
             const { error } = await supabase
                 .from('tasks')
-                .update(updates)
+                .update(safeUpdates)
                 .eq('id', id);
 
             if (error) throw error;
         } catch (error) {
-            console.error("Error updating task:", error);
+            if (previous) setTasks(prev => prev.map(task => task.id === id ? previous : task));
+            console.error('Error updating task:', error);
+            throw error;
         }
     };
 
     const deleteTask = async (id) => {
-        setTasks(prev => prev.filter(t => t.id !== id));
+        const previous = tasks.find(task => task.id === id);
+        setTasks(prev => prev.filter(task => task.id !== id));
         try {
-            await supabase.from('tasks').delete().eq('id', id);
-        } catch (e) { console.error(e); }
+            const { error } = await supabase.from('tasks').delete().eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            if (previous) setTasks(prev => [previous, ...prev]);
+            console.error('Error deleting task:', error);
+        }
     };
 
     // --- Intelligence Logic ---
