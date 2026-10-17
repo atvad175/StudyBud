@@ -84,6 +84,7 @@ const UnifiedStudy = () => {
         practiceLogs = [],
         reviews = [],
         loading = false,
+        loadError = '',
     } = useStudy();
 
     const [activeTab, setActiveTab] = useState('subjects');
@@ -152,6 +153,18 @@ const UnifiedStudy = () => {
                 </div>
             </header>
 
+            {loadError && (
+                <div className={styles.hubDataWarning} role="alert">
+                    <div>
+                        <strong>Saved Study data is unavailable</strong>
+                        <p>{loadError}</p>
+                    </div>
+                    <button type="button" onClick={() => window.location.reload()}>
+                        Retry
+                    </button>
+                </div>
+            )}
+
             <section className={styles.hubQuickSection} aria-labelledby="quick-actions-title">
                 <div className={styles.hubSectionHeading}>
                     <div>
@@ -199,7 +212,7 @@ const UnifiedStudy = () => {
                 <div className={styles.hubStat}>
                     <span className={styles.hubStatIcon}><CalendarClock size={17} aria-hidden="true" /></span>
                     <span className={styles.hubStatValue}>{loading ? '—' : dueReviewCount}</span>
-                    <span className={styles.hubStatLabel}>{formatCount(dueReviewCount, 'review due')}</span>
+                    <span className={styles.hubStatLabel}>{formatCount(dueReviewCount, 'review due', 'reviews due')}</span>
                 </div>
             </section>
 
