@@ -161,7 +161,7 @@ const OnboardingSetup = () => {
         try {
             await finishOnboarding(data.session.user.id);
             navigate('/', { replace: true });
-        } catch (saveError) {
+        } catch {
             toast.error('We could not save your setup. Check your connection and try again.');
         }
     };
