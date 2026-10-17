@@ -201,7 +201,7 @@ const App = () => {
         try {
           const { data, error } = await supabase
             .from('user_onboarding')
-            .select('user_id, name, role, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
+            .select('user_id, name, role, board, grade, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
             .eq('user_id', nextSession.user.id)
             .maybeSingle();
 
