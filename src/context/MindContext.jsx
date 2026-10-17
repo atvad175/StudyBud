@@ -70,15 +70,24 @@ export const MindProvider = ({ children }) => {
         if (authError || !user) throw new Error('Sign in to save this win.');
 
         const tempId = Date.now();
-        setWins(prev => [{ ...win, user_id: user.id, id: tempId }, ...prev]);
+        // The database uses created_at, not a separate client-supplied date column.
+        const payload = {
+            content: win.content,
+            type: win.type || 'micro_win',
+            impact_score: win.impact_score ?? 1,
+            user_id: user.id,
+        };
+        setWins(prev => [{ ...payload, date: win.date, id: tempId }, ...prev]);
         try {
             const { data, error } = await supabase
                 .from('mind_wins')
-                .insert([{ ...win, user_id: user.id }])
+                .insert([payload])
                 .select()
                 .single();
             if (error) throw error;
-            setWins(prev => prev.map(item => item.id === tempId ? data : item));
+            setWins(prev => prev.map(item => item.id === tempId
+                ? { ...data, date: data.created_at }
+                : item));
         } catch (error) {
             setWins(prev => prev.filter(item => item.id !== tempId));
             console.error('Error saving win:', error);
