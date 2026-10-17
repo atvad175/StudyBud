@@ -374,7 +374,7 @@ const Flashcards = () => {
                                 <button type="button" onClick={handleImportLegacy} disabled={isImportingLegacy} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: 'none', background: 'var(--color-soft-black)', color: 'white', cursor: isImportingLegacy ? 'wait' : 'pointer' }}>
                                     {isImportingLegacy ? 'Importing…' : 'Import my flashcards'}
                                 </button>
-                                <button type="button" onClick={() => { localStorage.removeItem(legacyBackup.sourceKey); setLegacyBackup(null); }} disabled={isImportingLegacy} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer' }}>
+                                <button type="button" onClick={() => setLegacyBackup(null)} disabled={isImportingLegacy} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer' }}>
                                     Not now
                                 </button>
                             </div>
