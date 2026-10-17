@@ -75,6 +75,15 @@ const App = () => {
 
     const hydrateAccountState = (user, onboarding) => {
       const userId = user.id;
+      const previousAccountId = localStorage.getItem('studybud_active_user_id');
+
+      // Avatars are still device-local (not stored in the account profile table).
+      // Never carry one over to a different account on a shared browser.
+      if (previousAccountId !== userId) {
+        localStorage.removeItem('studybud_avatar');
+        localStorage.setItem('studybud_active_user_id', userId);
+      }
+
       const previousChatOwner = localStorage.getItem('studybud_bud_chat_user_id');
 
       // Bud's local history must never silently carry over to another account.
