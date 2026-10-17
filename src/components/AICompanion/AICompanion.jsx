@@ -58,6 +58,7 @@ const AICompanion = () => {
     const [persona, setPersona] = useState(null);
     const [showPersonaPicker, setShowPersonaPicker] = useState(false);
     const [isMinimised, setIsMinimised] = useState(false);
+    const [isHistoryHydrating, setIsHistoryHydrating] = useState(true);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -89,30 +90,85 @@ const AICompanion = () => {
         }
     }, []);
 
-    // Load only this account's local chat and persona; account switches clear local chat state.
+    // Restore local chat first, then hydrate from the signed-in account if this
+    // device only has the default greeting. Account switching clears the local key.
     useEffect(() => {
+        let active = true;
+        let welcomeTimeout = null;
         const savedPersona = localStorage.getItem('studybud_bud_persona') || null;
-        setPersona(savedPersona);
-
         const defaultMsg = [{ role: 'model', content: "Hi! I'm Bud. How can I help you today?" }];
+        let localMessages = defaultMsg;
+
         try {
             const stored = localStorage.getItem('studybud_bud_chat');
             const parsed = stored ? JSON.parse(stored) : null;
-            setMessages(Array.isArray(parsed) && parsed.length ? parsed.slice(-30) : defaultMsg);
+            if (Array.isArray(parsed) && parsed.length) localMessages = parsed.slice(-30);
         } catch {
-            setMessages(defaultMsg);
+            // Ignore an invalid old local copy and try the signed-in account below.
         }
 
+        setPersona(savedPersona);
+        setMessages(localMessages);
+
         const isFirst = localStorage.getItem('studybud_first_visit') === 'true';
-        if (!isFirst) return undefined;
+        if (isFirst) localStorage.removeItem('studybud_first_visit');
 
-        localStorage.removeItem('studybud_first_visit');
-        const welcomeTimeout = window.setTimeout(() => {
-            setIsOpen(true);
-            void triggerPersonalisedWelcome(savedPersona || 'candid');
-        }, 1200);
+        const hydrateHistory = async () => {
+            let hasExistingConversation = localMessages.some(message => message?.role === 'user');
 
-        return () => window.clearTimeout(welcomeTimeout);
+            try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) throw sessionError;
+                if (!session?.user?.id) return;
+
+                const { data, error } = await supabase
+                    .from('chat_history')
+                    .select('messages, bud_persona, updated_at')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
+                if (error) throw error;
+                if (!active || !Array.isArray(data?.messages)) return;
+
+                const remoteMessages = data.messages
+                    .filter(message =>
+                        message &&
+                        ['user', 'model', 'assistant'].includes(message.role) &&
+                        typeof message.content === 'string' &&
+                        message.content.trim()
+                    )
+                    .slice(-30);
+
+                const hasRemoteConversation = remoteMessages.some(message => message.role === 'user');
+                hasExistingConversation = hasExistingConversation || hasRemoteConversation;
+
+                if (!localMessages.some(message => message?.role === 'user') && hasRemoteConversation) {
+                    setMessages(remoteMessages);
+                    const remotePersona = data.bud_persona;
+                    if (!savedPersona && ['candid', 'ruthless', 'warm'].includes(remotePersona)) {
+                        setPersona(remotePersona);
+                        localStorage.setItem('studybud_bud_persona', remotePersona);
+                    }
+                }
+            } catch (error) {
+                console.warn('Could not restore Bud history:', error?.status || error?.code || 'unknown');
+            } finally {
+                if (active) {
+                    setIsHistoryHydrating(false);
+                    if (isFirst && !hasExistingConversation) {
+                        welcomeTimeout = window.setTimeout(() => {
+                            setIsOpen(true);
+                            void triggerPersonalisedWelcome(savedPersona || 'candid');
+                        }, 1200);
+                    }
+                }
+            }
+        };
+
+        void hydrateHistory();
+        return () => {
+            active = false;
+            if (welcomeTimeout !== null) window.clearTimeout(welcomeTimeout);
+        };
     }, [triggerPersonalisedWelcome]);
 
     // Persist recent messages locally; cap in-memory history at every append below.
@@ -124,7 +180,7 @@ const AICompanion = () => {
 
     // Persist history to the authenticated account; the local copy remains available if this fails.
     useEffect(() => {
-        if (!messages.length) return undefined;
+        if (isHistoryHydrating || !messages.length) return undefined;
 
         const timer = window.setTimeout(async () => {
             try {
@@ -145,7 +201,7 @@ const AICompanion = () => {
         }, 2000);
 
         return () => window.clearTimeout(timer);
-    }, [messages, persona]);
+    }, [messages, persona, isHistoryHydrating]);
 
     // Select persona
     const handleSelectPersona = (selected) => {
