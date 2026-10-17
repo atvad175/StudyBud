@@ -241,7 +241,7 @@ Do not claim that the questions are official or from a past paper.`;
         return await generateWithFallback(async (model) => {
             const result = await model.generateContent(prompt);
             let responseText = result.response.text().trim();
-            responseText = responseText.replace(/^\`\`\`(?:json)?\s*/i, '').replace(/\s*\`\`\`$/i, '');
+            responseText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
 
             const firstBracket = responseText.indexOf('[');
             const lastBracket = responseText.lastIndexOf(']');
