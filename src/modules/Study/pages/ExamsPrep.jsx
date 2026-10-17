@@ -34,6 +34,14 @@ const ExamsPrep = () => {
     const [score, setScore] = useState(0);
     const examSubmittedRef = useRef(false);
 
+    useEffect(() => {
+        const selectedSubject = localStorage.getItem('studybud_selected_subject');
+        if (!selectedSubject) return;
+
+        setAiTopic(current => current.trim() ? current : selectedSubject);
+        localStorage.removeItem('studybud_selected_subject');
+    }, []);
+
     // Start predefined AI Exam
     const generateAiExam = async () => {
         if(!aiTopic.trim()) return toast.error("Please provide a topic or paste study material.");
