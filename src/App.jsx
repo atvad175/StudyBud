@@ -126,12 +126,35 @@ const App = () => {
         return;
       }
 
-      // Avoid another Supabase request inside the auth callback. The stored marker is
-      // only a UI hint; database RLS remains the source of authorization.
-      setIsOnboarded(
-        localStorage.getItem('studybud_onboarded_user_id') === nextSession.user.id
-      );
-      setLoading(false);
+      setLoading(true);
+      // Let the auth callback finish before querying Postgres. The database row,
+      // not a browser flag, determines whether this account has completed setup.
+      window.setTimeout(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('user_onboarding')
+            .select('user_id')
+            .eq('user_id', nextSession.user.id)
+            .maybeSingle();
+
+          if (!active) return;
+          if (error) {
+            console.error('Unable to check onboarding status:', error.message);
+            setIsOnboarded(false);
+          } else {
+            const complete = Boolean(data);
+            if (complete) localStorage.setItem('studybud_onboarded_user_id', nextSession.user.id);
+            setIsOnboarded(complete);
+          }
+        } catch (error) {
+          if (active) {
+            console.error('Unable to check onboarding status:', error);
+            setIsOnboarded(false);
+          }
+        } finally {
+          if (active) setLoading(false);
+        }
+      }, 0);
     });
 
     const handleOnboardingComplete = (event) => {
