@@ -275,34 +275,89 @@ export const StudyProvider = ({ children }) => {
     // --- Actions ---
 
     const addAssignment = async (assignment) => {
-        const newAssignment = { ...assignment, id: Date.now(), created_at: new Date(), status: 'not_started' };
-        setAssignments(prev => [newAssignment, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save assignments.');
+
+        const tempId = Date.now();
+        const payload = { ...assignment, user_id: user.id, status: assignment.status || 'not_started' };
+        const optimisticAssignment = { ...payload, id: tempId, created_at: new Date() };
+        setAssignments(prev => [optimisticAssignment, ...prev]);
 
         try {
-            const { error } = await supabase.from('study_assignments').insert([assignment]);
+            const { data, error } = await supabase
+                .from('study_assignments')
+                .insert([payload])
+                .select()
+                .single();
             if (error) throw error;
-        } catch (e) { console.error("Error adding assignment:", e); }
+            setAssignments(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setAssignments(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error adding assignment:', error);
+            throw error;
+        }
     };
 
     const updateAssignment = async (id, updates) => {
-        setAssignments(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+        const previous = assignments.find(item => item.id === id);
+        const safeUpdates = { ...updates };
+        delete safeUpdates.id;
+        delete safeUpdates.user_id;
+        setAssignments(prev => prev.map(item => item.id === id ? { ...item, ...safeUpdates } : item));
+
         try {
-            await supabase.from('study_assignments').update(updates).eq('id', id);
-        } catch (e) { console.error(e); }
+            const { error } = await supabase
+                .from('study_assignments')
+                .update(safeUpdates)
+                .eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            if (previous) setAssignments(prev => prev.map(item => item.id === id ? previous : item));
+            console.error('Error updating assignment:', error);
+            throw error;
+        }
     };
 
     const logPractice = async (log) => {
-        setPracticeLogs(prev => [{ ...log, id: Date.now() }, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save practice logs.');
+
+        const tempId = Date.now();
+        setPracticeLogs(prev => [{ ...log, user_id: user.id, id: tempId }, ...prev]);
         try {
-            await supabase.from('study_practice_logs').insert([log]);
-        } catch (e) { console.error(e); }
+            const { data, error } = await supabase
+                .from('study_practice_logs')
+                .insert([{ ...log, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            setPracticeLogs(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setPracticeLogs(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error saving practice log:', error);
+            throw error;
+        }
     };
 
     const scheduleReview = async (review) => {
-        setReviews(prev => [{ ...review, id: Date.now() }, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to schedule a review.');
+
+        const tempId = Date.now();
+        setReviews(prev => [{ ...review, user_id: user.id, id: tempId }, ...prev]);
         try {
-            await supabase.from('study_reviews').insert([review]);
-        } catch (e) { console.error(e); }
+            const { data, error } = await supabase
+                .from('study_reviews')
+                .insert([{ ...review, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            setReviews(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setReviews(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error scheduling review:', error);
+            throw error;
+        }
     };
 
     // Load Data
