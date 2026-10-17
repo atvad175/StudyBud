@@ -14,6 +14,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [successState, setSuccessState] = useState(false);
+    const [confirmationRequired, setConfirmationRequired] = useState(false);
 
     const switchMode = () => {
         setMode(m => m === 'login' ? 'signup' : 'login');
@@ -43,51 +44,45 @@ const LoginPage = () => {
                     toast.error(error.message);
                     setIsLoading(false);
                 } else if (data?.user) {
+                    localStorage.removeItem('studybud_guest');
+                    const metadataName = data.user.user_metadata?.full_name;
+                    if (metadataName) localStorage.setItem('studybud_username', metadataName);
                     toast.success('Welcome back!');
                     window.location.href = '/';
                 }
             } else {
-                // Sign up - do it in background without blocking
-                localStorage.setItem('studybud_username', fullName.trim());
-                localStorage.setItem('studybud_email', email.trim());
-                localStorage.setItem('studybud_password', password);
-                
-                // Fire Supabase signup in background
-                supabase.auth.signUp({
+                // Account creation is the single signup step. Never report success until
+                // Supabase has returned a successful response.
+                const { data, error } = await supabase.auth.signUp({
                     email: email.trim(),
                     password,
                     options: {
                         data: { full_name: fullName.trim() },
+                        emailRedirectTo: `${window.location.origin}/onboarding/setup`,
                     },
-                }).then(({ data, error }) => {
-                    if (error) {
-                        console.warn('Background signup failed:', error);
-                    }
-                    if (data?.user?.identities?.length === 0) {
-                        console.warn('Duplicate email detected');
-                    }
-                }).catch(err => {
-                    console.warn('Background signup error:', err);
                 });
 
-                // Show success and navigate immediately
+                if (error) throw error;
+
+                localStorage.removeItem('studybud_guest');
+                localStorage.setItem('studybud_username', fullName.trim());
+                localStorage.removeItem('studybud_password');
+
+                if (data?.session) {
+                    window.location.href = '/onboarding/setup';
+                    return;
+                }
+
+                // Supabase may require email confirmation before a session exists.
+                setConfirmationRequired(true);
                 setSuccessState(true);
                 setIsLoading(false);
-
-                setTimeout(() => {
-                    window.location.href = '/onboarding/setup';
-                }, 1500);
             }
         } catch (err) {
             console.error('Auth error:', err);
             toast.error('Something went wrong. Please check your connection and try again.');
             setIsLoading(false);
         }
-    };
-
-    const handleGuest = () => {
-        localStorage.setItem('studybud_guest', 'true');
-        window.location.href = '/';
     };
 
     if (successState) {
@@ -97,14 +92,31 @@ const LoginPage = () => {
                     <div className={styles.successBox}>
                         <div className={styles.confettiEmoji}>🥳</div>
                         <h2 className={styles.successTitle}>
-                            You're all set, {fullName}!
+                            {confirmationRequired ? 'Check your email' : `You're all set, ${fullName}!`}
                         </h2>
                         <p className={styles.successSub}>
-                            Your account has been created. Taking you to your dashboard…
+                            {confirmationRequired
+                                ? 'Use the confirmation link in your email, then sign in here to finish setting up StudyBud.'
+                                : 'Your account has been created. Taking you to your dashboard…'}
                         </p>
-                        <div className={styles.successLoader}>
-                            <div className={styles.successLoaderBar} />
-                        </div>
+                        {confirmationRequired ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSuccessState(false);
+                                    setConfirmationRequired(false);
+                                    setMode('login');
+                                    setPassword('');
+                                }}
+                                className={styles.toggleLink}
+                            >
+                                Back to sign in
+                            </button>
+                        ) : (
+                            <div className={styles.successLoader}>
+                                <div className={styles.successLoaderBar} />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -200,18 +212,6 @@ const LoginPage = () => {
                         {mode === 'login' ? 'Sign Up' : 'Sign In'}
                     </button>
                 </p>
-
-                {/* Divider */}
-                <div className={styles.divider}>
-                    <span className={styles.dividerLine} />
-                    <span className={styles.dividerWord}>or</span>
-                    <span className={styles.dividerLine} />
-                </div>
-
-                {/* Guest */}
-                <button type="button" onClick={handleGuest} className={styles.guestBtn}>
-                    Continue as Guest
-                </button>
 
                 <p className={styles.legalText}>
                     By continuing, you agree to use StudyBud responsibly.
