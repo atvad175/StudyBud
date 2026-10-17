@@ -1270,3 +1270,42 @@
         transform: none;
     }
 }
+
+.hubDataWarning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: -0.8rem 0 1.75rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid #f0d6aa;
+    border-radius: 14px;
+    background: #fffaf1;
+    color: #76511d;
+}
+
+.hubDataWarning strong {
+    display: block;
+    font-size: 0.9rem;
+}
+
+.hubDataWarning p {
+    margin: 0.25rem 0 0;
+    color: #846b48;
+    font-size: 0.83rem;
+    line-height: 1.5;
+}
+
+.hubDataWarning button {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #e6c38c;
+    border-radius: 9px;
+    background: #fff;
+    color: #76511d;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
