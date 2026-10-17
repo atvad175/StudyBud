@@ -1,43 +1,54 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sparkles, X, Send, ChevronDown } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
-
-const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+import { chatCompanion, getCompanionWelcome } from '../../services/aiService';
 
 const PERSONAS = [
-    {
-        id: 'candid',
-        emoji: '🤝',
-        label: 'Candid Buddy',
-        desc: 'Direct, honest, gets to the point',
-        color: '#5B8DEE',
-    },
-    {
-        id: 'ruthless',
-        emoji: '🔥',
-        label: 'Ruthless Mentor',
-        desc: 'High standards, no excuses, pushes you hard',
-        color: '#FF5F56',
-    },
-    {
-        id: 'warm',
-        emoji: '🌸',
-        label: 'Warm Guide',
-        desc: 'Nurturing, patient, lots of encouragement',
-        color: '#4CAF50',
-    },
+    { id: 'candid', emoji: '🤝', label: 'Candid Buddy', desc: 'Direct, honest, gets to the point', color: '#5B8DEE' },
+    { id: 'ruthless', emoji: '🔥', label: 'Ruthless Mentor', desc: 'High standards, pushes you constructively', color: '#FF5F56' },
+    { id: 'warm', emoji: '🌸', label: 'Warm Guide', desc: 'Nurturing, patient, encouraging', color: '#4CAF50' },
 ];
 
-const PERSONA_PROMPTS = {
-    candid: 'Be direct and honest. Get to the point fast. No fluff, but stay friendly and supportive. Give real, practical advice.',
-    ruthless: 'Be a tough mentor. High standards. Call out excuses. Push the user hard but with genuine care for their growth. Be blunt but never cruel.',
-    warm: 'Be nurturing, patient, and deeply encouraging. Celebrate every small win. Be the most supportive presence in their day.',
+const readStoredList = (key) => {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(parsed)
+            ? parsed.filter(item => typeof item === 'string').slice(0, 8)
+            : [];
+    } catch {
+        return [];
+    }
 };
 
-const isQuotaError = (status, data) =>
-    status === 429 ||
-    (data?.error?.message || '').toLowerCase().includes('quota') ||
-    (data?.error?.message || '').toLowerCase().includes('resource exhausted');
+const getCompanionProfile = () => ({
+    name: localStorage.getItem('studybud_username') || 'Student',
+    role: localStorage.getItem('studybud_role') || 'student',
+    topics: readStoredList('studybud_fav_subjects'),
+    struggles: readStoredList('studybud_struggles'),
+    intention: localStorage.getItem('studybud_intention') || '',
+    motivation: localStorage.getItem('studybud_motivation') || '',
+});
+
+const normalizeMessages = (messages) => {
+    const normalized = [];
+
+    for (const message of messages.slice(-12)) {
+        if (typeof message?.content !== 'string') continue;
+        const content = message.content.trim().slice(0, 3000);
+        if (!content) continue;
+
+        const role = message.role === 'user' ? 'user' : 'assistant';
+        const last = normalized[normalized.length - 1];
+        if (last && last.role === role) {
+            last.content = `${last.content}\n\n${content}`.slice(0, 3000);
+        } else {
+            normalized.push({ role, content });
+        }
+    }
+
+    while (normalized.length && normalized[0].role !== 'user') normalized.shift();
+    return normalized.slice(-12);
+};
 
 const AICompanion = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +61,35 @@ const AICompanion = () => {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    // ── Bootstrap: load history + persona, trigger first-visit welcome ──────
+    const scrollToBottom = useCallback(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, []);
+
+    const triggerPersonalisedWelcome = useCallback(async (selectedPersona) => {
+        const profile = getCompanionProfile();
+        const chosenPersona = ['candid', 'ruthless', 'warm'].includes(selectedPersona)
+            ? selectedPersona
+            : 'candid';
+
+        setIsTyping(true);
+        setMessages([]);
+
+        try {
+            const welcome = await getCompanionWelcome(profile, chosenPersona);
+            setMessages([{ role: 'model', content: welcome }]);
+        } catch (error) {
+            console.warn('Bud welcome request failed:', error?.status || error?.message || 'unknown');
+            setMessages([{
+                role: 'model',
+                content: `Hey ${profile.name}! I'm Bud, your StudyBud companion. I'm here to help you focus, build momentum, and make studying feel more manageable. How would you like me to help today?`,
+            }]);
+        } finally {
+            setIsTyping(false);
+            setShowPersonaPicker(true);
+        }
+    }, []);
+
+    // Load only this account's local chat and persona; account switches clear local chat state.
     useEffect(() => {
         const savedPersona = localStorage.getItem('studybud_bud_persona') || null;
         setPersona(savedPersona);
@@ -59,280 +98,102 @@ const AICompanion = () => {
         try {
             const stored = localStorage.getItem('studybud_bud_chat');
             const parsed = stored ? JSON.parse(stored) : null;
-            setMessages(Array.isArray(parsed) && parsed.length ? parsed : defaultMsg);
+            setMessages(Array.isArray(parsed) && parsed.length ? parsed.slice(-30) : defaultMsg);
         } catch {
             setMessages(defaultMsg);
         }
 
-        // Fire welcome on first visit
         const isFirst = localStorage.getItem('studybud_first_visit') === 'true';
-        if (isFirst) {
-            localStorage.removeItem('studybud_first_visit');
-            setTimeout(() => {
-                setIsOpen(true);
-                triggerPersonalisedWelcome();
-            }, 1200);
-        }
-    }, []);
+        if (!isFirst) return undefined;
 
-    // ── Persist to localStorage whenever messages change ─────────────────────
+        localStorage.removeItem('studybud_first_visit');
+        const welcomeTimeout = window.setTimeout(() => {
+            setIsOpen(true);
+            void triggerPersonalisedWelcome(savedPersona || 'candid');
+        }, 1200);
+
+        return () => window.clearTimeout(welcomeTimeout);
+    }, [triggerPersonalisedWelcome]);
+
+    // Persist recent messages locally; cap in-memory history at every append below.
     useEffect(() => {
         if (!messages.length) return;
-        const recent = messages.slice(-30);
-        localStorage.setItem('studybud_bud_chat', JSON.stringify(recent));
-        if (messages.length > 30) setMessages(recent);
+        localStorage.setItem('studybud_bud_chat', JSON.stringify(messages.slice(-30)));
         scrollToBottom();
-    }, [messages]);
+    }, [messages, scrollToBottom]);
 
-    // ── Persist to Supabase (debounced) ──────────────────────────────────────
+    // Persist history to the authenticated account; the local copy remains available if this fails.
     useEffect(() => {
-        if (!messages.length) return;
-        const timer = setTimeout(async () => {
+        if (!messages.length) return undefined;
+
+        const timer = window.setTimeout(async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session?.user?.id || session.user.id === 'guest-user') return;
-                await supabase.from('chat_history').upsert({
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) throw sessionError;
+                if (!session?.user?.id) return;
+
+                const { error } = await supabase.from('chat_history').upsert({
                     user_id: session.user.id,
                     messages: messages.slice(-30),
                     bud_persona: persona || 'candid',
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id' });
-            } catch (e) {
-                // silently fail — localStorage is the fallback
+                if (error) throw error;
+            } catch (error) {
+                console.warn('Bud history was not synced:', error?.status || error?.code || 'unknown');
             }
         }, 2000);
-        return () => clearTimeout(timer);
+
+        return () => window.clearTimeout(timer);
     }, [messages, persona]);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    // ── Build system prompt from persona + onboarding data ───────────────────
-    const buildSystemPrompt = (selectedPersona) => {
-        const name = localStorage.getItem('studybud_username') || 'Student';
-        const role = localStorage.getItem('studybud_role') || 'student';
-        const topics = (() => {
-            try { return JSON.parse(localStorage.getItem('studybud_fav_subjects') || '[]').join(', '); }
-            catch { return 'various subjects'; }
-        })();
-        
-        const struggles = (() => {
-            try { return JSON.parse(localStorage.getItem('studybud_struggles') || '[]').join(', '); }
-            catch { return ''; }
-        })();
-        
-        const intention = localStorage.getItem('studybud_intention') || '';
-        const motivation = localStorage.getItem('studybud_motivation') || '';
-        const p = selectedPersona || persona || 'candid';
-        const personaInstruction = PERSONA_PROMPTS[p] || PERSONA_PROMPTS.candid;
-
-        return `You are Bud, the AI companion inside StudyBud app. The student's name is ${name}. They are a ${role}${topics ? ` studying/working in ${topics}` : ''}${motivation ? `. Their core motivation is: "${motivation}"` : ''}.
-${struggles ? `They struggle with: ${struggles}.` : ''}
-${intention ? `Their overarching intention is: "${intention}".` : ''}
-Persona instruction: ${personaInstruction}
-
-Keep replies to 2–4 sentences unless asked for detail. Be genuinely helpful, not generic.`;
-    };
-
-    // ── First-visit personalised welcome ─────────────────────────────────────
-    const triggerPersonalisedWelcome = async () => {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        if (!apiKey) {
-            setMessages([{
-                role: 'model',
-                content: "Hey! I'm Bud, your study companion. I'm ready to help you focus, build habits, and stay on track. Before we start — how would you like me to show up for you?",
-            }]);
-            setShowPersonaPicker(true);
-            return;
-        }
-
-        const name = localStorage.getItem('studybud_username') || 'there';
-        const role = localStorage.getItem('studybud_role') || 'student';
-        const motivation = localStorage.getItem('studybud_motivation') || '';
-        const topics = (() => {
-            try { return JSON.parse(localStorage.getItem('studybud_fav_subjects') || '[]').slice(0, 3).join(', '); }
-            catch { return ''; }
-        })();
-
-        const welcomePrompt = `You are Bud, a friendly AI study companion. Write a warm, personal welcome message to ${name} who is a ${role}${topics ? ` interested in ${topics}` : ''}${motivation ? `. Their driving motivation is: "${motivation}"` : ''}. 
-
-The message should:
-- Address them by name
-- Reference 1-2 specific things from their profile naturally  
-- Be energising and feel like you genuinely know them
-- End with asking how they'd like you to show up for them (without listing options — just invite them to pick)
-- Keep it to 3-4 sentences max, conversational, not corporate`;
-
-        setIsTyping(true);
-        setMessages([]);
-
-        let succeeded = false;
-        for (const modelName of MODELS) {
-            try {
-                const res = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: welcomePrompt }] }] }),
-                    }
-                );
-                const data = await res.json();
-                if (isQuotaError(res.status, data)) { continue; }
-                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    setMessages([{ role: 'model', content: text }]);
-                    succeeded = true;
-                    break;
-                }
-            } catch { /* try next model */ }
-        }
-
-        if (!succeeded) {
-            setMessages([{
-                role: 'model',
-                content: `Hey ${name}! I'm Bud — your study companion inside StudyBud. I'm here to help you stay focused, build momentum, and actually enjoy the process. Before we dive in, how would you like me to show up for you?`,
-            }]);
-        }
-
-        setIsTyping(false);
-        setShowPersonaPicker(true);
-    };
-
-    // ── Select persona ────────────────────────────────────────────────────────
-    const handleSelectPersona = async (p) => {
-        setPersona(p.id);
+    // Select persona
+    const handleSelectPersona = (selected) => {
+        setPersona(selected.id);
         setShowPersonaPicker(false);
-        localStorage.setItem('studybud_bud_persona', p.id);
+        localStorage.setItem('studybud_bud_persona', selected.id);
 
         const confirmMessages = {
-            candid: `Perfect — I'll keep it real with you. No sugar-coating, but always in your corner. Let's get to work. What's on your plate?`,
-            ruthless: `Locked in. I'll hold you to a high standard and won't let you off the hook easily. That's what you asked for. Now — what are we working on today?`,
-            warm: `Absolutely. I'll be your biggest cheerleader. Every step forward matters, and I'm here for all of it. What would you like to start with?`,
+            candid: "Perfect — I'll keep it real with you. No fluff, but always in your corner. What's on your plate?",
+            ruthless: "Locked in. I'll hold you to a high standard and challenge you constructively. What are we working on today?",
+            warm: "Absolutely. I'll be encouraging and patient while we make progress one step at a time. What would you like to start with?",
         };
 
-        setMessages(prev => [
-            ...prev,
-            {
-                role: 'model',
-                content: confirmMessages[p.id] || `Got it! I'll be your ${p.label} from now on. What's on your mind?`,
-            },
-        ]);
+        setMessages(previous => [
+            ...previous,
+            { role: 'model', content: confirmMessages[selected.id] || `Got it! I'll be your ${selected.label} from now on. What's on your mind?` },
+        ].slice(-30));
     };
 
-    // ── Send message ──────────────────────────────────────────────────────────
+    // Send a message through the same authenticated server endpoint used by the rest of StudyBud AI.
     const handleSend = async () => {
-        if (!input.trim() || isTyping) return;
+        const content = input.trim();
+        if (!content || isTyping) return;
 
-        const userMsg = { role: 'user', content: input.trim() };
-        setMessages(prev => [...prev, userMsg]);
+        const userMsg = { role: 'user', content: content.slice(0, 3000) };
+        setMessages(previous => [...previous, userMsg].slice(-30));
         setInput('');
         setIsTyping(true);
 
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        if (!apiKey) {
-            setTimeout(() => {
-                setMessages(prev => [...prev, { role: 'model', content: "I need an API key to respond. Please add VITE_GEMINI_API_KEY to your .env file." }]);
-                setIsTyping(false);
-            }, 800);
-            return;
+        try {
+            const history = normalizeMessages([...messages, userMsg]);
+            const reply = await chatCompanion(history, persona || 'candid', getCompanionProfile());
+            setMessages(previous => [...previous, { role: 'model', content: reply }].slice(-30));
+        } catch (error) {
+            console.warn('Bud message request failed:', error?.status || error?.message || 'unknown');
+            const message = error?.message || 'Bud could not connect right now. Please try again.';
+            setMessages(previous => [...previous, { role: 'model', content: message }].slice(-30));
+        } finally {
+            setIsTyping(false);
+            window.setTimeout(() => inputRef.current?.focus(), 100);
         }
-
-        const systemInstruction = buildSystemPrompt(persona);
-        const history = [...messages, userMsg].slice(-16);
-
-        // Ensure history strictly alternates roles, starting with "user"
-        let validHist = [];
-        let currentRole = null;
-        for (const msg of history) {
-            const role = msg.role === 'user' ? 'user' : 'model';
-            if (role !== currentRole) {
-                validHist.push({ role, parts: [{ text: msg.content }] });
-                currentRole = role;
-            } else {
-                validHist[validHist.length - 1].parts[0].text += '\n\n' + msg.content;
-            }
-        }
-        
-        while (validHist.length > 0 && validHist[0].role !== 'user') {
-            validHist.shift();
-        }
-
-        const contents = [
-            ...validHist,
-            { role: 'user', parts: [{ text: userMsg.content }] },
-        ];
-
-        let replied = false;
-        for (const modelName of MODELS) {
-            try {
-                const res = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            systemInstruction: { parts: [{ text: systemInstruction }] },
-                            contents,
-                            generationConfig: { maxOutputTokens: 350 },
-                        }),
-                    }
-                );
-                const data = await res.json();
-
-                if (isQuotaError(res.status, data)) {
-                    if (modelName !== MODELS[MODELS.length - 1]) continue;
-                    setMessages(prev => [...prev, { role: 'model', content: '😴 Bud is resting for today — the AI quota has been reached. Everything else in StudyBud works perfectly. Come back tomorrow and I\'ll be fully charged!' }]);
-                    replied = true;
-                    break;
-                }
-
-                // Handle other API errors (e.g., 400, 403, 500)
-                if (data?.error) {
-                    const errorMsg = data.error.message || '';
-                    if (errorMsg.includes('API key') || res.status === 403) {
-                        setMessages(prev => [...prev, { role: 'model', content: '🔑 Bud cannot connect. There might be an issue with the API key configuration.' }]);
-                    } else {
-                        setMessages(prev => [...prev, { role: 'model', content: 'Something went wrong on my end. Please try again or rephrase your message.' }]);
-                    }
-                    replied = true;
-                    break;
-                }
-
-                const candidate = data?.candidates?.[0];
-                const text = candidate?.content?.parts?.[0]?.text;
-                
-                if (text) {
-                    setMessages(prev => [...prev, { role: 'model', content: text }]);
-                    replied = true;
-                    break;
-                }
-
-                // No text returned - check finish reason
-                const reason = candidate?.finishReason;
-                const errorMessage = reason === 'SAFETY' 
-                    ? "I couldn't send that reply because of safety filters — try rephrasing your prompt." 
-                    : "I didn't get a proper reply from the server. Try asking something else or check your connection.";
-                
-                setMessages(prev => [...prev, { role: 'model', content: errorMessage }]);
-                replied = true;
-                break;
-            } catch (err) {
-                if (modelName === MODELS[MODELS.length - 1]) {
-                    console.error('AI Companion Error:', err);
-                    setMessages(prev => [...prev, { role: 'model', content: 'Something went wrong connecting. Check your network and try again.' }]);
-                    replied = true;
-                }
-            }
-        }
-
-        setIsTyping(false);
-        setTimeout(() => inputRef.current?.focus(), 100);
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            void handleSend();
+        }
     };
 
     const currentPersonaObj = PERSONAS.find(p => p.id === persona);
