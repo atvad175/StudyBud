@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTime } from '../../../context/TimeContext';
+import { useToast } from '../../../context/ToastContext';
 import styles from '../TimeShared.module.css';
 import { Plus, Trash2, Layers, AlertCircle, Box, Archive } from 'lucide-react';
 
@@ -9,6 +10,7 @@ const FRICTIONS = ['Low', 'Medium', 'High'];
 
 const TaskIntelligence = () => {
     const { tasks, createTask, deleteTask } = useTime();
+    const { toast } = useToast();
     const [form, setForm] = useState({
         title: '',
         cognitive_type: 'Understand',
@@ -19,11 +21,17 @@ const TaskIntelligence = () => {
 
     const plannedTasks = tasks.filter(t => t.status === 'Planned');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.title.trim()) return;
-        createTask(form);
-        setForm({ ...form, title: '' });
+
+        try {
+            await createTask(form);
+            setForm(current => ({ ...current, title: '' }));
+            toast.success('Task saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Task could not be saved. Please try again.');
+        }
     };
 
     return (
