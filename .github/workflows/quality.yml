@@ -27,9 +27,20 @@ jobs:
       - name: Check serverless API syntax
         run: node --check api/ai.js
 
+      - name: Lint new AI and onboarding code
+        run: npx eslint api/ai.js src/services/aiService.js src/modules/Auth/pages/LoginPage.jsx src/modules/Auth/pages/OnboardingSetup.jsx src/modules/Study/pages/ExamsPrep.jsx src/modules/Mind/pages/CognitiveOffload.jsx src/modules/Mind/pages/ReflectionEngine.jsx src/modules/Mind/pages/PositiveAffect.jsx src/modules/Mind/pages/EmotionalBuddy.jsx
+
       - name: Audit legacy ESLint issues (temporarily non-blocking)
         run: npm run lint
         continue-on-error: true
 
       - name: Build production bundle
         run: npm run build
+
+      - name: Check browser bundle for Gemini secrets or SDK
+        shell: bash
+        run: |
+          if grep -RqE 'AIza[[:alnum:]_-]{30,}|GoogleGenerativeAI|VITE_GEMINI_API_KEY' dist/assets; then
+            echo "A possible provider key or client-side Gemini SDK was found in the browser bundle."
+            exit 1
+          fi
