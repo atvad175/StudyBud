@@ -80,7 +80,7 @@ const ExamsPrep = () => {
         setScore(correct);
         setMode('review');
 
-        const topicTitle = aiTopic.trim().split(/\\r?\\n/)[0].slice(0, 120) || activeExam.label;
+        const topicTitle = aiTopic.trim().split(/\r?\n/)[0].slice(0, 120) || activeExam.label;
         const record = {
             subject: topicTitle,
             mistake_type: 'practice_exam',
