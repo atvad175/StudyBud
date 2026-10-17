@@ -230,6 +230,11 @@ export default async function handler(req, res) {
         if (authError || !user) return sendError(res, 401, 'Your session expired. Sign in again.');
 
         const now = Date.now();
+        // Drop expired entries so long-lived warm instances do not retain every
+        // user ID they have ever seen.
+        for (const [userId, windowState] of rateLimit.entries()) {
+            if (now - windowState.startedAt >= WINDOW_MS) rateLimit.delete(userId);
+        }
         const current = rateLimit.get(user.id);
         if (!current || now - current.startedAt >= WINDOW_MS) {
             rateLimit.set(user.id, { startedAt: now, count: 1 });
