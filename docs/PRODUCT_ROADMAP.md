@@ -37,6 +37,7 @@ Security, authentication and reliable saving take priority over new features.
 - Fix broken writes and misleading success states before visual redesign.
 - Make flashcard data persist under the signed-in account and survive another device/session.
 - Make exam creation validate question structure, answer keys, scoring and timers.
+- Persist completed AI exam scores and answer review into the signed-in student's study history, with duplicate-submit protection.
 - Clearly distinguish AI-generated practice from verified curriculum or past-paper content.
 
 **Exit gate:** a student can complete a study session, refresh, sign back in and find the correct saved state.
