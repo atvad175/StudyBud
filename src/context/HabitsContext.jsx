@@ -34,7 +34,9 @@ export const HabitsProvider = ({ children }) => {
                 // Ideally filtering by recent dates, but fetching all for now for simplicity
                 const { data: logsData, error: logsError } = await supabase
                     .from('logs')
-                    .select('*');
+                    .select('*')
+                    .order('date_logged', { ascending: false })
+                    .limit(400);
 
                 if (logsError) throw logsError;
 
@@ -60,36 +62,33 @@ export const HabitsProvider = ({ children }) => {
     }, []);
 
     const addAtom = async (atom) => {
+        const tempId = Date.now();
         try {
-            // Optimistic Update
-            const tempId = Date.now();
-            const newAtom = { ...atom, id: tempId, user_id: (await supabase.auth.getUser()).data.user?.id };
-            // Note: user_id might be null if not logged in. 
-            // Real implementation needs Auth. For now, letting Supabase handle error if RLS fails.
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save habits.');
 
-            setAtoms((prev) => [...prev, newAtom]);
+            const payload = {
+                title: atom.title,
+                frequency: atom.frequency || 'daily',
+                category: atom.category || 'study',
+                fission_entry: atom.fission_entry || '',
+                notes: atom.notes || '',
+                time: atom.time || '',
+                user_id: user.id,
+            };
+            setAtoms(prev => [...prev, { ...payload, id: tempId }]);
 
             const { data, error } = await supabase
                 .from('atoms')
-                .insert([{
-                    title: atom.title,
-                    frequency: atom.frequency || 'daily',
-                    category: atom.category || 'study',
-                    fission_entry: atom.fission_entry || '',
-                    notes: atom.notes || '',
-                    time: atom.time || '' // User-defined timing
-                }])
-                .select();
-
+                .insert([payload])
+                .select()
+                .single();
             if (error) throw error;
 
-            // Replace temp ID with real ID
-            if (data) {
-                setAtoms(prev => prev.map(a => a.id === tempId ? data[0] : a));
-            }
+            setAtoms(prev => prev.map(item => item.id === tempId ? data : item));
         } catch (error) {
+            setAtoms(prev => prev.filter(item => item.id !== tempId));
             console.error('Error adding atom:', error);
-            // Revert optimistic update here if needed (omitted for brevity)
         }
     };
 
@@ -100,32 +99,41 @@ export const HabitsProvider = ({ children }) => {
 
     const updateLog = async (atomId, data) => {
         const today = new Date().toISOString().split('T')[0];
-
-        // Optimistic UI
-        setLogs((prev) => ({
-            ...prev,
-            [today]: {
-                ...(prev[today] || {}),
-                [atomId]: { ...(prev[today]?.[atomId] || {}), ...data }
-            }
-        }));
+        const previousLog = logs[today]?.[atomId];
 
         try {
-            // Upsert log
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to track habits.');
+
+            setLogs(prev => ({
+                ...prev,
+                [today]: {
+                    ...(prev[today] || {}),
+                    [atomId]: { ...(prev[today]?.[atomId] || {}), ...data }
+                }
+            }));
+
             const { error } = await supabase
                 .from('logs')
                 .upsert({
                     atom_id: atomId,
                     date_logged: today,
                     status: data.status || (data.completed ? 'completed' : 'pending'),
-                    mood: data.mood,
-                    duration: data.duration,
-                    time: data.time
+                    mood: data.mood ?? previousLog?.mood ?? null,
+                    duration: data.duration ?? previousLog?.duration ?? null,
+                    time: data.time ?? previousLog?.time ?? null,
+                    user_id: user.id,
                 }, { onConflict: 'atom_id, date_logged' });
 
             if (error) throw error;
         } catch (error) {
-            console.error('Error updating log:', error);
+            setLogs(prev => {
+                const dateLogs = { ...(prev[today] || {}) };
+                if (previousLog) dateLogs[atomId] = previousLog;
+                else delete dateLogs[atomId];
+                return { ...prev, [today]: dateLogs };
+            });
+            console.error('Error updating habit log:', error);
         }
     };
 
@@ -140,17 +148,17 @@ export const HabitsProvider = ({ children }) => {
     };
 
     const removeAtom = async (atomId) => {
-        // Optimistic UI updates
-        setAtoms(prev => prev.filter(a => a.id !== atomId));
-        
+        const previous = atoms.find(atom => atom.id === atomId);
+        setAtoms(prev => prev.filter(atom => atom.id !== atomId));
+
         try {
             const { error } = await supabase
                 .from('atoms')
                 .delete()
                 .eq('id', atomId);
-                
             if (error) throw error;
         } catch (error) {
+            if (previous) setAtoms(prev => [...prev, previous]);
             console.error('Error deleting atom:', error);
         }
     };
