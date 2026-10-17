@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Palette, Shield, HardDrive, Download, AlertTriangle } from 'lucide-react';
 import styles from './SettingsPage.module.css';
+import { supabase } from '../../../supabaseClient';
+import { useToast } from '../../../context/ToastContext';
 
 const SettingsPage = () => {
     // Section 1: Profile
@@ -17,6 +19,8 @@ const SettingsPage = () => {
     // Section 3: Account
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+    const { toast } = useToast();
 
     // Section 4: Data
     const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -51,6 +55,31 @@ const SettingsPage = () => {
         setNameChanged(false);
         // Dispatch event or just let it be for next load
     };
+
+    const handleUpdatePassword = async () => {
+        if (password.length < 8) {
+            toast.error('Choose a password with at least 8 characters.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.error('The passwords do not match.');
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+            setPassword('');
+            setConfirmPassword('');
+            toast.success('Password updated successfully.');
+        } catch (error) {
+            toast.error(error?.message || 'Unable to update your password. Please try again.');
+        } finally {
+            setIsUpdatingPassword(false);
+        }
+    };
+
 
     const handleAppearanceChange = (key, value) => {
         let settings = {};
@@ -88,7 +117,11 @@ const SettingsPage = () => {
         const data = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith('studybud_')) {
+            if (
+                key &&
+                key.startsWith('studybud_') &&
+                !/(password|secret|token|api[_-]?key)/i.test(key)
+            ) {
                 data[key] = localStorage.getItem(key);
             }
         }
@@ -347,9 +380,10 @@ const SettingsPage = () => {
                                 <button
                                     type="button"
                                     className={styles.btnDark}
-                                    disabled={!password || password !== confirmPassword}
+                                    disabled={isUpdatingPassword || !password || password !== confirmPassword}
+                                    onClick={handleUpdatePassword}
                                 >
-                                    Update password
+                                    {isUpdatingPassword ? 'Updating…' : 'Update password'}
                                 </button>
                             </div>
                         </div>
