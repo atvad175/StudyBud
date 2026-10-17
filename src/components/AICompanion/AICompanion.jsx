@@ -115,6 +115,7 @@ const AICompanion = () => {
 
         const hydrateHistory = async () => {
             let hasExistingConversation = localMessages.some(message => message?.role === 'user');
+            let canDecideWelcome = false;
 
             try {
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -127,6 +128,7 @@ const AICompanion = () => {
                     .eq('user_id', session.user.id)
                     .maybeSingle();
                 if (error) throw error;
+                canDecideWelcome = true;
                 if (!active || !Array.isArray(data?.messages)) return;
 
                 const remoteMessages = data.messages
@@ -154,7 +156,7 @@ const AICompanion = () => {
             } finally {
                 if (active) {
                     setIsHistoryHydrating(false);
-                    if (isFirst && !hasExistingConversation) {
+                    if (isFirst && canDecideWelcome && !hasExistingConversation) {
                         welcomeTimeout = window.setTimeout(() => {
                             setIsOpen(true);
                             void triggerPersonalisedWelcome(savedPersona || 'candid');
