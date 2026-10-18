@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../StudyShared.module.css';
 import { BookOpen, AlertTriangle, Target, HelpCircle, ArrowLeft, CheckCircle } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
 
 const SubjectsHub = () => {
     const { subjects } = useStudy();
