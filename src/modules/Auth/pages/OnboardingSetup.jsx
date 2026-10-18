@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sun, BookOpen, Activity, Wind, CheckSquare, Moon, Zap } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import StudyBudLogo from '../../../components/brand/StudyBudLogo';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 import styles from './OnboardingSetup.module.css';
 
 const SUBJECTS = [
