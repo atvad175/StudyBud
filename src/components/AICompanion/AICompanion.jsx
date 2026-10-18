@@ -59,6 +59,7 @@ const AICompanion = () => {
     const [showPersonaPicker, setShowPersonaPicker] = useState(false);
     const [isMinimised, setIsMinimised] = useState(false);
     const [isHistoryHydrating, setIsHistoryHydrating] = useState(true);
+    const [canSyncHistory, setCanSyncHistory] = useState(false);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -129,7 +130,16 @@ const AICompanion = () => {
                     .maybeSingle();
                 if (error) throw error;
                 canDecideWelcome = true;
-                if (!active || !Array.isArray(data?.messages)) return;
+                if (!active) return;
+
+                // Only permit remote writes after a successful read. A transient
+                // read failure must never replace older cloud chat with a greeting.
+                if (!data) {
+                    setCanSyncHistory(true);
+                    return;
+                }
+                if (!Array.isArray(data.messages)) return;
+                setCanSyncHistory(true);
 
                 const remoteMessages = data.messages
                     .filter(message =>
@@ -182,7 +192,7 @@ const AICompanion = () => {
 
     // Persist history to the authenticated account; the local copy remains available if this fails.
     useEffect(() => {
-        if (isHistoryHydrating || !messages.length) return undefined;
+        if (isHistoryHydrating || !canSyncHistory || !messages.length) return undefined;
 
         const timer = window.setTimeout(async () => {
             try {
@@ -203,7 +213,7 @@ const AICompanion = () => {
         }, 2000);
 
         return () => window.clearTimeout(timer);
-    }, [messages, persona, isHistoryHydrating]);
+    }, [messages, persona, isHistoryHydrating, canSyncHistory]);
 
     // Select persona
     const handleSelectPersona = (selected) => {
