@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../StudyShared.module.css';
 import { FileText, Plus, Calendar, CheckSquare } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
 import { useToast } from '../../../context/ToastContext';
 
 const AssignmentsBreakdown = () => {
