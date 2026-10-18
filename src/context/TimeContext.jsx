@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TimeContext } from './TimeContextCore';
+import { TimeContext } from './TimeContextCore.js';
 import { supabase } from '../supabaseClient';
 
 export const TimeProvider = ({ children }) => {
