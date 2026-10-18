@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../StudyShared.module.css';
 import { Target, Play, TrendingUp, Clock, CheckCircle, AlertTriangle, FileText, X, Sparkles } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
 import { useToast } from '../../../context/ToastContext';
 import { getMockExam } from '../../../services/aiService';
 import { extractTextFromFile } from '../../../utils/fileParser';
