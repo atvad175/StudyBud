@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Brain, Zap, BarChart2, TrendingUp, Clock, CheckCircle, Battery } from 'lucide-react';
 import styles from '../TimeShared.module.css';
-import { useTime } from '../../../context/TimeContext';
+import { useTime } from '../../../context/useTime';
 
 const TimeDashboard = () => {
     const { tasks } = useTime();
