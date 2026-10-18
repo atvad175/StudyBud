@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, Loader, X, Copy, Check } from 'lucide-react';
 import { useAI } from '../../context/useAI';
 import styles from './AIChat.module.css';
@@ -20,8 +20,10 @@ const AIChat = ({
 
     // Derive a session's initial history rather than copying it into state from
     // an effect. Local edits are then kept separate for each session ID.
-    const storedHistory = getChatHistory(sessionId);
-    const messages = messagesBySession[sessionId] ?? (storedHistory?.length ? storedHistory : EMPTY_MESSAGES);
+    const messages = useMemo(() => {
+        const storedHistory = getChatHistory(sessionId);
+        return messagesBySession[sessionId] ?? (storedHistory?.length ? storedHistory : EMPTY_MESSAGES);
+    }, [messagesBySession, sessionId, getChatHistory]);
     const setMessages = useCallback((updater) => {
         setMessagesBySession(previous => {
             const current = previous[sessionId] ?? getChatHistory(sessionId) ?? [];
