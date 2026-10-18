@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
 
 const MoodTimeline = () => {
   const { logs } = useMind();
