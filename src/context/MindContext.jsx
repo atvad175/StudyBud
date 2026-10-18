@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MindContext } from './MindContextCore';
+import { MindContext } from './MindContextCore.js';
 import { supabase } from '../supabaseClient';
 
 export const MindProvider = ({ children }) => {
