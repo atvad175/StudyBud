@@ -47,7 +47,6 @@ const MeditationSanctuary = () => {
     const [activeSession, setActiveSession] = useState(null);
     const [timer, setTimer] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
-    const [showInfo, setShowInfo] = useState(true);
     const [meditationLogs, setMeditationLogs] = useState(() => {
         const saved = localStorage.getItem('studybud_meditations');
         return saved ? JSON.parse(saved) : [];
