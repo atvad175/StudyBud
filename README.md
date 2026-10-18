@@ -78,13 +78,16 @@ The current draft pull request adds migrations for onboarding/chat history, owne
 
 ## Quality checks
 
+Run the same core checks locally:
+
 ```bash
+npm ci
 node --check api/ai.js
-npx eslint api/ai.js src/services/aiService.js src/App.jsx src/components/AICompanion/AICompanion.jsx src/modules/Auth/pages/LoginPage.jsx src/modules/Auth/pages/OnboardingSetup.jsx src/modules/Focus/pages/FocusSession.jsx src/modules/Settings/pages/SettingsPage.jsx src/modules/Study/pages/AssignmentsBreakdown.jsx src/modules/Study/pages/ExamsPrep.jsx src/modules/Study/pages/UnifiedStudy.jsx src/modules/Study/pages/Flashcards.jsx src/modules/Study/pages/FeynmanSandbox.jsx
+npm run lint
 npm run build
 ```
 
-The pull-request workflow runs the targeted lint checks, build, serverless syntax check, and a scan of the compiled browser bundle for Gemini SDK/key markers. The full-repository ESLint audit still has inherited errors and is temporarily non-blocking. There is not yet a complete automated browser or RLS regression suite.
+The pull-request workflow requires serverless syntax, targeted lint, the full-repository ESLint suite, and a production build. It also scans the compiled browser bundle for Gemini SDK/key markers. Full lint currently passes; automated browser-flow and cross-account RLS regression tests are still on the roadmap.
 
 ## Delivery workflow
 
