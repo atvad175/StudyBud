@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { StudyContext } from './StudyContextCore';
+import { StudyContext } from './StudyContextCore.js';
 
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
