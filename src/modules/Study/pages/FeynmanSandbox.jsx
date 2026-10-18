@@ -182,6 +182,9 @@ const FeynmanSandbox = () => {
                     <div>
                         <h1 className={feynStyles.title}>Feynman Whiteboard</h1>
                         <p className={feynStyles.subtitle}>"If you can't explain it simply, you don't understand it well enough." — Einstein</p>
+                        <p role="note" style={{ margin: '0.55rem 0 0', fontSize: '0.78rem', lineHeight: 1.45, color: 'var(--color-text-secondary)', maxWidth: 620 }}>
+                            Your explanation is sent to the AI service for feedback, and the completed session is saved to your Study history. AI feedback can be wrong; check important claims against your course materials. This is practice feedback, not an official grade.
+                        </p>
                     </div>
                 </div>
                 <div className={feynStyles.headerRight}>
