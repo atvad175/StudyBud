@@ -388,3 +388,129 @@
         transform: scale(1);
     }
 }
+
+/* Account-backed Mind activity chart */
+.activityChartHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+}
+
+.activityChartHeader h2 {
+    margin: 0;
+    color: #34334e;
+    font-size: 1.2rem;
+    font-weight: 750;
+}
+
+.activityChartHeader p {
+    margin: 0.35rem 0 0;
+    color: #77768a;
+    font-size: 0.83rem;
+    line-height: 1.5;
+}
+
+.activityChartTotal {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.activityChartTotal strong {
+    color: var(--primary-mind);
+    font-size: 1.7rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.activityChartTotal span {
+    color: #77768a;
+    font-size: 0.8rem;
+}
+
+.activityBars {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    align-items: end;
+    gap: clamp(0.35rem, 2vw, 1rem);
+    min-height: 120px;
+    padding: 0.8rem 0.4rem 0;
+    border-bottom: 1px solid rgba(108, 92, 231, 0.12);
+}
+
+.activityDay {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: #77768a;
+    font-size: 0.72rem;
+}
+
+.activityDay strong {
+    color: #45445f;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.activityDay > span {
+    padding-bottom: 0.6rem;
+}
+
+.activityBarTrack {
+    display: flex;
+    width: 100%;
+    height: 82px;
+    align-items: flex-end;
+    justify-content: center;
+    border-radius: 9px 9px 3px 3px;
+    background: rgba(108, 92, 231, 0.055);
+    overflow: hidden;
+}
+
+.activityBar {
+    width: min(70%, 34px);
+    min-height: 4px;
+    border-radius: 8px 8px 2px 2px;
+    background: linear-gradient(180deg, #988bf2 0%, #6c5ce7 100%);
+    transition: height 240ms ease;
+}
+
+.activityEmpty {
+    margin: 0.8rem 0 0;
+    color: #78768a;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.activityDisclaimer {
+    margin: 0.9rem 0 0;
+    color: #9391a0;
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+@media (max-width: 540px) {
+    .activityChartHeader {
+        flex-direction: column;
+    }
+
+    .activityBars {
+        gap: 0.3rem;
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    .activityDay {
+        font-size: 0.66rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .activityBar {
+        transition: none;
+    }
+}
