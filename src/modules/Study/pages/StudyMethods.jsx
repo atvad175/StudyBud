@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../StudyShared.module.css';
+import { STUDY_AMBIENT_PARTICLES } from '../ambientParticles';
 import { Lightbulb, Clock, Brain, CheckCircle, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import AIChat from '../../../components/ai/AIChat';
 import { useStudy } from '../../../context/useStudy';
@@ -137,18 +138,19 @@ const StudyMethods = () => {
         <div className={styles.container}>
             {/* Ambient Background */}
             <div className={styles.ambientBg}></div>
-            {[...Array(3)].map((_, i) => (
+            {STUDY_AMBIENT_PARTICLES.map(particle => (
                 <div
-                    key={i}
+                    key={particle.id}
                     className={styles.floatingParticle}
+                    aria-hidden="true"
                     style={{
-                        width: `${Math.random() * 200 + 100}px`,
-                        height: `${Math.random() * 200 + 100}px`,
-                        top: `${Math.random() * 100}%`,
-                        left: `${Math.random() * 100}%`,
-                        animationDelay: `${i * 3}s`
+                        width: `${particle.width}px`,
+                        height: `${particle.height}px`,
+                        top: particle.top,
+                        left: particle.left,
+                        animationDelay: particle.delay,
                     }}
-                ></div>
+                />
             ))}
 
             <header className={styles.header}>
