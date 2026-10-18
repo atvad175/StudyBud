@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Loader, X, Copy, Check } from 'lucide-react';
 import { useAI } from '../../context/useAI';
 import styles from './AIChat.module.css';
@@ -12,14 +12,19 @@ const AIChat = ({
 }) => {
     const { sendMessage, loading, error, getChatHistory, clearChat } = useAI();
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState([]);
+    const [messagesBySession, setMessagesBySession] = useState({});
     const [copiedIndex, setCopiedIndex] = useState(null);
     const messagesEndRef = useRef(null);
 
-    // Load chat history on mount
-    useEffect(() => {
-        const history = getChatHistory(sessionId);
-        setMessages(history);
+    // Derive a session's initial history rather than copying it into state from
+    // an effect. Local edits are then kept separate for each session ID.
+    const messages = messagesBySession[sessionId] ?? getChatHistory(sessionId) ?? [];
+    const setMessages = useCallback((updater) => {
+        setMessagesBySession(previous => {
+            const current = previous[sessionId] ?? getChatHistory(sessionId) ?? [];
+            const next = typeof updater === 'function' ? updater(current) : updater;
+            return { ...previous, [sessionId]: next };
+        });
     }, [sessionId, getChatHistory]);
 
     // Scroll to bottom when messages change
