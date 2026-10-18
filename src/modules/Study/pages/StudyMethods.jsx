@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styles from '../StudyShared.module.css';
 import { Lightbulb, Clock, Brain, CheckCircle, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import AIChat from '../../../components/ai/AIChat';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
 
 // Hardcoded study techniques - content to be filled in later
 const STUDY_TECHNIQUES = [
