@@ -9,7 +9,6 @@ const WeeklyReview = () => {
 
   const [tasksCompleted, setTasksCompleted] = useState(0);
   const [tasksTotal, setTasksTotal] = useState(0);
-  const [moodAverage, setMoodAverage] = useState(5);
   const [score, setScore] = useState(0);
 
   const [wentWell, setWentWell] = useState('');
@@ -60,7 +59,6 @@ const WeeklyReview = () => {
     });
 
     const avgMood = moodCount > 0 ? (moodSum / moodCount) : 5; 
-    setMoodAverage(avgMood);
 
     // Calculate score: (tasks_completed / tasks_total × 60) + (mood_average × 8)
     const calculatedScore = Math.round((comp / tot) * 60 + (avgMood * 8));
