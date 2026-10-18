@@ -1,13 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MindContext } from './MindContextCore';
 import { supabase } from '../supabaseClient';
-
-const MindContext = createContext();
-
-export const useMind = () => {
-    const context = useContext(MindContext);
-    if (!context) throw new Error('useMind must be used within a MindProvider');
-    return context;
-};
 
 export const MindProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
