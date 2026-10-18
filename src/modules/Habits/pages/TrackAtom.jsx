@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useHabits } from '../../../context/HabitsContext';
 import styles from './TrackAtom.module.css';
 import { Check, Trash2 } from 'lucide-react';
@@ -74,9 +74,10 @@ const EfficiencyGraph = ({ data }) => {
 };
 
 const TrackAtom = () => {
-    const { atoms, getTodayLog, updateLog, removeAtom, logs: contextLogs } = useHabits();
-    const [logs, setLogs] = useState({});
-    const [quote, setQuote] = useState("");
+    const { atoms, updateLog, removeAtom, logs: contextLogs } = useHabits();
+    const todayKey = new Date().toISOString().split('T')[0];
+    const logs = contextLogs[todayKey] || {};
+    const [quote] = useState(() => MOTIVATIONS[new Date().getDate() % MOTIVATIONS.length]);
     const [editingAtomId, setEditingAtomId] = useState(null);
     const [editForm, setEditForm] = useState({ time: '', duration: '', mood: '' });
 
@@ -102,29 +103,16 @@ const TrackAtom = () => {
 
     const averageRate = Math.round(weeklyData.reduce((acc, curr) => acc + curr.value, 0) / 7);
 
-    useEffect(() => {
-        setLogs(getTodayLog());
-        setQuote(MOTIVATIONS[new Date().getDate() % MOTIVATIONS.length]);
-    }, [getTodayLog]);
-
     const handleToggle = (atomId) => {
         const log = logs[atomId] || {};
         const isComplete = log.status === 'completed' || log.completed;
         const newStatus = isComplete ? 'pending' : 'completed';
 
         updateLog(atomId, { status: newStatus, completed: !isComplete });
-        setLogs(prev => ({
-            ...prev,
-            [atomId]: { ...prev[atomId], status: newStatus, completed: !isComplete }
-        }));
     };
 
     const handleMoodChange = (atomId, mood) => {
         updateLog(atomId, { mood });
-        setLogs(prev => ({
-            ...prev,
-            [atomId]: { ...prev[atomId], mood }
-        }));
     };
 
     const startEditing = (atom, log) => {
@@ -146,20 +134,11 @@ const TrackAtom = () => {
     };
 
     const saveEdit = (atomId) => {
-        updateLog(atomId, { 
-            time: editForm.time, 
+        updateLog(atomId, {
+            time: editForm.time,
             duration: editForm.duration,
             mood: editForm.mood
         });
-        setLogs(prev => ({
-            ...prev,
-            [atomId]: { 
-                ...prev[atomId], 
-                time: editForm.time, 
-                duration: editForm.duration,
-                mood: editForm.mood
-            }
-        }));
         setEditingAtomId(null);
     };
 
