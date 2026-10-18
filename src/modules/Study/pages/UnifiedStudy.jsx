@@ -121,6 +121,13 @@ const UnifiedStudy = () => {
         }))
         : DEFAULT_FRAMEWORKS;
 
+    const activeBoard = useMemo(
+        () => selectedBoard === 'all'
+            ? null
+            : boards.find(board => board?.name === selectedBoard) || null,
+        [boards, selectedBoard]
+    );
+
     const dueReviewCount = reviews.filter(review => {
         if (!review.next_review_date) return false;
         return new Date(review.next_review_date).getTime() <= Date.now();
@@ -155,6 +162,29 @@ const UnifiedStudy = () => {
                     <span>Learn · Practise · Recall</span>
                 </div>
             </header>
+
+            {activeBoard?.strategies?.length > 0 && (
+                <section className={styles.hubLibrarySection} aria-labelledby="board-guidance-title">
+                    <div className={styles.hubSectionHeading}>
+                        <div>
+                            <span className={styles.hubEyebrow}>CURRICULUM APPROACH</span>
+                            <h2 id="board-guidance-title">{activeBoard.name} study approaches</h2>
+                            <p className={styles.hubSectionDescription}>
+                                General ways to prepare for this curriculum. Check your current subject syllabus for exact topics, weightings and mark schemes.
+                            </p>
+                        </div>
+                    </div>
+                    <div className={styles.hubFrameworkGrid}>
+                        {activeBoard.strategies.map((strategy, index) => (
+                            <article key={`${activeBoard.name}-${strategy.title}`} className={styles.hubFrameworkCard}>
+                                <span className={styles.hubFrameworkNumber}>{String(index + 1).padStart(2, '0')}</span>
+                                <h3>{strategy.title}</h3>
+                                <p>{strategy.content}</p>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {loadError && (
                 <div className={styles.hubDataWarning} role="alert">
