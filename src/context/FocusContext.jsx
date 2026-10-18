@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FocusContext } from './FocusContextCore';
+import { FocusContext } from './FocusContextCore.js';
 import { supabase } from '../supabaseClient';
 
 export const FocusProvider = ({ children }) => {
