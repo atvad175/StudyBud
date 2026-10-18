@@ -9,6 +9,7 @@ const SettingsPage = () => {
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [nameChanged, setNameChanged] = useState(false);
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState('');
 
     // Section 2: Appearance
@@ -49,12 +50,59 @@ const SettingsPage = () => {
         } catch (error) { console.warn('Unable to load saved appearance settings:', error); }
     }, []);
 
-    const handleSaveProfile = () => {
-        localStorage.setItem('studybud_username', name);
-        localStorage.setItem('studybud_role', role);
-        localStorage.setItem('studybud_avatar', avatarUrl);
-        setNameChanged(false);
-        // Dispatch event or just let it be for next load
+    const handleSaveProfile = async () => {
+        const displayName = name.trim();
+        if (!displayName) {
+            toast.error('Enter a display name before saving.');
+            return;
+        }
+        if (!['School student', 'College student', 'Self-learner', 'Working professional'].includes(role)) {
+            toast.error('Choose a valid profile type before saving.');
+            return;
+        }
+        if (isSavingProfile) return;
+
+        setIsSavingProfile(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in again before saving profile changes.');
+
+            const profileUpdate = {
+                name: displayName,
+                role,
+                updated_at: new Date().toISOString(),
+            };
+            if (role !== 'School student') {
+                profileUpdate.board = '';
+                profileUpdate.grade = '';
+            }
+
+            const { error } = await supabase
+                .from('user_onboarding')
+                .update(profileUpdate)
+                .eq('user_id', user.id);
+            if (error) throw error;
+
+            localStorage.setItem('studybud_username', displayName);
+            localStorage.setItem('studybud_role', role);
+            localStorage.setItem('studybud_avatar', avatarUrl);
+            if (role !== 'School student') {
+                localStorage.setItem('studybud_board', '');
+                localStorage.setItem('studybud_grade', '');
+            }
+
+            setName(displayName);
+            setNameChanged(false);
+            toast.success('Profile changes saved to your account.');
+            if (role !== 'School student') {
+                toast.info('Your curriculum filters were cleared because they only apply to school students.');
+            }
+        } catch (error) {
+            console.error('Unable to save profile changes:', error?.code || 'unknown');
+            toast.error(error?.message || 'Profile changes could not be saved. Please try again.');
+        } finally {
+            setIsSavingProfile(false);
+        }
     };
 
     const handleUpdatePassword = async () => {
@@ -251,9 +299,9 @@ const SettingsPage = () => {
                                     type="button"
                                     className={styles.btnGold}
                                     onClick={handleSaveProfile}
-                                    disabled={!nameChanged}
+                                    disabled={!nameChanged || isSavingProfile || !name.trim()}
                                 >
-                                    Save changes
+                                    {isSavingProfile ? 'Saving…' : 'Save changes'}
                                 </button>
                             </div>
                         </div>
