@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useHabits } from '../../../context/HabitsContext';
+import { useHabits } from '../../../context/useHabits';
 import styles from './TrackAtom.module.css';
 import { Check, Trash2 } from 'lucide-react';
 
