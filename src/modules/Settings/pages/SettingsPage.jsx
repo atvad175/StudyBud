@@ -148,7 +148,7 @@ const SettingsPage = () => {
         try {
             // Sign out first so App-level account hydration cannot immediately restore
             // the local cache before we navigate to the public landing page.
-            const { error } = await supabase.auth.signOut();
+            const { error } = await supabase.auth.signOut({ scope: 'local' });
             if (error) throw error;
 
             const keysToRemove = [];
