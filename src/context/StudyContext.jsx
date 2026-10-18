@@ -201,7 +201,7 @@ export const StudyProvider = ({ children }) => {
             desc: 'Central Board of Secondary Education',
             strategies: [
                 {
-                    title: 'NCERT is King',
+                    title: 'Start with prescribed resources',
                     content: 'NCERT is a core resource for many CBSE subjects, but requirements vary by subject and year. Start with the current prescribed material, then use the syllabus, exemplar/sample papers and official guidance to identify what to practise.'
                 },
                 {
