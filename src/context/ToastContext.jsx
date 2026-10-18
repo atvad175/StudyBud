@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ToastContext } from './ToastContextCore';
+import { ToastContext } from './ToastContextCore.js';
 import { CheckCircle, AlertTriangle, Info, X } from 'lucide-react';
 import styles from '../components/ui/Toast.module.css';
 
