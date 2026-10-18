@@ -140,6 +140,9 @@ const UnifiedStudy = () => {
                         Pick one useful action, work on it, then come back to what needs review.
                         StudyBud keeps your tools in one place.
                     </p>
+                    <p className={styles.hubStudyDisclaimer} role="note">
+                        Subject tips are general learning guidance tagged to common curricula—not an official syllabus or mark scheme. Confirm chapter lists, weightings and exam requirements with your current board or school.
+                    </p>
                     {greetingBoard && (
                         <span className={styles.hubBoardBadge}>
                             <BookOpen size={14} aria-hidden="true" />
