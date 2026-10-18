@@ -34,9 +34,12 @@ Security, authentication and reliable saving take priority over new features.
 
 ### Phase 2 — Core Study experience
 - [x] Redesign the Study Hub around clear primary actions, searchable subjects, curriculum filters, responsive cards, and useful progress counts.
+- [x] Surface the existing ICSE, IGCSE, CBSE, IB and ISC study-approach cards when a curriculum is selected.
+- [x] Revise overconfident study guidance and clearly distinguish general strategy advice from official syllabus/mark-scheme details.
 - [x] Fix core save/error feedback and roll back optimistic task, assignment, and practice writes when they fail.
 - [x] Move flashcards to account-owned Supabase tables with an explicit import path for older browser-only cards.
 - [x] Validate AI exam question count, options and answer keys; replace fake placeholder exams with actual practice generation.
+- [x] Pass allowlisted board/grade context to AI exam generation as a difficulty hint, without claiming official syllabus alignment.
 - [x] Persist exam score/answer review and Feynman mastery sessions in the signed-in student's Study history.
 - [x] Pass the selected subject from the Study Hub into exam setup and distinguish AI-generated practice from verified past papers.
 - [ ] Add browser and RLS regression tests for at least one ICSE and one IGCSE workflow.
@@ -46,8 +49,10 @@ Security, authentication and reliable saving take priority over new features.
 ### Phase 3 — UX/UI quality
 - [x] Refine landing-page copy and unify key landing/auth typography with shared font tokens.
 - [x] Reduce onboarding to four short steps, with optional personalization instead of eight mandatory preference screens.
-- [x] Add a responsive Study Hub layout, clearer loading/error states, and keyboard-focus styling.
-- [x] Make Settings profile edits save to the account record with loading/success/error feedback.
+- [x] Add responsive Study Hub actions, curriculum approach cards, loading/error states, keyboard-focus styling and an explicit note about general versus official syllabus guidance.
+- [x] Add low-noise transparency notices for Bud chat data/AI use and Feynman AI assessment.
+- [x] Make Settings profile edits save to the account record with loading/success/error feedback, including verification that a row was actually updated.
+- [x] Preserve local profile data and show a retry screen if a saved onboarding profile cannot be verified because of a query failure.
 - [x] Make the Settings cache-reset control explicit that it clears local data and signs out this device, but does not delete cloud records.
 - [ ] Conduct desktop/mobile usability testing and accessibility review; fix remaining page-to-page inconsistencies.
 
@@ -60,6 +65,7 @@ Security, authentication and reliable saving take priority over new features.
 - [x] Use the shared authenticated AI endpoint for the main chat and Bud Companion; apply context/persona instructions consistently.
 - [x] Validate structured exam output and bound input sizes; prevent remote chat history from being overwritten after failed reads.
 - [ ] Migrate the legacy `@google/generative-ai` SDK to Google's maintained `@google/genai` SDK ([issue #8](https://github.com/atvad175/StudyBud/issues/8)).
+- [ ] Build an action-oriented Bud plan flow with explicit student approval before task creation or other write actions ([issue #9](https://github.com/atvad175/StudyBud/issues/9)).
 - [ ] Replace the per-instance in-memory limiter with shared server-side rate limiting and add usage monitoring/timeouts before public launch.
 - [ ] Measure real loading/interaction timings; add error reporting and high-use flow tests after privacy settings are reviewed.
 
