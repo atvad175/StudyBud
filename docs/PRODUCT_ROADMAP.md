@@ -61,7 +61,6 @@ Security, authentication and reliable saving take priority over new features.
 ### Phase 4 — AI, speed and maintainability
 - [x] Route Gemini requests through an authenticated Vercel serverless endpoint; provider keys are read from server-side environment variables only.
 - [x] Validate operation types and input sizes, validate generated exam structure, and add a best-effort per-user rate limit.
-- [ ] Replace the in-memory limiter with shared server-side rate limiting and add usage monitoring/timeouts before public launch.
 - [x] Use the shared authenticated AI endpoint for the main chat and Bud Companion; apply context/persona instructions consistently.
 - [x] Validate structured exam output and bound input sizes; prevent remote chat history from being overwritten after failed reads.
 - [ ] Migrate the legacy `@google/generative-ai` SDK to Google's maintained `@google/genai` SDK ([issue #8](https://github.com/atvad175/StudyBud/issues/8)).
@@ -84,10 +83,11 @@ Security, authentication and reliable saving take priority over new features.
 
 ### Automated checks
 - [x] `npm ci` succeeds in GitHub Actions.
-- [x] Strict targeted ESLint passes on the critical edited AI/auth/Study/Settings screens.
+- [x] Serverless API syntax check passes.
+- [x] Targeted ESLint passes on edited AI/auth/Study/Settings/Mind/Time/Habits and context modules.
+- [x] Full-repository `npm run lint` passes with zero errors and warnings; it is a blocking CI step.
 - [x] `npm run build` succeeds in GitHub Actions.
 - [x] The compiled browser bundle passes the Gemini-key/SDK marker scan.
-- [ ] Full-repository `npm run lint` is still non-blocking and reports 51 legacy errors; tracked in [issue #7](https://github.com/atvad175/StudyBud/issues/7).
 - [ ] Browser flow tests and RLS access tests are added.
 - [ ] SQL migrations are exercised against a separate test database.
 
