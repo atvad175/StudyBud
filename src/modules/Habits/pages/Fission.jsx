@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useHabits } from '../../../context/HabitsContext';
+import { useHabits } from '../../../context/useHabits';
 import { FISSION_LEVELS } from '../data/fissionContent';
 import { Link } from 'react-router-dom';
 import { BookOpen, CheckCircle, ChevronRight, MessageCircle, Target, ArrowLeft } from 'lucide-react';
