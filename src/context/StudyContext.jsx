@@ -13,9 +13,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'english_lang_lit', name: 'English (Lang & Lit)', icon: '📖', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Read literature texts multiple times: first for story, second for themes, third for literary devices. Practice grammar consistently.',
+                how_to_study: 'Read set texts in focused passes: first understand the plot, then annotate themes and character choices, then analyse language and structure. Practise grammar and writing using your current syllabus and mark scheme.',
                 common_traps: ['Summarizing the plot instead of analyzing it', 'Ignoring the historical context of the author'],
-                practice_tips: ['Memorize short, powerful quotes', 'Write character sketches for all major characters', 'Time yourself while practicing comprehension essays'],
+                practice_tips: ['Learn a small set of accurate, useful quotations and practise integrating them into analysis', 'Write character sketches for all major characters', 'Time yourself while practicing comprehension essays'],
                 before_exam: 'Ensure you have a clear structure for essays (Intro, Body, Conclusion). Review key themes and character arcs.',
                 when_stuck: 'Think about character motivation. Why did they say that? How does it reflect the theme?'
             }
@@ -25,7 +25,7 @@ export const StudyProvider = ({ children }) => {
             strategies: {
                 how_to_study: 'Do not ignore it until the end. Read regional newspapers or stories to naturally improve vocabulary and spelling.',
                 common_traps: ['Spelling and ' + 'matra' + ' errors', 'Translating English idioms literally'],
-                practice_tips: ['Write one page daily to build speed', 'Memorize common essay structures and letter formats'],
+                practice_tips: ['Build writing fluency through regular, manageable practice and feedback', 'Memorize common essay structures and letter formats'],
                 before_exam: 'Revise grammar rules strictly. Practice reading unseen passages fast.',
                 when_stuck: 'Break down complex words into root meanings or read sentences aloud to check grammatical flow.'
             }
@@ -33,9 +33,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'history_civics', name: 'History & Civics', icon: '🏛️', boards: ['ICSE', 'CBSE', 'ISC'],
             strategies: {
-                how_to_study: 'Learn History as cause-and-effect, not standalone dates. Civics requires precise constitutional terminology.',
+                how_to_study: 'Connect historical events through causes, consequences and change over time; use dates as anchors. In Civics, practise the precise constitutional terms required by your course.',
                 common_traps: ['Mixing up dates and kings', 'Vague answers in Civics instead of constitutional terms'],
-                practice_tips: ['Create timelines for every era', 'Write answers in bullet points with heavy keywords'],
+                practice_tips: ['Create timelines for every era', 'Practise clear, well-organised answers using the structure and key terms expected by your mark scheme'],
                 before_exam: 'Review major turning points. For Civics, ensure you know powers and functions exactly as per constitution.',
                 when_stuck: 'Ask: Who stood to gain from this? Follow the money or political power.'
             }
@@ -43,10 +43,10 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'geography', name: 'Geography', icon: '🌍', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB'],
             strategies: {
-                how_to_study: 'Master map pointing and topography. It secures 30% of your marks free. Use mnemonics for soil, climate and agriculture.',
+                how_to_study: 'Practise the map and topographic skills required by your course. Mark allocations vary by board, level and exam, so check your current syllabus; use diagrams, maps and mnemonics when they help you recall patterns.',
                 common_traps: ['Not coloring maps with correct standard colors', 'Confusing topography grid references'],
-                practice_tips: ['Practice one topo map per week', 'Link climate patterns to agricultural crops geographically'],
-                before_exam: 'Sharpen your color pencils for map work. Review specific definitions (e.g. what is a ' + 'wadi' + '?).',
+                practice_tips: ['Practise map or topographic questions regularly, then review accuracy against a worked answer or mark scheme', 'Link climate patterns to agricultural crops geographically'],
+                before_exam: 'Review the map symbols, definitions and practical skills listed in your current syllabus, and prepare the tools your exam rules permit.',
                 when_stuck: 'Draw it out. Even if it is a rough sketch of wind movements, it brings clarity.'
             }
         },
@@ -55,29 +55,29 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'math', name: 'Mathematics', icon: '📐', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Math is a language of logic. You learn it by doing. Solve at least 15 problems every single day.',
+                how_to_study: 'Math develops through active problem-solving. Use a manageable mix of questions, then review errors and retry unfamiliar steps; adjust practice to the time and topics you have.',
                 common_traps: ['Skipping steps in calculation', 'Memorizing formulas without understanding derivation'],
-                practice_tips: ['Solve past year papers under timed conditions', 'Maintain a separate notebook exclusively for formulas and mistakes'],
+                practice_tips: ['Use past papers or specimen questions that match your course, and practise some under timed conditions as the exam approaches', 'Maintain a separate notebook exclusively for formulas and mistakes'],
                 before_exam: 'Review your mistake log. Focus on memorizing key identities and ensuring your calculator/geometry tools are ready.',
-                when_stuck: 'Break the problem down. What is given? What is needed? If stuck > 10 mins, look at the solution, understand the missed step, and hide it and solve again.'
+                when_stuck: 'List what is given and what you need to find. If stuck, identify the step you cannot justify, study a worked example, then cover it and try again; ask for help if the gap remains.'
             }
         },
         {
             id: 'physics', name: 'Physics', icon: '⚛️', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Understand the "Why" before the "How". Visualize the concept—whether it is a force, a circuit, or a wave—before you touch the math.',
+                how_to_study: 'Understand the physical idea, sketch the situation where useful, then connect it to equations and units. Practise explaining what each quantity represents before calculating.',
                 common_traps: ['Mixing up vector and scalar quantities', 'Forgetting to convert units to SI', 'Confusing acceleration with velocity'],
                 practice_tips: ['Draw free-body diagrams for every force problem', 'Link theories to real-world examples'],
-                before_exam: 'Ensure you know all definitions verbatim. Review ray diagrams, circuit symbols, and standard values (e.g. g = 9.8).',
+                before_exam: 'Review required definitions, diagrams, circuit symbols and constants from your current course. Use the value and units specified in a question or by your syllabus.',
                 when_stuck: 'Go back to fundamental laws. Does Newton’s second law apply? Is energy conserved?'
             }
         },
         {
             id: 'chemistry', name: 'Chemistry', icon: '🧪', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Chemistry bridges Physics and Biology. Understand the Periodic Table thoroughly—it maps everything else.',
+                how_to_study: 'Use the Periodic Table to understand patterns in elements, while practising reactions, structures and calculations as separate skills.',
                 common_traps: ['Balancing equations incorrectly', 'Forgetting states of matter (s, l, g, aq) in equations'],
-                practice_tips: ['Write and balance 5 equations every day', 'Perform "mental labs"—visualize color changes and precipitates'],
+                practice_tips: ['Practise balancing equations in short, regular sets and check atom counts on both sides', 'Perform "mental labs"—visualize color changes and precipitates'],
                 before_exam: 'Review organic functional groups and periodic trends. Memorize tests for specific gases and ions.',
                 when_stuck: 'Check the electrons. Chemistry is essentially just the study of how electrons move and share space.'
             }
@@ -85,19 +85,19 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'biology', name: 'Biology', icon: '🧬', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Heavy on terminology and processes. Diagrams are your primary tool—if you can draw and fully label it, you know it.',
+                how_to_study: 'Biology requires clear terms, processes and functions. Use diagrams to support learning, then test yourself by explaining the process without looking at the labels.',
                 common_traps: ['Using vague descriptions instead of biological terms', 'Poorly labeled diagrams', 'Ignoring the function of a part'],
                 practice_tips: ['Create mnemonics for long lists or human body sequences', 'Practice drawing neat, proportioned diagrams'],
-                before_exam: 'Go through ALL diagrams in your textbook. Ensure spelling for scientific names is flawless.',
+                before_exam: 'Prioritise diagrams and terms listed in your syllabus and mark scheme. Practise clear labels and accurate scientific spelling.',
                 when_stuck: 'Think macro. How does this microscopic process help the overall survival of the organism?'
             }
         },
         {
             id: 'economics', name: 'Economics', icon: '📈', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Focus immensely on graphs and principles (like Demand & Supply). Linking chapters makes answering macro questions easier.',
+                how_to_study: 'Practise interpreting graphs and core principles such as demand and supply. Link concepts across chapters when the question calls for it.',
                 common_traps: ['Drawing graphs without labelling axes correctly', 'Confusing shifts along the curve vs shifts of the curve'],
-                practice_tips: ['Practice defining terms exactly as in the textbook', 'Read financial news and connect it to syllabus concepts'],
+                practice_tips: ['Practise concise definitions using the terminology your course and mark scheme expect', 'Use a familiar real-world example to apply a concept, while keeping answers aligned with the question and syllabus'],
                 before_exam: 'Check all graphs. Revise the exact definitions and assumptions for main economic laws.',
                 when_stuck: 'Ask yourself: Does this behavior make sense for a normal consumer trying to maximize utility?'
             }
@@ -127,9 +127,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'physical_education', name: 'Physical Education', icon: '🏃‍♂️', boards: ['ICSE', 'CBSE', 'ISC'],
             strategies: {
-                how_to_study: 'Learn the exact rules and dimensions of your chosen sports. Understand the biology of sports injuries and first aid.',
-                common_traps: ['Providing vague measurements (e.g. "around 5 meters" instead of "4.57m")', 'Using slang terms for official sports rules'],
-                practice_tips: ['Draw and label the field/court with exact dimensions', 'Memorize specific tournament names and recent cup winners'],
+                how_to_study: 'Learn the rules, court dimensions and safety concepts specified for your chosen sport and course. Verify measurements against an authoritative course resource, as events can differ.',
+                common_traps: ['Giving approximate measurements when an exact value is required by the course or question', 'Using slang terms for official sports rules'],
+                practice_tips: ['Draw and label the field/court with exact dimensions', 'Revise the competitions, rules and examples explicitly included in your current syllabus'],
                 before_exam: 'Revise court diagram dimensions. Go over standard injury protocols (RICE).',
                 when_stuck: 'Put yourself in the umpire/referee’s shoes. What rule maintains fairness in this scenario?'
             }
@@ -137,9 +137,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'art', name: 'Art', icon: '🎨', boards: ['ICSE', 'IGCSE', 'IB'],
             strategies: {
-                how_to_study: 'Practice building muscle memory. Understand light, perspective, and color theory mathematically.',
+                how_to_study: 'Develop technique through manageable repeated practice, observation and feedback; use perspective, light and colour theory to explain your choices.',
                 common_traps: ['Overworking the paper until it tears', 'Ignoring light sourcing when shading', 'Drawing the symbol of an eye instead of looking at the reference'],
-                practice_tips: ['Do quick 5-minute sketches daily to capture proportions', 'Always map out proportions before adding any dark shading'],
+                practice_tips: ['Try short observational sketches when useful, then compare proportions, shapes and light with the reference', 'Check proportions and light direction before adding stronger shading; adapt the order to your medium and subject'],
                 before_exam: 'Gather and organize your materials perfectly. Practice doing a full piece within the strict exam time limit.',
                 when_stuck: 'Squint your eyes. It removes details and lets you see the core values of light and dark.'
             }
