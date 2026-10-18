@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Send, RotateCcw, ChevronDown, CheckCircle2, AlertTriangle, BookOpen, Sparkles, Target, TrendingUp, Brain, Lightbulb, ChevronRight } from 'lucide-react';
 import { chat } from '../../../services/aiService';
 import { useToast } from '../../../context/ToastContext';
+import { useStudy } from '../../../context/useStudy';
 import feynStyles from './FeynmanSandbox.module.css';
 
 const STAGES = [
@@ -43,6 +44,7 @@ const extractScore = (text) => {
 
 const FeynmanSandbox = () => {
     const { toast } = useToast();
+    const { practiceLogs, logPractice } = useStudy();
     const [stage, setStage] = useState(1);
     const [topic, setTopic] = useState('');
     const [difficulty, setDifficulty] = useState('intermediate');
@@ -52,15 +54,36 @@ const FeynmanSandbox = () => {
     const [masteryResult, setMasteryResult] = useState(null);
     const [masteryScore, setMasteryScore] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [sessionHistory, setSessionHistory] = useState([]);
     const [showHistory, setShowHistory] = useState(false);
-    const [wordCount, setWordCount] = useState(0);
     const feedbackRef = useRef(null);
 
-    useEffect(() => {
-        const words = explanation.trim().split(/\s+/).filter(Boolean).length;
-        setWordCount(words);
-    }, [explanation]);
+    const wordCount = useMemo(
+        () => explanation.trim().split(/\s+/).filter(Boolean).length,
+        [explanation]
+    );
+
+    const sessionHistory = useMemo(() => practiceLogs
+        .filter(log => log.mistake_type === 'feynman_mastery')
+        .map(log => {
+            let saved = {};
+            try {
+                saved = JSON.parse(log.question_content || '{}');
+            } catch {
+                return null;
+            }
+
+            const assessment = typeof saved.masteryResult === 'string' ? saved.masteryResult : '';
+            const extractedScore = extractScore(assessment);
+            return {
+                id: log.id,
+                topic: log.subject || saved.topic || 'Untitled topic',
+                difficulty: saved.difficulty || 'intermediate',
+                score: Number.isInteger(saved.masteryScore) ? saved.masteryScore : extractedScore,
+                date: log.created_at ? new Date(log.created_at).toLocaleDateString() : '',
+                verdict: saved.verdict || assessment.match(/Verdict:\s*(.+)/i)?.[1]?.trim() || '—',
+            };
+        })
+        .filter(Boolean), [practiceLogs]);
 
     const handleStage2Submit = async () => {
         if (!topic.trim()) return toast.error('Please give your concept a name before explaining it.');
@@ -81,24 +104,49 @@ const FeynmanSandbox = () => {
     };
 
     const handleStage4Submit = async () => {
-        if (refinedExplanation.trim().split(/\s+/).length < 30) return toast.error('Your refined explanation needs at least 30 words.');
+        if (refinedExplanation.trim().split(/\s+/).filter(Boolean).length < 30) {
+            return toast.error('Your refined explanation needs at least 30 words.');
+        }
+        if (isLoading) return;
 
         setIsLoading(true);
         try {
             const messages = buildPrompt(4, topic, refinedExplanation, difficulty, { original: explanation, critique: critique?.text });
             const response = await chat(messages, 'study');
             const score = extractScore(response);
+            const verdict = response.match(/Verdict:\s*(.+)/i)?.[1]?.trim() || '—';
+
+            // Show the assessment immediately, then save it without hiding a valid
+            // result if the database write fails.
             setMasteryResult(response);
             setMasteryScore(score);
             setStage(4);
-            setSessionHistory(prev => [{
-                topic,
-                difficulty,
-                score,
-                date: new Date().toLocaleDateString(),
-                verdict: response.match(/Verdict:\s*(.+)/i)?.[1]?.trim() || '—',
-            }, ...prev]);
-            setTimeout(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+            window.setTimeout(() => feedbackRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+            try {
+                await logPractice({
+                    subject: topic.trim().slice(0, 180),
+                    mistake_type: 'feynman_mastery',
+                    question_content: JSON.stringify({
+                        topic,
+                        difficulty,
+                        originalExplanation: explanation,
+                        critique: critique?.text || '',
+                        refinedExplanation,
+                        masteryResult: response,
+                        masteryScore: score,
+                        verdict,
+                    }),
+                    notes: score === null
+                        ? 'Feynman mastery assessment completed; no numeric score was parsed.'
+                        : `Feynman mastery score: ${score}/10.`,
+                    tags: ['feynman', difficulty],
+                });
+                toast.success('Feynman session saved to your Study history.');
+            } catch (saveError) {
+                console.error('Unable to save Feynman session:', saveError?.code || 'unknown');
+                toast.error('Your assessment is visible, but it could not be saved. Please check your connection before leaving this page.');
+            }
         } catch (err) {
             toast.error(err.message || 'Mastery scoring failed. Please try again.');
         } finally {
@@ -338,7 +386,7 @@ const FeynmanSandbox = () => {
                                 <p className={feynStyles.historyEmpty}>No sessions yet. Complete a Feynman cycle to see your progress.</p>
                             ) : (
                                 sessionHistory.map((s, i) => (
-                                    <div key={i} className={feynStyles.historyItem}>
+                                    <div key={s.id ?? `${s.topic}-${s.date}-${i}`} className={feynStyles.historyItem}>
                                         <div className={feynStyles.historyItemTop}>
                                             <strong>{s.topic}</strong>
                                             <span className={feynStyles.historyScore} style={{ color: scoreColor(s.score) }}>
