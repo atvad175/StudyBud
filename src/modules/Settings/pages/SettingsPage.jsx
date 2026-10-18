@@ -77,11 +77,16 @@ const SettingsPage = () => {
                 profileUpdate.grade = '';
             }
 
-            const { error } = await supabase
+            const { data: savedProfile, error } = await supabase
                 .from('user_onboarding')
                 .update(profileUpdate)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('user_id')
+                .maybeSingle();
             if (error) throw error;
+            if (!savedProfile) {
+                throw new Error('We could not find your saved setup. Please complete setup again, then retry.');
+            }
 
             localStorage.setItem('studybud_username', displayName);
             localStorage.setItem('studybud_role', role);
