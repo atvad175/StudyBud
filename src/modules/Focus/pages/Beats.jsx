@@ -66,7 +66,7 @@ const SPOTIFY_PLAYLISTS = [
 ];
 
 const Beats = () => {
-    const { activePlaylist, isPlaying, togglePlay } = useMusic();
+    const { activePlaylist, togglePlay } = useMusic();
     const [hovered, setHovered] = useState(null);
 
     return (
