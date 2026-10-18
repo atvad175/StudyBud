@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MusicContext } from './MusicContextCore';
+import { MusicContext } from './MusicContextCore.js';
 
 export const MusicProvider = ({ children }) => {
     const [activePlaylist, setActivePlaylist] = useState(null);
