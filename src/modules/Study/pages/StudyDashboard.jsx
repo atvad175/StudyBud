@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from '../StudyShared.module.css';
 import { BookOpen, Lightbulb, FileText, Target, TrendingUp, Clock, Zap } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
 import { getStudyRecommendation, calculateStudyStreak } from '../studyUtils';
 
 const StudyDashboard = () => {
