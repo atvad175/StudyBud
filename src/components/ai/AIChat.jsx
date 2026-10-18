@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader, X, Copy, Check } from 'lucide-react';
-import { useAI } from '../../context/AIContext';
+import { useAI } from '../../context/useAI';
 import styles from './AIChat.module.css';
 
 const AIChat = ({
