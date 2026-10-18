@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Play, Pause, X, Music, Timer, ChevronUp, ChevronDown, Minimize2, Maximize2, Headphones } from 'lucide-react';
-import { useFocus } from '../../context/FocusContext';
-import { useMusic } from '../../context/MusicContext';
+import { useFocus } from '../../context/useFocus';
+import { useMusic } from '../../context/useMusic';
 
 const FocusOverlay = () => {
     const { isActive, timeLeft, formatTime, isPaused, resumeSession, pauseSession, stopSession, category } = useFocus();
