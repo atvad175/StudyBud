@@ -420,7 +420,7 @@ const SettingsPage = () => {
                             </div>
                             <button type="button" className={styles.btnOutline} onClick={handleExport}>
                                 <Download size={16} strokeWidth={2} aria-hidden />
-                                Export my data
+                                Export local backup
                             </button>
                         </div>
 
