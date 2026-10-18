@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from '../MindShared.module.css';
 import { Archive, Feather, Smile, Wind, ArrowRight } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
 
 const BACKGROUND_PARTICLES = [
     { id: 'a', top: '8%', left: '9%', width: 140, height: 160, duration: 17 },
