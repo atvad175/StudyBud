@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Layers, Brain, Clock, Activity, BookOpen, Sparkles, ArrowRight } from 'lucide-react';
 import styles from './MainDashboard.module.css';
 
 const MainDashboard = () => {
-    const [welcomeMsg, setWelcomeMsg] = useState('WELCOME BACK');
-    const [name, setName] = useState('');
+    const [name] = useState(() => {
+        const storedName = localStorage.getItem('studybud_username') || 'Student';
+        const firstName = storedName.split(' ')[0];
+        return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+    });
+    const [welcomeMsg] = useState(() =>
+        localStorage.getItem('studybud_first_visit') === 'true' ? 'Welcome' : 'Welcome back'
+    );
 
     useEffect(() => {
-        const storedName = localStorage.getItem('studybud_username') || 'Hero';
-        const firstName = storedName.split(' ')[0];
-        setName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
-
         if (localStorage.getItem('studybud_first_visit') === 'true') {
-            setWelcomeMsg('Welcome');
             localStorage.removeItem('studybud_first_visit');
-        } else {
-            setWelcomeMsg('Welcome back');
         }
     }, []);
 
