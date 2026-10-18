@@ -71,7 +71,8 @@ export const diagnoseAuthService = async () => {
     const timeoutId = setTimeout(() => controller.abort(), 5_000);
 
     try {
-        const baseUrl = supabaseUrl.replace(/\\/+$/, '');
+        let baseUrl = supabaseUrl;
+        while (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
         const response = await fetch(`${baseUrl}/auth/v1/health`, {
             method: 'GET',
             headers: { apikey: supabaseAnonKey },
