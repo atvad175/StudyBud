@@ -1,13 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-
-const StudyContext = createContext();
-
-export const useStudy = () => {
-    const context = useContext(StudyContext);
-    if (!context) throw new Error('useStudy must be used within a StudyProvider');
-    return context;
-};
+import { StudyContext } from './StudyContextCore';
 
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
@@ -155,7 +148,7 @@ export const StudyProvider = ({ children }) => {
     const [assignments, setAssignments] = useState([]);
     const [practiceLogs, setPracticeLogs] = useState([]);
     const [reviews, setReviews] = useState([]);
-    const [boards, setBoards] = useState([
+    const [boards] = useState([
         {
             id: 'igcse',
             name: 'IGCSE',
@@ -388,13 +381,13 @@ export const StudyProvider = ({ children }) => {
 
                 if (results[0].data) setTechniques(results[0].data);
                 
-                // Merge fallback subjects with DB subjects or use fallback if DB empty
+                // Merge public DB metadata into the fallback subject list using the
+                // latest state value. This avoids a stale effect closure and a fetch loop.
                 const dbSubjects = results[1].data || [];
-                const mergedSubjects = subjects.map(fallback => {
+                setSubjects(currentSubjects => currentSubjects.map(fallback => {
                     const dbMatch = dbSubjects.find(db => db.id === fallback.id || db.name === fallback.name);
                     return dbMatch ? { ...fallback, ...dbMatch } : fallback;
-                });
-                setSubjects(mergedSubjects);
+                }));
 
                 if (results[2].data) setAssignments(results[2].data);
                 if (results[3].data) setPracticeLogs(results[3].data);
