@@ -1,15 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FocusContext } from './FocusContextCore';
 import { supabase } from '../supabaseClient';
-
-const FocusContext = createContext();
-
-export const useFocus = () => {
-    const context = useContext(FocusContext);
-    if (!context) {
-        throw new Error('useFocus must be used within a FocusProvider');
-    }
-    return context;
-};
 
 export const FocusProvider = ({ children }) => {
     const [isActive, setIsActive] = useState(false);
