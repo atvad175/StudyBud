@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HabitsContext } from './HabitsContextCore';
+import { HabitsContext } from './HabitsContextCore.js';
 import { supabase } from '../supabaseClient';
 
 export const HabitsProvider = ({ children }) => {
