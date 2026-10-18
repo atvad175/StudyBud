@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { AIContext } from './AIContextCore';
+import { AIContext } from './AIContextCore.js';
 import * as aiService from '../services/aiService';
 
 const EMPTY_CHAT_HISTORY = [];
