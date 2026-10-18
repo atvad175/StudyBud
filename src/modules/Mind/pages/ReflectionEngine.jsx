@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styles from '../MindShared.module.css';
 import { Feather, Sun, Moon, CheckCircle } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
-import { useToast } from '../../../context/ToastContext';
+import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const ReflectionEngine = () => {
     const { addLog } = useMind();
