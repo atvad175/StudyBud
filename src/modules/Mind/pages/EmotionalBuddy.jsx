@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styles from '../MindShared.module.css';
 import { Send, User, Heart, ShieldCheck, Sparkles, Wind, Waves } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
 import { useAI } from '../../../context/useAI';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 import { supabase } from '../../../supabaseClient';
 
 const VIBES = [
