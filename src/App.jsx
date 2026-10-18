@@ -67,6 +67,7 @@ const App = () => {
   const [session, setSession] = useState(null);
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [onboardingCheckError, setOnboardingCheckError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -168,12 +169,14 @@ const App = () => {
 
       if (!active) return false;
       if (error) {
-        console.error('Unable to check onboarding status:', error.message);
-        hydrateAccountState(user, null);
-        setIsOnboarded(false);
+        console.error('Unable to check onboarding status:', error.code || 'unknown');
+        // A query failure is not proof that the student has no saved profile.
+        // Preserve browser data and block routing until the lookup can be retried.
+        setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
         return false;
       }
 
+      setOnboardingCheckError('');
       const complete = hydrateAccountState(user, data);
       setIsOnboarded(complete);
       return complete;
@@ -225,16 +228,16 @@ const App = () => {
 
           if (!active) return;
           if (error) {
-            console.error('Unable to check onboarding status:', error.message);
-            hydrateAccountState(nextSession.user, null);
-            setIsOnboarded(false);
+            console.error('Unable to check onboarding status:', error.code || 'unknown');
+            setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
           } else {
+            setOnboardingCheckError('');
             setIsOnboarded(hydrateAccountState(nextSession.user, data));
           }
         } catch (error) {
           if (active) {
-            console.error('Unable to check onboarding status:', error);
-            setIsOnboarded(false);
+            console.error('Unable to check onboarding status:', error?.code || 'unknown');
+            setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
           }
         } finally {
           if (active) setLoading(false);
@@ -246,6 +249,7 @@ const App = () => {
       const userId = event?.detail?.userId;
       if (userId) {
         const complete = localStorage.getItem('studybud_onboarded_user_id') === userId;
+        setOnboardingCheckError('');
         setIsOnboarded(complete);
       }
     };
@@ -268,7 +272,21 @@ const App = () => {
     };
   }, []);
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyItems: 'center' }}>Loading...</div>;
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', color: '#555' }}>Loading StudyBud…</div>;
+
+  if (onboardingCheckError) {
+    return (
+      <main role="alert" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: '#f8f7f3' }}>
+        <section style={{ width: '100%', maxWidth: '520px', padding: '2rem', border: '1px solid #e4e0d7', borderRadius: '20px', background: '#fff', boxShadow: '0 12px 36px rgba(20, 20, 20, 0.06)' }}>
+          <h1 style={{ margin: '0 0 0.75rem', fontSize: '1.5rem', color: '#2b2b2b' }}>We couldn't load your saved setup</h1>
+          <p style={{ margin: '0 0 1.5rem', color: '#656565', lineHeight: 1.65 }}>{onboardingCheckError}</p>
+          <button type="button" onClick={() => window.location.reload()} style={{ padding: '0.8rem 1.1rem', border: 'none', borderRadius: '10px', background: '#252525', color: '#fff', font: 'inherit', fontWeight: 650, cursor: 'pointer' }}>
+            Try again
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <AIProvider key={session?.user?.id || 'signed-out'}>
