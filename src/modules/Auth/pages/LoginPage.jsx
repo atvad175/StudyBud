@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { Brain } from 'lucide-react';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 import styles from './Auth.module.css';
 
 const LoginPage = () => {
