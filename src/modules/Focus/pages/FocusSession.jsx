@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFocus } from '../../../context/FocusContext';
+import { useFocus } from '../../../context/useFocus';
 import { Minimize2, Maximize, X, Moon, Cloud, Sun, Clock } from 'lucide-react';
 import styles from './FocusSession.module.css';
 
