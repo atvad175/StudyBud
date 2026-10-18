@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Send, RotateCcw, ChevronDown, CheckCircle2, AlertTriangle, BookOpen, Sparkles, Target, TrendingUp, Brain, Lightbulb, ChevronRight } from 'lucide-react';
 import { chat } from '../../../services/aiService';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 import { useStudy } from '../../../context/useStudy';
 import feynStyles from './FeynmanSandbox.module.css';
 
