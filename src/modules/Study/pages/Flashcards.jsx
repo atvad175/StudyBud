@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, BookOpen, Clock, ChevronLeft, Check, X } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 
 const Flashcards = () => {
     const { toast } = useToast();
