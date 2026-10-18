@@ -25,6 +25,10 @@ const ExamsPrep = () => {
     const [aiNumQs, setAiNumQs] = useState(5);
     const [aiTime, setAiTime] = useState(15);
     const [requestedExamLabel, setRequestedExamLabel] = useState('AI Custom Mock Exam');
+    const [studentCurriculum] = useState(() => ({
+        board: localStorage.getItem('studybud_board') || '',
+        grade: localStorage.getItem('studybud_grade') || '',
+    }));
     const [isGenerating, setIsGenerating] = useState(false);
 
     // Exam State
@@ -38,16 +42,25 @@ const ExamsPrep = () => {
         const selectedSubject = localStorage.getItem('studybud_selected_subject');
         if (!selectedSubject) return;
 
-        setAiTopic(current => current.trim() ? current : selectedSubject);
+        // Include the saved learner level as context, not as a syllabus guarantee.
+        const seedTopic = [
+            selectedSubject,
+            studentCurriculum.board ? `Curriculum: ${studentCurriculum.board}` : '',
+            studentCurriculum.grade && studentCurriculum.grade !== 'Other'
+                ? `Grade: ${studentCurriculum.grade}`
+                : '',
+        ].filter(Boolean).join('\n');
+
+        setAiTopic(current => current.trim() ? current : seedTopic);
         localStorage.removeItem('studybud_selected_subject');
-    }, []);
+    }, [studentCurriculum.board, studentCurriculum.grade]);
 
     // Start predefined AI Exam
     const generateAiExam = async () => {
         if(!aiTopic.trim()) return toast.error("Please provide a topic or paste study material.");
         setIsGenerating(true);
         try {
-            const generated = await getMockExam(aiTopic, aiNumQs);
+            const generated = await getMockExam(aiTopic, aiNumQs, studentCurriculum);
             examSubmittedRef.current = false;
             setExamQuestions(generated);
             setActiveExam({ label: requestedExamLabel, duration: aiTime, questions: generated.length });
@@ -173,6 +186,12 @@ const ExamsPrep = () => {
                             <span className={styles.breadcrumb}>Study / Exam Prep</span>
                             <h1>Exam Simulation</h1>
                             <p style={{ color: 'var(--study-secondary)' }}>Train under pressure. Analyze your performance.</p>
+                            {(studentCurriculum.board || studentCurriculum.grade) && (
+                                <p style={{ margin: '0.7rem 0 0', fontSize: '0.82rem', color: 'var(--study-secondary)' }}>
+                                    Learner context: {[studentCurriculum.board, studentCurriculum.grade && studentCurriculum.grade !== 'Other' ? `Grade ${studentCurriculum.grade}` : ''].filter(Boolean).join(' · ')}.
+                                    AI questions are practice material, not verified syllabus or official past-paper questions.
+                                </p>
+                            )}
                         </div>
                     </header>
 
