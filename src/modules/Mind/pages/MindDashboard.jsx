@@ -1,103 +1,173 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from '../MindShared.module.css';
-import { MessageCircle, Feather, Wind, Archive, Smile, ArrowRight, Zap, Activity } from 'lucide-react';
+import { Archive, Feather, Smile, Wind, ArrowRight } from 'lucide-react';
 import { useMind } from '../../../context/MindContext';
 
+const BACKGROUND_PARTICLES = [
+    { id: 'a', top: '8%', left: '9%', width: 140, height: 160, duration: 17 },
+    { id: 'b', top: '22%', left: '74%', width: 190, height: 175, duration: 23 },
+    { id: 'c', top: '66%', left: '82%', width: 120, height: 130, duration: 19 },
+    { id: 'd', top: '73%', left: '16%', width: 175, height: 150, duration: 25 },
+    { id: 'e', top: '44%', left: '46%', width: 135, height: 145, duration: 21 },
+];
+
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+};
+
 const MindDashboard = () => {
-    const { logs } = useMind();
-    const [greeting, setGreeting] = useState('');
+    const { logs = [] } = useMind();
+    const [greeting] = useState(getGreeting);
 
-    useEffect(() => {
-        const hour = new Date().getHours();
-        if (hour < 12) setGreeting('Good Morning');
-        else if (hour < 18) setGreeting('Good Afternoon');
-        else setGreeting('Good Evening');
-    }, []);
+    const activityByDay = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    // Viz Data (Mock for now, will connect to logs)
-    const moodData = [3, 4, 3.5, 5, 2, 4, 4.5];
+        return Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(today);
+            date.setDate(today.getDate() - (6 - index));
+            const nextDay = new Date(date);
+            nextDay.setDate(date.getDate() + 1);
+
+            const count = (Array.isArray(logs) ? logs : []).filter(log => {
+                if (!log?.created_at) return false;
+                const created = new Date(log.created_at);
+                return !Number.isNaN(created.getTime()) && created >= date && created < nextDay;
+            }).length;
+
+            return {
+                key: date.toISOString().slice(0, 10),
+                label: date.toLocaleDateString(undefined, { weekday: 'short' }),
+                dateLabel: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                count,
+            };
+        });
+    }, [logs]);
+
+    const maxActivity = Math.max(1, ...activityByDay.map(day => day.count));
+    const firstName = localStorage.getItem('studybud_username')?.split(' ')[0] || 'Student';
+    const weeklyTotal = activityByDay.reduce((sum, day) => sum + day.count, 0);
 
     return (
         <div className={styles.container}>
-            {/* Background Gizmos */}
-            <div className={styles.aliveBackground}></div>
-            {[...Array(5)].map((_, i) => (
-                <div key={i} className={styles.particle} style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    width: `${Math.random() * 200 + 50}px`,
-                    height: `${Math.random() * 200 + 50}px`,
-                    animationDuration: `${Math.random() * 20 + 10}s`
-                }}></div>
+            <div className={styles.aliveBackground} aria-hidden="true" />
+            {BACKGROUND_PARTICLES.map(particle => (
+                <div
+                    key={particle.id}
+                    className={styles.particle}
+                    aria-hidden="true"
+                    style={{
+                        top: particle.top,
+                        left: particle.left,
+                        width: `${particle.width}px`,
+                        height: `${particle.height}px`,
+                        animationDuration: `${particle.duration}s`,
+                    }}
+                />
             ))}
 
             <header className={styles.header}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
-                        <span className={styles.breadcrumb}>{greeting}, {localStorage.getItem('studybud_username')?.split(' ')[0] || 'Student'}.</span>
+                        <span className={styles.breadcrumb}>{greeting}, {firstName}.</span>
                         <h1>Mind Space</h1>
+                        <p style={{ maxWidth: 620, color: 'var(--color-text-secondary)', lineHeight: 1.65 }}>
+                            A private space to reflect, reset and notice your patterns over time.
+                        </p>
                     </div>
                 </div>
             </header>
 
-            {/* Mood River Chart */}
-            <div className={styles.chartContainer} style={{ marginBottom: '3rem', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#6c5ce7" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#6c5ce7" stopOpacity="0" />
-                        </linearGradient>
-                    </defs>
-                    <path d="M0,100 C150,50 350,150 500,100 C650,50 850,150 1000,80 L1000,200 L0,200 Z" fill="url(#gradient)" />
-                    <path d="M0,100 C150,50 350,150 500,100 C650,50 850,150 1000,80" fill="none" stroke="#6c5ce7" strokeWidth="4" />
+            <section
+                className={styles.chartContainer}
+                aria-labelledby="mind-activity-title"
+                style={{ marginBottom: '3rem', minHeight: 220, padding: '1.5rem', position: 'relative' }}
+            >
+                <div className={styles.activityChartHeader}>
+                    <div>
+                        <h2 id="mind-activity-title">Mind activity</h2>
+                        <p>Saved Mind entries over the last 7 days</p>
+                    </div>
+                    <div className={styles.activityChartTotal}>
+                        <strong>{weeklyTotal}</strong>
+                        <span>{weeklyTotal === 1 ? 'entry' : 'entries'}</span>
+                    </div>
+                </div>
 
-                    {/* Interactive Points */}
-                    <circle cx="500" cy="100" r="8" fill="white" stroke="#6c5ce7" strokeWidth="3" className={styles.pulseRing} />
-                </svg>
-                <div style={{ position: 'absolute', top: '2rem', left: '2rem', fontWeight: 'bold', color: '#999', fontSize: '0.8rem', letterSpacing: '0.1em' }}>MOOD HISTORY (7 DAYS)</div>
-            </div>
+                <div className={styles.activityBars} role="list" aria-label="Daily saved Mind entry counts">
+                    {activityByDay.map(day => (
+                        <div className={styles.activityDay} role="listitem" key={day.key}>
+                            <div className={styles.activityBarTrack}>
+                                <div
+                                    className={styles.activityBar}
+                                    style={{ height: `${Math.max(6, (day.count / maxActivity) * 100)}%` }}
+                                    title={`${day.dateLabel}: ${day.count} saved ${day.count === 1 ? 'entry' : 'entries'}`}
+                                    aria-label={`${day.dateLabel}: ${day.count} saved ${day.count === 1 ? 'entry' : 'entries'}`}
+                                />
+                            </div>
+                            <strong>{day.count}</strong>
+                            <span>{day.label}</span>
+                        </div>
+                    ))}
+                </div>
+                {weeklyTotal === 0 && (
+                    <p className={styles.activityEmpty}>
+                        Your saved reflections, breathing sessions, wins and other Mind entries will appear here.
+                    </p>
+                )}
+                <p className={styles.activityDisclaimer}>
+                    This shows saved activity, not a measure of mood or mental health.
+                </p>
+            </section>
 
             <div className={styles.grid}>
-
-
-                {/* Regulation */}
                 <NavLink to="meditation" className={styles.card}>
                     <div className={styles.iconBox} style={{ background: '#e0fcf5', color: '#00b894' }}>
                         <Wind size={32} />
                     </div>
                     <h2>Relax</h2>
-                    <p>Physical Feeling & breathing exercises.</p>
+                    <p>Breathing exercises and guided pauses.</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: 'auto', color: '#00a28c', fontWeight: 650 }}>
+                        Explore <ArrowRight size={15} />
+                    </span>
                 </NavLink>
 
-                {/* Clarity */}
                 <NavLink to="reflection" className={styles.card}>
                     <div className={styles.iconBox} style={{ background: '#f0f3ff', color: '#6c5ce7' }}>
                         <Feather size={32} />
                     </div>
                     <h2>Reflect</h2>
-                    <p>Understand your emotional patterns.</p>
+                    <p>Capture thoughts and look back on what matters.</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: 'auto', color: '#6c5ce7', fontWeight: 650 }}>
+                        Start reflecting <ArrowRight size={15} />
+                    </span>
                 </NavLink>
 
-                {/* Offload */}
                 <NavLink to="offload" className={styles.card}>
                     <div className={styles.iconBox} style={{ background: '#fff5eb', color: '#e17055' }}>
                         <Archive size={32} />
                     </div>
-                    <h2>Brain Dump</h2>
-                    <p>Clear your mind of busy thoughts.</p>
+                    <h2>Brain dump</h2>
+                    <p>Write down what is on your mind, then choose one next step.</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: 'auto', color: '#d65c40', fontWeight: 650 }}>
+                        Clear some space <ArrowRight size={15} />
+                    </span>
                 </NavLink>
 
-                {/* Growth */}
                 <NavLink to="growth" className={styles.card}>
-                    <div className={styles.iconBox} style={{ background: '#fff9e6', color: '#f1c40f' }}>
+                    <div className={styles.iconBox} style={{ background: '#fff9e6', color: '#c38c00' }}>
                         <Smile size={32} />
                     </div>
                     <h2>Wins</h2>
-                    <p>Keep track of your progress and success.</p>
+                    <p>Keep track of positive moments and progress.</p>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: 'auto', color: '#a87800', fontWeight: 650 }}>
+                        Record a win <ArrowRight size={15} />
+                    </span>
                 </NavLink>
-
             </div>
         </div>
     );
