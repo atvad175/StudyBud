@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from '../MindShared.module.css';
 import { Send, User, Heart, ShieldCheck, Sparkles, Wind, Waves } from 'lucide-react';
 import { useMind } from '../../../context/MindContext';
-import { useAI } from '../../../context/AIContext';
+import { useAI } from '../../../context/useAI';
 import { useToast } from '../../../context/ToastContext';
 import { supabase } from '../../../supabaseClient';
 
