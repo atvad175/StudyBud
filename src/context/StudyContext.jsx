@@ -164,7 +164,7 @@ export const StudyProvider = ({ children }) => {
                 },
                 {
                     title: 'Linear Preparation',
-                    content: 'Since assessments are at the end of the course, regular spaced repetition is vital. Don\'t leave revision for the last month; keep reviewing old topics every week.'
+                    content: 'Check the assessment structure for your subject and syllabus code. Many courses use end-of-course exams, but components and options vary; use spaced review throughout the course instead of leaving everything until the end.'
                 },
                 {
                     title: 'Practical Skills',
@@ -179,11 +179,11 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'Comprehensive Coverage',
-                    content: 'The ICSE syllabus is very detailed. You need to have a thorough understanding of every chapter. Don\'t skip sections, as questions can come from any corner of the textbook.'
+                    content: 'Use the current syllabus and prescribed texts to prioritise coverage. Keep a chapter checklist and practise recalling key ideas, then compare your answers with the relevant mark scheme.'
                 },
                 {
                     title: 'Internal Assessments & Projects',
-                    content: 'Internal marks (20%) are crucial. Ensure your project work is high quality and submitted on time. These marks provide a strong foundation for your final percentage.'
+                    content: 'Internal assessments and projects can contribute to results in some subjects. Check the current subject requirements and weightings, and plan backwards from the actual deadlines.'
                 },
                 {
                     title: 'English Language & Literature',
@@ -202,15 +202,15 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'NCERT is King',
-                    content: 'For CBSE, the NCERT textbook is your bible. Almost every question in the board exams is based on or directly from NCERT. Read every line, including the examples and exercise questions.'
+                    content: 'NCERT is a core resource for many CBSE subjects, but requirements vary by subject and year. Start with the current prescribed material, then use the syllabus, exemplar/sample papers and official guidance to identify what to practise.'
                 },
                 {
                     title: 'Step-wise Marking',
-                    content: 'CBSE follows strict step-wise marking. Even if your final answer is wrong, you can get most of the marks if your steps are correct. Always show your working clearly, especially in Math and Physics.'
+                    content: 'For calculation-based answers, show clear working and units. Method marks depend on the question and official marking scheme, so treat worked steps as a way to communicate your reasoning—not a guarantee of marks.'
                 },
                 {
                     title: 'Previous Year Papers',
-                    content: 'CBSE often repeats question patterns. Solving the last 10 years of board papers is the most effective way to understand what examiners are looking for.'
+                    content: 'Use current sample papers and relevant past papers to understand formats, practise timing and identify gaps. Patterns can change when syllabi or assessment designs change, so do not rely on repeated questions.'
                 },
                 {
                     title: 'Presentation Matters',
@@ -225,19 +225,19 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'Conceptual Understanding',
-                    content: 'IB is all about "Big Ideas". Don\'t just learn facts; understand how they connect across subjects. Focus on the TOK (Theory of Knowledge) aspect of every topic.'
+                    content: 'IB courses often reward conceptual understanding and connections. Link ideas when it helps answer the task, and use Theory of Knowledge connections when they are relevant to your programme and subject.'
                 },
                 {
                     title: 'Internal Assessments (IA)',
-                    content: 'IAs are a huge part of your final grade. Start them early and treat them like mini-research papers. Choose topics you are genuinely interested in to make the process easier.'
+                    content: 'For IB Diploma Programme subjects with internal assessments, check the current task, criteria and weighting early. Break the work into research, drafting, feedback and final checks.'
                 },
                 {
                     title: 'Extended Essay (EE)',
-                    content: 'The EE is your chance to dive deep into a subject. It requires independent research and academic writing skills. Use your librarian and supervisor effectively.'
+                    content: 'For students completing the IB Diploma Programme Extended Essay, agree on a focused research question and use your supervisor, library resources and the official criteria to guide the process.'
                 },
                 {
                     title: 'CAS Balance',
-                    content: 'Creativity, Activity, Service (CAS) is mandatory. Don\'t treat it as a chore; use it to balance your academic stress and develop as a well-rounded person.'
+                    content: 'For IB Diploma Programme students completing CAS, follow the current programme requirements and reflect honestly on learning and contribution. Other IB year groups may have different requirements.'
                 }
             ]
         },
@@ -248,7 +248,7 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'In-depth Analysis',
-                    content: 'ISC requires a deeper level of analysis compared to ICSE. In Literature, focus on critical interpretations. In Science, understand the derivations and complex numericals.'
+                    content: 'In ISC courses, practise the depth of explanation and application required by the relevant subject syllabus. For Literature, support interpretations with textual evidence; for Science, practise derivations and multi-step problems that appear in your course.'
                 },
                 {
                     title: 'Elective Subjects',
@@ -256,11 +256,11 @@ export const StudyProvider = ({ children }) => {
                 },
                 {
                     title: 'English Proficiency',
-                    content: 'Like ICSE, ISC maintains high standards for English. Practice advanced composition and comprehension to secure high marks in Paper 1.'
+                    content: 'For English, practise composition, comprehension and language skills using the current paper structure and marking guidance. Review feedback to find recurring issues rather than memorising fixed templates.'
                 },
                 {
                     title: 'Project Work',
-                    content: 'Practical and project marks are significant. Ensure your lab journals and project reports are meticulous and demonstrate a clear understanding of the subject matter.'
+                    content: 'Where practical work or projects are part of your course, check the current requirements and rubrics. Keep methods, observations, reasoning and sources clear and complete.'
                 }
             ]
         }
