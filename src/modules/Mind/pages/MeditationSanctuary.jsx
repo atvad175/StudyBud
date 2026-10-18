@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../MindShared.module.css';
 import { Wind, Play, Pause, Square, Info, Anchor, Brain, Heart, ChevronDown } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
 
 const SESSIONS = [
     {
