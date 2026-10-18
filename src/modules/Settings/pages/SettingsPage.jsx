@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Palette, Shield, HardDrive, Download, AlertTriangle } from 'lucide-react';
 import styles from './SettingsPage.module.css';
 import { supabase } from '../../../supabaseClient';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 
 const SettingsPage = () => {
     // Section 1: Profile
