@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { useState } from 'react';
+import { AIContext } from './AIContextCore';
 import * as aiService from '../services/aiService';
-
-const AIContext = createContext();
 
 const MAX_CONTEXT_MESSAGES = 12;
 const MAX_STORED_CHAT_MESSAGES = 30;
@@ -17,12 +16,6 @@ const prepareChatHistory = (history, newMessage) => {
     }
 
     return { updatedHistory, requestHistory };
-};
-
-export const useAI = () => {
-    const context = useContext(AIContext);
-    if (!context) throw new Error('useAI must be used within AIProvider');
-    return context;
 };
 
 export const AIProvider = ({ children }) => {
