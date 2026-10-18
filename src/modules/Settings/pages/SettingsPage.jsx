@@ -24,6 +24,7 @@ const SettingsPage = () => {
 
     // Section 4: Data
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [isClearingData, setIsClearingData] = useState(false);
     const [clearText, setClearText] = useState('');
 
     useEffect(() => {
@@ -140,18 +141,29 @@ const SettingsPage = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleClearData = () => {
-        if (clearText !== 'DELETE') return;
-        
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('studybud_')) {
-                keysToRemove.push(key);
+    const handleClearData = async () => {
+        if (clearText !== 'CLEAR' || isClearingData) return;
+
+        setIsClearingData(true);
+        try {
+            // Sign out first so App-level account hydration cannot immediately restore
+            // the local cache before we navigate to the public landing page.
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('studybud_')) keysToRemove.push(key);
             }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            window.location.replace('/landing');
+        } catch (error) {
+            console.error('Unable to clear local StudyBud data:', error?.code || 'unknown');
+            toast.error('We could not sign you out and clear this browser data. Please try again.');
+        } finally {
+            setIsClearingData(false);
         }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-        window.location.href = '/landing'; // Hard reload to clear state and redirect correctly
     };
 
     const getInitials = (n) => {
@@ -404,7 +416,7 @@ const SettingsPage = () => {
                         <div className={styles.dataCard}>
                             <div className={styles.rowText}>
                                 <strong>Export your data</strong>
-                                <span>Download a JSON backup of everything saved locally for StudyBud.</span>
+                                <span>Download a JSON backup of browser-stored StudyBud preferences and cached data. Cloud records are not included.</span>
                             </div>
                             <button type="button" className={styles.btnOutline} onClick={handleExport}>
                                 <Download size={16} strokeWidth={2} aria-hidden />
@@ -419,7 +431,7 @@ const SettingsPage = () => {
                                     Danger zone
                                 </div>
                                 <p className={styles.dangerDesc}>
-                                    Permanently remove all local StudyBud data and return to the landing experience.
+                                    Clear cached StudyBud data from this browser and sign out. Saved account records in Supabase are not deleted and can sync back when you sign in again.
                                 </p>
                             </div>
 
@@ -429,25 +441,25 @@ const SettingsPage = () => {
                                     className={styles.btnDangerOutline}
                                     onClick={() => setShowClearConfirm(true)}
                                 >
-                                    Clear all data
+                                    Clear local cache
                                 </button>
                             ) : (
                                 <div className={styles.confirmRow}>
                                     <input
                                         type="text"
                                         className={styles.confirmInput}
-                                        placeholder="Type DELETE"
+                                        placeholder="Type CLEAR"
                                         value={clearText}
-                                        onChange={(e) => setClearText(e.target.value)}
-                                        aria-label="Type DELETE to confirm"
+                                        onChange={(e) => setClearText(e.target.value.toUpperCase())}
+                                        aria-label="Type CLEAR to confirm local cache reset"
                                     />
                                     <button
                                         type="button"
                                         className={styles.btnDangerFill}
                                         onClick={handleClearData}
-                                        disabled={clearText !== 'DELETE'}
+                                        disabled={clearText !== 'CLEAR' || isClearingData}
                                     >
-                                        Confirm
+                                        {isClearingData ? 'Clearing…' : 'Clear local cache'}
                                     </button>
                                     <button
                                         type="button"
