@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Save, AlertCircle } from 'lucide-react';
-import { useTime } from '../../../context/TimeContext';
-import { useMind } from '../../../context/MindContext';
-import { useToast } from '../../../context/ToastContext';
+import { useTime } from '../../../context/useTime';
+import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const WeeklyReview = () => {
   const { tasks } = useTime();
