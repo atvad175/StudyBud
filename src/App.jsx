@@ -71,6 +71,7 @@ const App = () => {
 
   useEffect(() => {
     let active = true;
+    let authGeneration = 0;
     // Remove credentials written by older versions of the signup flow.
     localStorage.removeItem('studybud_password');
 
@@ -160,42 +161,53 @@ const App = () => {
       return true;
     };
 
-    const loadOnboardingState = async (user) => {
-      const { data, error } = await supabase
-        .from('user_onboarding')
-        .select('user_id, name, role, board, grade, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    const loadOnboardingState = async (user, generation) => {
+      try {
+        const { data, error } = await supabase
+          .from('user_onboarding')
+          .select('user_id, name, role, board, grade, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (!active) return false;
-      if (error) {
-        console.error('Unable to check onboarding status:', error.code || 'unknown');
-        // A query failure is not proof that the student has no saved profile.
-        // Preserve browser data and block routing until the lookup can be retried.
-        setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
+        if (!active || generation !== authGeneration) return false;
+        if (error) {
+          console.error('Unable to check onboarding status:', error.code || 'unknown');
+          // A query failure is not proof that the student has no saved profile.
+          // Preserve browser data and block routing until the lookup can be retried.
+          setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
+          return false;
+        }
+
+        setOnboardingCheckError('');
+        const complete = hydrateAccountState(user, data);
+        setIsOnboarded(complete);
+        return complete;
+      } catch (error) {
+        if (active && generation === authGeneration) {
+          console.error('Unable to check onboarding status:', error?.code || 'unknown');
+          setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
+        }
         return false;
       }
-
-      setOnboardingCheckError('');
-      const complete = hydrateAccountState(user, data);
-      setIsOnboarded(complete);
-      return complete;
     };
 
     const syncSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (!active) return;
-      if (error) console.error('Unable to restore authentication session:', error.message);
+
+      const generation = ++authGeneration;
+      if (error) console.error('Unable to restore authentication session:', error.code || 'unknown');
 
       const currentSession = data?.session ?? null;
       setSession(currentSession);
 
       if (currentSession) {
-        await loadOnboardingState(currentSession.user);
+        await loadOnboardingState(currentSession.user, generation);
       } else {
+        setOnboardingCheckError('');
         setIsOnboarded(false);
       }
-      if (active) setLoading(false);
+      if (active && generation === authGeneration) setLoading(false);
     };
 
     syncSession().catch((error) => {
@@ -208,49 +220,34 @@ const App = () => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const generation = ++authGeneration;
       setSession(nextSession ?? null);
       if (!nextSession) {
+        setOnboardingCheckError('');
         setIsOnboarded(false);
         setLoading(false);
         return;
       }
 
+      setOnboardingCheckError('');
       setLoading(true);
-      // Let the auth callback finish before querying Postgres. The database row,
-      // not a browser flag, determines whether this account has completed setup.
+      // Only the latest auth event may hydrate local account data. A slow query
+      // from a prior login must not overwrite the preferences of a newer account.
       window.setTimeout(async () => {
-        try {
-          const { data, error } = await supabase
-            .from('user_onboarding')
-            .select('user_id, name, role, board, grade, struggles, learning_style, fav_topics, topic_type, first_atom, intention, productive_time, motivation')
-            .eq('user_id', nextSession.user.id)
-            .maybeSingle();
-
-          if (!active) return;
-          if (error) {
-            console.error('Unable to check onboarding status:', error.code || 'unknown');
-            setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
-          } else {
-            setOnboardingCheckError('');
-            setIsOnboarded(hydrateAccountState(nextSession.user, data));
-          }
-        } catch (error) {
-          if (active) {
-            console.error('Unable to check onboarding status:', error?.code || 'unknown');
-            setOnboardingCheckError('We could not verify your saved setup. Your existing profile data has been left untouched. Check your connection and try again.');
-          }
-        } finally {
-          if (active) setLoading(false);
-        }
+        await loadOnboardingState(nextSession.user, generation);
+        if (active && generation === authGeneration) setLoading(false);
       }, 0);
     });
 
     const handleOnboardingComplete = (event) => {
       const userId = event?.detail?.userId;
       if (userId) {
+        // The explicit completion event makes any older lookup stale.
+        authGeneration += 1;
         const complete = localStorage.getItem('studybud_onboarded_user_id') === userId;
         setOnboardingCheckError('');
         setIsOnboarded(complete);
+        setLoading(false);
       }
     };
 
