@@ -10,7 +10,7 @@ import {
     Leaf,
     Target,
 } from 'lucide-react';
-import { supabase } from '../../../supabaseClient';
+import { supabase, diagnoseAuthService } from '../../../supabaseClient';
 import { useToast } from '../../../context/useToast';
 import styles from './Auth.module.css';
 
@@ -18,7 +18,7 @@ const friendlyAuthError = (error) => {
     const message = String(error?.message || '').toLowerCase();
 
     if (error?.name === 'AuthRequestTimeoutError' || message.includes('timed out')) {
-        return 'This is taking longer than usual. Check your connection and try again. If you just signed up, try signing in before creating another account.';
+        return 'The account service did not respond in time. Your account may or may not have been created; repeated submissions can make this harder to diagnose.';
     }
     if (message.includes('invalid login credentials')) {
         return 'That email and password combination did not work. Check your details and try again.';
@@ -136,11 +136,40 @@ const LoginPage = () => {
 
             setConfirmationRequired(true);
         } catch (error) {
+            const isTimeout = (() => {
+                let current = error;
+                for (let depth = 0; current && depth < 4; depth += 1, current = current.cause) {
+                    if (
+                        current.name === 'AuthRequestTimeoutError' ||
+                        String(current.message || '').toLowerCase().includes('timed out')
+                    ) return true;
+                }
+                return false;
+            })();
+
             console.warn('Authentication request did not complete:', {
+                mode,
                 name: error?.name || 'Error',
                 code: error?.code || 'unknown',
+                status: error?.status || error?.context?.status || null,
             });
-            setFormError(friendlyAuthError(error));
+
+            if (isTimeout) {
+                const diagnostic = await diagnoseAuthService();
+                console.warn('Supabase Auth reachability check:', diagnostic);
+
+                if (diagnostic.reason === 'missing-config') {
+                    setFormError('Account creation is not configured for this deployment. The site loads, but its Supabase connection is missing. The deployment environment settings need to be corrected.');
+                } else if (!diagnostic.reachable) {
+                    setFormError('StudyBud could not reach its account service. This is not necessarily a problem with your general internet connection. Your account may or may not have been created, so please do not keep submitting the form while the service is unresponsive.');
+                } else if (mode === 'signup') {
+                    setFormError('StudyBud reached its account service, but account creation did not finish in time. Your account may or may not have been created. The Supabase Auth logs need to be checked to find the cause; this message alone does not mean you should sign in or create another account.');
+                } else {
+                    setFormError('StudyBud reached its account service, but sign-in did not finish in time. The Supabase Auth logs need to be checked to find the cause.');
+                }
+            } else {
+                setFormError(friendlyAuthError(error));
+            }
         } finally {
             // Redirects intentionally leave the loading screen in place. Every
             // other outcome—including unexpected/empty responses—restores the form.
