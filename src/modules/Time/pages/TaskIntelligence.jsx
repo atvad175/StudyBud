@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTime } from '../../../context/TimeContext';
-import { useToast } from '../../../context/ToastContext';
+import { useTime } from '../../../context/useTime';
+import { useToast } from '../../../context/useToast';
 import styles from '../TimeShared.module.css';
 import { Plus, Trash2, Layers, AlertCircle, Box, Archive } from 'lucide-react';
 
