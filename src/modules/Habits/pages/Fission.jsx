@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useHabits } from '../../../context/HabitsContext';
 import { FISSION_LEVELS } from '../data/fissionContent';
 import { Link } from 'react-router-dom';
@@ -96,6 +96,31 @@ const Fission = () => {
                     <div className={styles.levelHeader}>
                         <div className={styles.levelBadge}>LEVEL {selectedLevel.id}</div>
                         <h2>{selectedLevel.title}</h2>
+                    </div>
+
+                    <div role="group" aria-label="Choose a Fission learning level" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem', marginBottom: '1rem' }}>
+                        {FISSION_LEVELS.map(level => (
+                            <button
+                                key={level.id}
+                                type="button"
+                                aria-pressed={selectedLevel.id === level.id}
+                                onClick={() => {
+                                    setSelectedLevel(level);
+                                    setSelectedLesson(null);
+                                }}
+                                style={{
+                                    padding: '0.55rem 0.8rem',
+                                    borderRadius: '999px',
+                                    border: selectedLevel.id === level.id ? '1px solid #c7a144' : '1px solid var(--color-border)',
+                                    background: selectedLevel.id === level.id ? '#fff7dc' : 'white',
+                                    color: 'var(--color-soft-black)',
+                                    cursor: 'pointer',
+                                    fontWeight: selectedLevel.id === level.id ? 700 : 500,
+                                }}
+                            >
+                                Level {level.id}
+                            </button>
+                        ))}
                     </div>
 
                     <div className={styles.lessonList}>
