@@ -57,6 +57,38 @@ const fetchWithAuthTimeout = async (input, init = {}) => {
     }
 };
 
+/**
+ * Diagnose whether the configured Supabase Auth host is responding after an
+ * auth request times out. This never sends user credentials and never logs the
+ * API key. Any HTTP response means the host was reached, even if it is an error.
+ */
+export const diagnoseAuthService = async () => {
+    if (!supabaseUrl || !supabaseAnonKey) {
+        return { reachable: false, reason: 'missing-config' };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5_000);
+
+    try {
+        const baseUrl = supabaseUrl.replace(/\\/+$/, '');
+        const response = await fetch(`${baseUrl}/auth/v1/health`, {
+            method: 'GET',
+            headers: { apikey: supabaseAnonKey },
+            signal: controller.signal,
+        });
+
+        return { reachable: true, status: response.status };
+    } catch (error) {
+        return {
+            reachable: false,
+            reason: error?.name === 'AbortError' ? 'probe-timeout' : 'network-error',
+        };
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { fetch: fetchWithAuthTimeout },
 });
