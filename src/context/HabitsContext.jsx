@@ -1,15 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { HabitsContext } from './HabitsContextCore';
 import { supabase } from '../supabaseClient';
-
-const HabitsContext = createContext();
-
-export const useHabits = () => {
-    const context = useContext(HabitsContext);
-    if (!context) {
-        throw new Error('useHabits must be used within a HabitsProvider');
-    }
-    return context;
-};
 
 export const HabitsProvider = ({ children }) => {
     const [atoms, setAtoms] = useState([]);
