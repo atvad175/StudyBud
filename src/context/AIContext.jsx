@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AIContext } from './AIContextCore';
 import * as aiService from '../services/aiService';
 
+const EMPTY_CHAT_HISTORY = [];
 const MAX_CONTEXT_MESSAGES = 12;
 const MAX_STORED_CHAT_MESSAGES = 30;
 
@@ -137,9 +138,9 @@ export const AIProvider = ({ children }) => {
     };
 
     // Get chat history for a session
-    const getChatHistory = (sessionId = 'default') => {
-        return chatHistory[sessionId] || [];
-    };
+    const getChatHistory = useCallback((sessionId = 'default') => {
+        return chatHistory[sessionId] || EMPTY_CHAT_HISTORY;
+    }, [chatHistory]);
 
     return (
         <AIContext.Provider value={{
