@@ -24,30 +24,32 @@ Security, authentication and reliable saving take priority over new features.
 ## Execution phases
 
 ### Phase 1 — Trust and account safety
-- Fix the create-account → onboarding → dashboard sequence so there is one account-creation step.
-- Remove password storage and handle email confirmation, failed requests and expired sessions honestly.
-- Give each user's private rows a database-enforced owner policy.
-- Isolate profile preferences, chat and locally stored learning data when accounts change.
-- Verify all database migrations on a non-production Supabase project.
+- [x] Fix the create-account → onboarding → dashboard sequence so there is one account-creation step.
+- [x] Remove new browser password storage and handle signup responses/email-confirmation-required states honestly.
+- [x] Add owner-only policy definitions for private tables and reset in-memory providers when accounts change.
+- [x] Isolate profile preferences, Bud chat, and flashcard state across account changes.
+- [ ] Verify/apply the drafted migrations in a non-production Supabase project and test cross-account access before production.
 
 **Exit gate:** signup, confirmation, login, logout and onboarding work; two test accounts cannot access each other's records; failure states do not claim success.
 
 ### Phase 2 — Core Study experience
-- Map the student journey from Study Hub → subject/topic → study action → saved progress → review.
-- Fix broken writes and misleading success states before visual redesign.
-- Make flashcard data persist under the signed-in account and survive another device/session.
-- Make exam creation validate question structure, answer keys, scoring and timers.
-- Persist completed AI exam scores and answer review into the signed-in student's study history, with duplicate-submit protection.
-- Clearly distinguish AI-generated practice from verified curriculum or past-paper content.
+- [x] Redesign the Study Hub around clear primary actions, searchable subjects, curriculum filters, responsive cards, and useful progress counts.
+- [x] Fix core save/error feedback and roll back optimistic task, assignment, and practice writes when they fail.
+- [x] Move flashcards to account-owned Supabase tables with an explicit import path for older browser-only cards.
+- [x] Validate AI exam question count, options and answer keys; replace fake placeholder exams with actual practice generation.
+- [x] Persist exam score/answer review and Feynman mastery sessions in the signed-in student's Study history.
+- [x] Pass the selected subject from the Study Hub into exam setup and distinguish AI-generated practice from verified past papers.
+- [ ] Add browser and RLS regression tests for at least one ICSE and one IGCSE workflow.
 
 **Exit gate:** a student can complete a study session, refresh, sign back in and find the correct saved state.
 
 ### Phase 3 — UX/UI quality
-- Establish a shared design system: typography, colors, spacing, navigation, buttons, cards, empty states, alerts and loading states.
-- Tighten the landing message to the main student benefit; remove excessive introductory copy.
-- Reduce mandatory onboarding questions and ask optional questions when they become useful.
-- Standardize back navigation, responsive behaviour, form validation and success/error feedback.
-- Make reduced-motion preferences and keyboard navigation work properly.
+- [x] Refine landing-page copy and unify key landing/auth typography with shared font tokens.
+- [x] Reduce onboarding to four short steps, with optional personalization instead of eight mandatory preference screens.
+- [x] Add a responsive Study Hub layout, clearer loading/error states, and keyboard-focus styling.
+- [x] Make Settings profile edits save to the account record with loading/success/error feedback.
+- [x] Make the Settings cache-reset control explicit that it clears local data and signs out this device, but does not delete cloud records.
+- [ ] Conduct desktop/mobile usability testing and accessibility review; fix remaining page-to-page inconsistencies.
 
 **Exit gate:** a first-time student can explain what StudyBud does and reach a useful study action without help.
 
@@ -55,10 +57,11 @@ Security, authentication and reliable saving take priority over new features.
 - [x] Route Gemini requests through an authenticated Vercel serverless endpoint; provider keys are read from server-side environment variables only.
 - [x] Validate operation types and input sizes, validate generated exam structure, and add a best-effort per-user rate limit.
 - [ ] Replace the in-memory limiter with shared server-side rate limiting and add usage monitoring/timeouts before public launch.
-- Use shared prompt/context logic and validate structured model output.
-- Measure real loading/interaction timings; don't promise sub-100 ms for network operations.
-- Add safe retry/rollback patterns, bounded database queries and tests for high-use flows.
-- Add a service for error reporting and performance monitoring after privacy settings have been reviewed.
+- [x] Use the shared authenticated AI endpoint for the main chat and Bud Companion; apply context/persona instructions consistently.
+- [x] Validate structured exam output and bound input sizes; prevent remote chat history from being overwritten after failed reads.
+- [ ] Migrate the legacy `@google/generative-ai` SDK to Google's maintained `@google/genai` SDK ([issue #8](https://github.com/atvad175/StudyBud/issues/8)).
+- [ ] Replace the per-instance in-memory limiter with shared server-side rate limiting and add usage monitoring/timeouts before public launch.
+- [ ] Measure real loading/interaction timings; add error reporting and high-use flow tests after privacy settings are reviewed.
 
 **Exit gate:** AI keys are not present in browser bundles; model failures have safe user-facing messages; shared rate limiting/usage monitoring are enabled; study data remains correct when requests fail.
 
@@ -74,11 +77,13 @@ Security, authentication and reliable saving take priority over new features.
 ## Pull-request release checklist
 
 ### Automated checks
-- [ ] `npm ci` succeeds
-- [ ] `npm run lint` succeeds
-- [ ] `npm run build` succeeds
-- [ ] Automated flow tests pass when available
-- [ ] SQL migration has been exercised on a test database
+- [x] `npm ci` succeeds in GitHub Actions.
+- [x] Strict targeted ESLint passes on the critical edited AI/auth/Study/Settings screens.
+- [x] `npm run build` succeeds in GitHub Actions.
+- [x] The compiled browser bundle passes the Gemini-key/SDK marker scan.
+- [ ] Full-repository `npm run lint` is still non-blocking and reports 51 legacy errors; tracked in [issue #7](https://github.com/atvad175/StudyBud/issues/7).
+- [ ] Browser flow tests and RLS access tests are added.
+- [ ] SQL migrations are exercised against a separate test database.
 
 ### Manual checks
 - [ ] Sign up with a new email
@@ -87,10 +92,11 @@ Security, authentication and reliable saving take priority over new features.
 - [ ] Complete onboarding and refresh
 - [ ] Switch between two test accounts; private profile, tasks, habits, reflections and chats must not cross over
 - [ ] Create, update, and delete a task/study record; simulate a failed request and check that the UI recovers
-- [ ] Check Settings password update and data export
-- [ ] Test core Study features at desktop and mobile widths
-- [ ] Check empty, loading, offline/error, and success states
-- [ ] Check the Vercel preview before any merge
+- [ ] Verify Settings profile/password updates, local-only export, and local-cache reset behavior.
+- [ ] Test exam scoring/saves, Feynman history, flashcards, and subject-to-exam prefill at desktop and mobile widths.
+- [ ] Test Bud chat restore on a new device and simulate failed history reads.
+- [ ] Check empty, loading, offline/error, and success states.
+- [ ] Verify cross-account privacy and the Vercel preview before any merge.
 
 ## How the founder reports a problem
 
