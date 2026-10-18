@@ -13,7 +13,7 @@ import {
     CalendarClock,
 } from 'lucide-react';
 import styles from '../StudyShared.module.css';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
 
 const QUICK_ACTIONS = [
     {
