@@ -74,14 +74,20 @@ export const getCompanionWelcome = async (profile, persona = 'candid') =>
 export const chatCompanion = async (messages, persona = 'candid', profile = {}) =>
     requestAI({ operation: 'companionChat', messages, persona, profile });
 
-export const getMockExam = async (topic, numQuestions = 5) => {
+export const getMockExam = async (topic, numQuestions = 5, curriculum = {}) => {
     if (typeof topic !== 'string' || !topic.trim()) {
         throw new Error('Add a subject, topic, or study extract to generate a practice exam.');
     }
     if (!Number.isInteger(numQuestions) || numQuestions < 1 || numQuestions > 20) {
         throw new Error('Choose between 1 and 20 questions per practice exam.');
     }
-    return requestAI({ operation: 'mockExam', topic: topic.slice(0, 12000), numQuestions });
+    return requestAI({
+        operation: 'mockExam',
+        topic: topic.slice(0, 12000),
+        numQuestions,
+        board: curriculum?.board || '',
+        grade: curriculum?.grade || '',
+    });
 };
 
 export default {
