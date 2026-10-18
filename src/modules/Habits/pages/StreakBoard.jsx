@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Flame, Trophy, Percent } from 'lucide-react';
-import { useHabits } from '../../../context/HabitsContext';
+import { useHabits } from '../../../context/useHabits';
 
 const getColor = (count) => {
     if (count === 0) return '#EDE8DF';
