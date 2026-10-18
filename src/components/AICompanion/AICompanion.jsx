@@ -433,6 +433,15 @@ const AICompanion = () => {
                                     <Send size={15} />
                                 </button>
                             </div>
+                            <div role="note" style={{
+                                padding: '0.45rem 0.8rem 0.7rem',
+                                background: 'white',
+                                color: '#77736b',
+                                fontSize: '0.68rem',
+                                lineHeight: 1.45,
+                            }}>
+                                Bud uses Google's Gemini AI to generate replies. Recent chat history and relevant profile preferences are saved to your StudyBud account. Avoid sharing passwords or sensitive private details.
+                            </div>
                         </>
                     )}
                 </div>
