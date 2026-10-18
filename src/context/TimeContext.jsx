@@ -1,13 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { TimeContext } from './TimeContextCore';
 import { supabase } from '../supabaseClient';
-
-const TimeContext = createContext();
-
-export const useTime = () => {
-    const context = useContext(TimeContext);
-    if (!context) throw new Error('useTime must be used within a TimeProvider');
-    return context;
-};
 
 export const TimeProvider = ({ children }) => {
     const [tasks, setTasks] = useState([]);
