@@ -183,7 +183,14 @@ const LoginPage = () => {
             // Supabase can return a deliberately empty identity list for an
             // already-registered email when email confirmation is enabled.
             if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-                setFormError('An account may already use this email. Switch to Sign In, or use your existing account.');
+                // Supabase intentionally masks duplicate registrations when email
+                // confirmation is enabled. The existing record may still be
+                // unconfirmed, so direct the user to the resend flow instead of
+                // trapping them behind an unusable sign-in prompt.
+                setConfirmationNotice(
+                    'An account may already exist for this email. If you have not confirmed it yet, request a new confirmation link. If you already confirmed it, return to sign in.'
+                );
+                setConfirmationRequired(true);
                 return;
             }
 
