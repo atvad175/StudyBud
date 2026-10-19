@@ -191,7 +191,34 @@ const LoginPage = () => {
                 } else if (!diagnostic.reachable) {
                     setFormError('StudyBud could not reach its account service. This is not necessarily a problem with your general internet connection. Your account may or may not have been created, so please do not keep submitting the form while the service is unresponsive.');
                 } else if (mode === 'signup') {
-                    setFormError('Signup timed out in Supabase. Your account may already have been created, so do not keep resubmitting. The email-confirmation setting is not the reason to retry; the backend timeout must be resolved in Supabase Auth.');
+                    // Signup can time out after Supabase has created the account.
+                    // Try one direct password sign-in for that existing account.
+                    // This never submits a second signup request.
+                    try {
+                        const { data: existingSession, error: signInError } =
+                            await supabase.auth.signInWithPassword({
+                                email: normalizedEmail,
+                                password,
+                            });
+
+                        if (!signInError && existingSession?.user) {
+                            localStorage.removeItem('studybud_guest');
+                            localStorage.removeItem('studybud_password');
+                            const existingName = existingSession.user.user_metadata?.full_name || fullName.trim();
+                            if (existingName) localStorage.setItem('studybud_username', existingName);
+                            toast.success('You’re signed in!');
+                            navigatingAway = true;
+                            window.location.assign('/');
+                            return;
+                        }
+                    } catch (signInFallbackError) {
+                        console.warn('Fallback sign-in after signup timeout failed:', {
+                            name: signInFallbackError?.name || 'Error',
+                            code: signInFallbackError?.code || 'unknown',
+                        });
+                    }
+
+                    setFormError('StudyBud could not finish creating this account. If this email already has an account, select “Sign in instead” and use its existing password. New account creation is still being blocked by the authentication service.');
                 } else {
                     setFormError('StudyBud reached its account service, but sign-in did not finish in time. The Supabase Auth logs need to be checked to find the cause.');
                 }
