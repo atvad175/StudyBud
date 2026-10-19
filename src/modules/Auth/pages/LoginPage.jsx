@@ -110,54 +110,60 @@ const LoginPage = () => {
                 return;
             }
 
-            const { data, error } = await supabase.auth.signUp({
-                email: normalizedEmail,
-                password,
-                options: {
-                    data: { full_name: fullName.trim() },
-                    emailRedirectTo: `${window.location.origin}/onboarding/setup`,
+            // Create the account server-side as email-confirmed so signup never
+            // blocks on SMTP or sends a verification email.
+            const { data: created, error: createError } = await supabase.functions.invoke('studybud-signup', {
+                body: {
+                    email: normalizedEmail,
+                    password,
+                    fullName: fullName.trim(),
                 },
             });
-            if (error) throw error;
-            if (!data?.user) {
-                throw new Error('Signup returned no user record.');
-            }
 
-            // If this email already has an account, try the credentials just entered
-            // rather than sending the user back into signup or email confirmation.
-            if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-                const { data: existingSession, error: existingSignInError } =
-                    await supabase.auth.signInWithPassword({
-                        email: normalizedEmail,
-                        password,
-                    });
-
-                if (!existingSignInError && existingSession?.user) {
-                    localStorage.removeItem('studybud_guest');
-                    localStorage.removeItem('studybud_password');
-                    const existingName = existingSession.user.user_metadata?.full_name;
-                    if (existingName) localStorage.setItem('studybud_username', existingName);
-                    toast.success('Welcome back!');
-                    navigatingAway = true;
-                    window.location.assign('/');
-                    return;
+            if (createError) {
+                let serviceMessage = '';
+                let serviceStatus = Number(createError.status || createError.context?.status || 0);
+                try {
+                    if (createError.context && typeof createError.context.json === 'function') {
+                        const responseBody = await createError.context.json();
+                        serviceMessage = typeof responseBody?.error === 'string' ? responseBody.error : '';
+                    }
+                } catch {
+                    // The error context might already have been consumed by supabase-js.
                 }
 
-                setFormError('An account already exists for this email, but the password you entered did not sign you in. Choose “Sign in instead” and use the password you originally set.');
+                if (serviceStatus === 409 || /already has an account|already registered/i.test(serviceMessage)) {
+                    setFormError('An account already exists for this email. Select “Sign in instead” and use the password for that account.');
+                } else {
+                    setFormError(serviceMessage || 'StudyBud could not reach its account-creation service. Wait a moment and try once more. If the account was created, use “Sign in instead” rather than submitting signup repeatedly.');
+                }
+                return;
+            }
+
+            if (!created?.user?.id) {
+                setFormError('The account service did not confirm account creation. Do not keep resubmitting; try Sign in once if you believe the account was created.');
+                return;
+            }
+
+            // Admin-created users are already email-confirmed, so this sign-in
+            // creates a normal Supabase session without sending any email.
+            const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: normalizedEmail,
+                password,
+            });
+
+            if (signInError || !sessionData?.user) {
+                setFormError('Your account was created, but automatic sign-in did not complete. Select “Sign in instead” and use the password you just entered. Do not create the account again.');
                 return;
             }
 
             localStorage.removeItem('studybud_guest');
             localStorage.removeItem('studybud_password');
             localStorage.setItem('studybud_username', fullName.trim());
-
-            if (data.session) {
-                navigatingAway = true;
-                window.location.assign('/onboarding/setup');
-                return;
-            }
-
-            setFormError('StudyBud is still configured to require email confirmation. To use simple email/password login, turn off “Confirm email” in Supabase → Authentication → Sign In / Providers → Email, then retry signup.');
+            toast.success('Account created!');
+            navigatingAway = true;
+            window.location.assign('/onboarding/setup');
+            return;
         } catch (error) {
             const isTimeout = (() => {
                 let current = error;
