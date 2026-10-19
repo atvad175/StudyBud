@@ -11,7 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 /**
  * Authentication endpoints must not leave the UI in a permanent loading state
  * when the connection stalls. Other Supabase operations keep their normal fetch
- * behavior; only signup/password-token requests receive this timeout.
+ * behavior; signup, password-token, resend-confirmation, and recovery requests receive this timeout.
  */
 const fetchWithAuthTimeout = async (input, init = {}) => {
     const requestUrl = typeof input === 'string'
@@ -21,7 +21,12 @@ const fetchWithAuthTimeout = async (input, init = {}) => {
     let isAuthRequest = false;
     try {
         const pathname = new URL(requestUrl).pathname;
-        isAuthRequest = pathname.endsWith('/auth/v1/signup') || pathname.endsWith('/auth/v1/token');
+        isAuthRequest = [
+            '/auth/v1/signup',
+            '/auth/v1/token',
+            '/auth/v1/resend',
+            '/auth/v1/recover',
+        ].some(endpoint => pathname.endsWith(endpoint));
     } catch {
         return fetch(input, init);
     }
