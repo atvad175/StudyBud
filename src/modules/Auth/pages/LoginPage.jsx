@@ -17,8 +17,16 @@ import styles from './Auth.module.css';
 const friendlyAuthError = (error) => {
     const message = String(error?.message || '').toLowerCase();
 
-    if (error?.name === 'AuthRequestTimeoutError' || message.includes('timed out')) {
-        return 'The account service did not respond in time. Your account may or may not have been created; repeated submissions can make this harder to diagnose.';
+    const status = Number(error?.status ?? error?.context?.status ?? 0);
+    const timedOut =
+        error?.name === 'AuthRequestTimeoutError' ||
+        message.includes('timed out') ||
+        message.includes('context deadline exceeded') ||
+        error?.code === 'request_timeout' ||
+        status === 504;
+
+    if (timedOut) {
+        return 'StudyBud’s account service timed out. Your account may already exist, but email confirmation may not have completed. Avoid repeated signups; the account and email-delivery service need to be checked.';
     }
     if (message.includes('invalid login credentials')) {
         return 'That email and password combination did not work. Check your details and try again.';
@@ -139,9 +147,14 @@ const LoginPage = () => {
             const isTimeout = (() => {
                 let current = error;
                 for (let depth = 0; current && depth < 4; depth += 1, current = current.cause) {
+                    const message = String(current.message || '').toLowerCase();
+                    const status = Number(current.status ?? current.context?.status ?? 0);
                     if (
                         current.name === 'AuthRequestTimeoutError' ||
-                        String(current.message || '').toLowerCase().includes('timed out')
+                        message.includes('timed out') ||
+                        message.includes('context deadline exceeded') ||
+                        current.code === 'request_timeout' ||
+                        status === 504
                     ) return true;
                 }
                 return false;
