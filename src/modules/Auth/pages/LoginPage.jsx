@@ -54,6 +54,8 @@ const LoginPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState('');
     const [confirmationRequired, setConfirmationRequired] = useState(false);
+    const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
+    const [confirmationNotice, setConfirmationNotice] = useState('');
 
     const switchMode = () => {
         if (isLoading) return;
@@ -62,6 +64,59 @@ const LoginPage = () => {
         setPassword('');
         setIsPasswordVisible(false);
         setFormError('');
+        setConfirmationNotice('');
+    };
+
+    const handleResendConfirmation = async () => {
+        if (isResendingConfirmation || !email.trim()) return;
+
+        setIsResendingConfirmation(true);
+        setConfirmationNotice('');
+
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: email.trim(),
+                options: {
+                    emailRedirectTo: `${window.location.origin}/onboarding/setup`,
+                },
+            });
+
+            if (error) throw error;
+
+            setConfirmationNotice(
+                'If an unconfirmed account exists for this email, a confirmation link has been requested. Check your inbox and spam folder.'
+            );
+        } catch (error) {
+            const timedOut = (() => {
+                let current = error;
+                for (let depth = 0; current && depth < 4; depth += 1, current = current.cause) {
+                    const message = String(current.message || '').toLowerCase();
+                    const status = Number(current.status ?? current.context?.status ?? 0);
+                    if (
+                        current.name === 'AuthRequestTimeoutError' ||
+                        message.includes('timed out') ||
+                        message.includes('context deadline exceeded') ||
+                        current.code === 'request_timeout' ||
+                        status === 504
+                    ) return true;
+                }
+                return false;
+            })();
+
+            if (timedOut) {
+                const diagnostic = await diagnoseAuthService();
+                setConfirmationNotice(
+                    diagnostic.reachable
+                        ? 'The account service is responding, but the confirmation-email request timed out. The email delivery settings need to be fixed before this can work reliably.'
+                        : 'StudyBud could not reach its account service. Your existing account has not been changed. Try again only after the service is reachable.'
+                );
+            } else {
+                setConfirmationNotice(friendlyAuthError(error));
+            }
+        } finally {
+            setIsResendingConfirmation(false);
+        }
     };
 
     const handleSubmit = async (event) => {
@@ -142,6 +197,9 @@ const LoginPage = () => {
                 return;
             }
 
+            setConfirmationNotice(
+                'We requested a confirmation email. Check your inbox and spam folder before signing in.'
+            );
             setConfirmationRequired(true);
         } catch (error) {
             const isTimeout = (() => {
@@ -176,7 +234,10 @@ const LoginPage = () => {
                 } else if (!diagnostic.reachable) {
                     setFormError('StudyBud could not reach its account service. This is not necessarily a problem with your general internet connection. Your account may or may not have been created, so please do not keep submitting the form while the service is unresponsive.');
                 } else if (mode === 'signup') {
-                    setFormError('StudyBud reached its account service, but account creation did not finish in time. Your account may or may not have been created. The Supabase Auth logs need to be checked to find the cause; this message alone does not mean you should sign in or create another account.');
+                    setConfirmationNotice(
+                        'The account service responded, but signup timed out. Your account may already exist. Do not keep submitting signup; request a confirmation email below, and check your inbox and spam folder.'
+                    );
+                    setConfirmationRequired(true);
                 } else {
                     setFormError('StudyBud reached its account service, but sign-in did not finish in time. The Supabase Auth logs need to be checked to find the cause.');
                 }
@@ -242,6 +303,20 @@ const LoginPage = () => {
                             <p className={styles.subheading}>
                                 If an account was created for <strong>{email.trim()}</strong>, follow its confirmation link, then sign in to finish setting up StudyBud.
                             </p>
+                            {confirmationNotice && (
+                                <p className={styles.smallNote} role="status" aria-live="polite">
+                                    {confirmationNotice}
+                                </p>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleResendConfirmation}
+                                className={styles.primaryBtn}
+                                disabled={isResendingConfirmation}
+                            >
+                                {isResendingConfirmation ? 'Requesting confirmation…' : 'Resend confirmation email'}
+                                {!isResendingConfirmation && <ArrowRight size={17} />}
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => {
@@ -249,12 +324,13 @@ const LoginPage = () => {
                                     setMode('login');
                                     setPassword('');
                                     setFormError('');
+                                    setConfirmationNotice('');
                                 }}
-                                className={styles.primaryBtn}
+                                className={styles.toggleLink}
                             >
-                                Back to sign in <ArrowRight size={17} />
+                                Back to sign in
                             </button>
-                            <p className={styles.smallNote}>No email yet? Check your spam folder or wait a minute before trying again.</p>
+                            <p className={styles.smallNote}>If the resend request times out, the account’s SMTP/email-delivery configuration needs attention.</p>
                         </div>
                     </div>
                 </section>
