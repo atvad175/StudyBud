@@ -123,9 +123,27 @@ const LoginPage = () => {
                 throw new Error('Signup returned no user record.');
             }
 
-            // Supabase returns no identities when this email already has an account.
+            // If this email already has an account, try the credentials just entered
+            // rather than sending the user back into signup or email confirmation.
             if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-                setFormError('This email already has an account. If it is still unconfirmed, disable “Confirm email” in the StudyBud Supabase Auth settings before trying again.');
+                const { data: existingSession, error: existingSignInError } =
+                    await supabase.auth.signInWithPassword({
+                        email: normalizedEmail,
+                        password,
+                    });
+
+                if (!existingSignInError && existingSession?.user) {
+                    localStorage.removeItem('studybud_guest');
+                    localStorage.removeItem('studybud_password');
+                    const existingName = existingSession.user.user_metadata?.full_name;
+                    if (existingName) localStorage.setItem('studybud_username', existingName);
+                    toast.success('Welcome back!');
+                    navigatingAway = true;
+                    window.location.assign('/');
+                    return;
+                }
+
+                setFormError('An account already exists for this email, but the password you entered did not sign you in. Choose “Sign in instead” and use the password you originally set.');
                 return;
             }
 
