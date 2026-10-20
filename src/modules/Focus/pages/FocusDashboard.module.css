@@ -91,11 +91,12 @@
 
 .statFooter {
     font-size: 0.8rem;
-    color: #4CAF50;
+    color: var(--color-text-secondary);
     display: flex;
     align-items: center;
     gap: 4px;
     font-weight: 500;
+    line-height: 1.5;
 }
 
 /* Nav Grid */
@@ -109,7 +110,7 @@
 
 .navGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
     gap: 2rem;
 }
 
@@ -159,4 +160,115 @@
 .navCard p {
     color: var(--color-text-secondary);
     line-height: 1.5;
+}
+
+/* Focus history should reflect saved data and remain usable on small screens. */
+.historySection {
+    margin-bottom: 3rem;
+}
+
+.historySection .statsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    margin-bottom: 0.75rem;
+}
+
+.statsNote {
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin: 0 0 1rem;
+}
+
+.statusMessage,
+.errorMessage,
+.emptyHistory {
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    line-height: 1.6;
+    margin: 0 0 1rem;
+}
+
+.statusMessage,
+.emptyHistory {
+    background: rgba(221, 168, 93, 0.08);
+    border: 1px solid rgba(221, 168, 93, 0.2);
+    color: var(--color-text-secondary);
+}
+
+.errorMessage {
+    background: #fff4e5;
+    border: 1px solid #e8c28d;
+    color: #7a4200;
+}
+
+.navCard:focus-visible,
+.ctaBtn:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .header h1 {
+        font-size: 2.4rem;
+    }
+
+    .header p {
+        font-size: 1rem;
+        line-height: 1.55;
+    }
+
+    .ctaBtn {
+        align-self: flex-start;
+    }
+
+    .statsGrid {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 0.85rem;
+        margin-bottom: 2rem;
+    }
+
+    .statCard {
+        padding: 1.25rem;
+    }
+
+    .statValue {
+        font-size: 2.6rem;
+    }
+
+    .navGrid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    .navCard {
+        padding: 1.5rem;
+    }
+
+    .navCard h3 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ctaBtn,
+    .navCard,
+    .iconCircle {
+        transition: none;
+    }
+
+    .ctaBtn:hover,
+    .navCard:hover,
+    .navCard:hover .iconCircle {
+        transform: none;
+    }
 }
