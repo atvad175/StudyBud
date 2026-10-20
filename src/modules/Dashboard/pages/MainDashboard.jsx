@@ -75,6 +75,32 @@ const MainDashboard = () => {
                 <p className={styles.tagline}>Pick a section below to plan, focus, or study.</p>
             </div>
 
+            <section className={styles.quickStart} aria-labelledby="quick-start-heading">
+                <div className={styles.quickStartCopy}>
+                    <p className={styles.quickStartEyebrow}>A good place to start</p>
+                    <h2 id="quick-start-heading">Start with one small win.</h2>
+                    <p>Pick one useful action. You can change course anytime.</p>
+                </div>
+                <div className={styles.quickStartActions}>
+                    <NavLink to="/focus/timer" className={`${styles.quickStartAction} ${styles.primaryAction}`}>
+                        <span className={styles.quickStartIcon} aria-hidden="true"><Clock size={22} /></span>
+                        <span className={styles.quickStartActionText}>
+                            <strong>Start a focus session</strong>
+                            <small>Choose one task and get going.</small>
+                        </span>
+                        <ArrowRight size={18} aria-hidden="true" />
+                    </NavLink>
+                    <NavLink to="/study" className={`${styles.quickStartAction} ${styles.secondaryAction}`}>
+                        <span className={styles.quickStartIcon} aria-hidden="true"><BookOpen size={22} /></span>
+                        <span className={styles.quickStartActionText}>
+                            <strong>Open Study Hub</strong>
+                            <small>Revise, practise, or use flashcards.</small>
+                        </span>
+                        <ArrowRight size={18} aria-hidden="true" />
+                    </NavLink>
+                </div>
+            </section>
+
             <div className={styles.grid}>
                 {modules.map((m) => (
                     <NavLink to={m.path} key={m.name} className={styles.card}>
