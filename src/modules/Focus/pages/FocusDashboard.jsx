@@ -1,15 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Play, TrendingUp, Clock, Headphones, Users } from 'lucide-react';
+import { Play, Clock, Headphones, Users } from 'lucide-react';
+import { useFocus } from '../../../context/useFocus';
+import { summarizeFocusSessions } from '../focusStats';
 import styles from './FocusDashboard.module.css';
 
 const FocusDashboard = () => {
-    // Mock Data for now - Supabase aggregation would happen in Context/Backend
-    const stats = {
-        totalMinutes: 420,
-        sessionsToday: 3,
-        dailyAvg: 65,
-    };
+    const { sessions, loading, loadError } = useFocus();
+    const stats = summarizeFocusSessions(sessions);
 
     return (
         <div className={styles.container}>
@@ -20,39 +18,65 @@ const FocusDashboard = () => {
                     <p>Run a timer, join a study room, or play focus sounds — all in one place.</p>
                 </div>
                 <NavLink to="timer" className={styles.ctaBtn}>
-                    <Play size={20} fill="currentColor" />
+                    <Play size={20} fill="currentColor" aria-hidden="true" />
                     <span>Start Session</span>
                 </NavLink>
             </header>
 
-            {/* Quick Stats */}
-            <div className={styles.statsGrid}>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Total Focus</div>
-                    <div className={styles.statValue}>{stats.totalMinutes}<span className={styles.unit}>m</span></div>
-                    <div className={styles.statFooter}>
-                        <TrendingUp size={14} /> +12% from last week
-                    </div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Sessions Today</div>
-                    <div className={styles.statValue}>{stats.sessionsToday}</div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Daily Average</div>
-                    <div className={styles.statValue}>{stats.dailyAvg}<span className={styles.unit}>m</span></div>
-                </div>
-            </div>
+            <section aria-labelledby="focus-history-heading" className={styles.historySection}>
+                <h2 id="focus-history-heading" className={styles.sectionTitle}>Your focus history</h2>
 
-            {/* Navigation Cards */}
-            <h2 className={styles.sectionTitle}>Tools & Zones</h2>
+                {loading ? (
+                    <p className={styles.statusMessage} role="status" aria-live="polite">
+                        Loading your saved focus sessions…
+                    </p>
+                ) : loadError ? (
+                    <p className={styles.errorMessage} role="alert">
+                        {loadError}
+                    </p>
+                ) : (
+                    <>
+                        <div className={styles.statsGrid}>
+                            <div className={styles.statCard}>
+                                <div className={styles.statLabel}>Sessions today</div>
+                                <div className={styles.statValue}>{stats.sessionsToday}</div>
+                                <div className={styles.statFooter}>Saved sessions completed or stopped today</div>
+                            </div>
+                            <div className={styles.statCard}>
+                                <div className={styles.statLabel}>Focus minutes today</div>
+                                <div className={styles.statValue}>
+                                    {stats.minutesToday}<span className={styles.unit}>min</span>
+                                </div>
+                                <div className={styles.statFooter}>Based on saved session duration</div>
+                            </div>
+                            <div className={styles.statCard}>
+                                <div className={styles.statLabel}>Sessions · last 7 days</div>
+                                <div className={styles.statValue}>{stats.sessionsLastSevenDays}</div>
+                                <div className={styles.statFooter}>
+                                    {stats.minutesLastSevenDays} focus minutes in the same period
+                                </div>
+                            </div>
+                        </div>
+                        <p className={styles.statsNote}>
+                            These summaries use up to your 50 most recent saved sessions, not a lifetime total.
+                        </p>
+                        {sessions.length === 0 && (
+                            <p className={styles.emptyHistory} role="status">
+                                No saved focus sessions yet. Start a session to begin building your history.
+                            </p>
+                        )}
+                    </>
+                )}
+            </section>
+
+            <h2 className={styles.sectionTitle}>Tools &amp; zones</h2>
             <div className={styles.navGrid}>
                 <NavLink to="timer" className={styles.navCard}>
                     <div className={styles.cardContent}>
                         <div className={styles.iconCircle}>
-                            <Clock size={32} />
+                            <Clock size={32} aria-hidden="true" />
                         </div>
-                        <h3>Timer & Stopwatch</h3>
+                        <h3>Timer &amp; Stopwatch</h3>
                         <p>Classic Pomodoro or open-ended focus.</p>
                     </div>
                 </NavLink>
@@ -60,7 +84,7 @@ const FocusDashboard = () => {
                 <NavLink to="rooms" className={styles.navCard}>
                     <div className={styles.cardContent}>
                         <div className={styles.iconCircle}>
-                            <Users size={32} />
+                            <Users size={32} aria-hidden="true" />
                         </div>
                         <h3>Study rooms</h3>
                         <p>Study quietly alongside others online — like a shared library.</p>
@@ -70,7 +94,7 @@ const FocusDashboard = () => {
                 <NavLink to="beats" className={styles.navCard}>
                     <div className={styles.cardContent}>
                         <div className={styles.iconCircle}>
-                            <Headphones size={32} />
+                            <Headphones size={32} aria-hidden="true" />
                         </div>
                         <h3>Beats &amp; sound</h3>
                         <p>Lo-fi, white noise, and other tracks to help you concentrate.</p>
