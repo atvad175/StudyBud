@@ -30,8 +30,8 @@ test('excludes sessions outside the rolling seven-day window', () => {
     ];
 
     assert.deepEqual(summarizeFocusSessions(sessions, now), {
-        sessionsToday: 2,
-        minutesToday: 20,
+        sessionsToday: 1,
+        minutesToday: 10,
         sessionsLastSevenDays: 1,
         minutesLastSevenDays: 10,
     });
