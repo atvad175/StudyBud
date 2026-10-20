@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { isQuotaError, shouldTryNextModel } from './aiFallback.js';
 
 const MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash'];
 const CHAT_CONTEXT_PROMPTS = {
@@ -22,12 +23,6 @@ const MAX_REQUESTS_PER_WINDOW = 20;
 const rateLimit = new Map();
 
 const sendError = (res, status, message) => res.status(status).json({ error: message });
-
-const isQuotaError = (error) => {
-    const status = error?.status || error?.httpErrorCode || 0;
-    const message = String(error?.message || '').toLowerCase();
-    return status === 429 || message.includes('quota') || message.includes('resource exhausted') || message.includes('rate limit');
-};
 
 const safeProviderMessage = (error) => {
     if (isQuotaError(error)) return 'Bud is busy right now. Please wait a little and try again.';
@@ -128,7 +123,7 @@ const generateWithFallback = async (apiKey, prompt, { systemInstruction, maxOutp
             return result.response.text();
         } catch (error) {
             lastError = error;
-            if (isQuotaError(error) && modelName !== MODELS[MODELS.length - 1]) continue;
+            if (shouldTryNextModel(error, modelName !== MODELS[MODELS.length - 1])) continue;
             throw error;
         }
     }
@@ -172,7 +167,7 @@ const generateChat = async (apiKey, messages, context, systemInstructionOverride
             return response.response.text();
         } catch (error) {
             lastError = error;
-            if (isQuotaError(error) && modelName !== MODELS[MODELS.length - 1]) continue;
+            if (shouldTryNextModel(error, modelName !== MODELS[MODELS.length - 1])) continue;
             throw error;
         }
     }
