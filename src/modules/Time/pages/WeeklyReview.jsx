@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Save, AlertCircle } from 'lucide-react';
-import { useTime } from '../../../context/TimeContext';
-import { useMind } from '../../../context/MindContext';
+import { useTime } from '../../../context/useTime';
+import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const WeeklyReview = () => {
   const { tasks } = useTime();
   const { addLog } = useMind();
+  const { toast } = useToast();
 
   const [tasksCompleted, setTasksCompleted] = useState(0);
   const [tasksTotal, setTasksTotal] = useState(0);
-  const [moodAverage, setMoodAverage] = useState(5);
   const [score, setScore] = useState(0);
 
   const [wentWell, setWentWell] = useState('');
@@ -18,6 +19,7 @@ const WeeklyReview = () => {
   const [nextIntention, setNextIntention] = useState('');
   
   const [isSunday, setIsSunday] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     // Check if Sunday
@@ -60,7 +62,6 @@ const WeeklyReview = () => {
     });
 
     const avgMood = moodCount > 0 ? (moodSum / moodCount) : 5; 
-    setMoodAverage(avgMood);
 
     // Calculate score: (tasks_completed / tasks_total × 60) + (mood_average × 8)
     const calculatedScore = Math.round((comp / tot) * 60 + (avgMood * 8));
@@ -73,27 +74,35 @@ const WeeklyReview = () => {
     return "Strong finish";
   };
 
-  const handleSave = () => {
-    addLog({
-        type: 'weekly',
-        content: {
-            tasksCompleted,
-            tasksTotal,
-            score,
-            wentWell,
-            drainedEnergy,
-            doDifferently,
-            nextIntention
-        },
-        tags: ['weekly_review', 'planning']
-    });
-    
-    // Reset or show success message
-    alert('Weekly review saved successfully!');
-    setWentWell('');
-    setDrainedEnergy('');
-    setDoDifferently('');
-    setNextIntention('');
+  const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await addLog({
+          type: 'weekly',
+          content: {
+              tasksCompleted,
+              tasksTotal,
+              score,
+              wentWell,
+              drainedEnergy,
+              doDifferently,
+              nextIntention
+          },
+          tags: ['weekly_review', 'planning']
+      });
+
+      toast.success('Weekly review saved to your account.');
+      setWentWell('');
+      setDrainedEnergy('');
+      setDoDifferently('');
+      setNextIntention('');
+    } catch (error) {
+      console.error('Unable to save weekly review:', error?.code || 'unknown');
+      toast.error(error?.message || 'Your weekly review could not be saved. Your answers are still here; please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -161,7 +170,7 @@ const WeeklyReview = () => {
 
           <button
             onClick={handleSave}
-            disabled={!wentWell || !drainedEnergy || !doDifferently || !nextIntention}
+            disabled={isSaving || !wentWell.trim() || !drainedEnergy.trim() || !doDifferently.trim() || !nextIntention.trim()}
             style={{
               padding: '1.2rem',
               backgroundColor: 'var(--color-soft-black)',
@@ -173,14 +182,14 @@ const WeeklyReview = () => {
               justifyContent: 'center',
               gap: '0.5rem',
               fontSize: '1.2rem',
-              cursor: (!wentWell || !drainedEnergy || !doDifferently || !nextIntention) ? 'not-allowed' : 'pointer',
-              opacity: (!wentWell || !drainedEnergy || !doDifferently || !nextIntention) ? 0.5 : 1,
+              cursor: (isSaving || !wentWell.trim() || !drainedEnergy.trim() || !doDifferently.trim() || !nextIntention.trim()) ? 'not-allowed' : 'pointer',
+              opacity: (isSaving || !wentWell.trim() || !drainedEnergy.trim() || !doDifferently.trim() || !nextIntention.trim()) ? 0.5 : 1,
               transition: 'opacity 0.2s',
               marginTop: '1rem'
             }}
           >
             <Save size={20} />
-            Complete Review
+            {isSaving ? 'Saving review…' : 'Complete Review'}
           </button>
         </div>
 

@@ -1,154 +1,399 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    BookOpen,
+    Zap,
+    Target,
+    ArrowRight,
+    BrainCircuit,
+    Library,
+    Search,
+    Layers,
+    ClipboardList,
+    CalendarClock,
+} from 'lucide-react';
 import styles from '../StudyShared.module.css';
-import { BookOpen, Zap, Target, ArrowRight, BrainCircuit, Library } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
+import { useStudy } from '../../../context/useStudy';
+
+const QUICK_ACTIONS = [
+    {
+        id: 'flashcards',
+        title: 'Review flashcards',
+        description: 'Strengthen recall with cards due for review.',
+        label: 'Open flashcards',
+        path: '/study/flashcards',
+        icon: Layers,
+        tone: 'blue',
+    },
+    {
+        id: 'exams',
+        title: 'Practice exam',
+        description: 'Build a timed quiz from your study material.',
+        label: 'Start practice',
+        path: '/study/exams',
+        icon: Target,
+        tone: 'green',
+    },
+    {
+        id: 'assignments',
+        title: 'Break down work',
+        description: 'Turn a large assignment into clear next steps.',
+        label: 'Plan assignment',
+        path: '/study/assignments',
+        icon: ClipboardList,
+        tone: 'gold',
+    },
+    {
+        id: 'feynman',
+        title: 'Explain a topic',
+        description: 'Find gaps by teaching the idea in plain language.',
+        label: 'Try the Feynman method',
+        path: '/study/feynman',
+        icon: BrainCircuit,
+        tone: 'purple',
+    },
+];
+
+const DEFAULT_FRAMEWORKS = [
+    {
+        name: 'Active recall',
+        description: 'Close your notes and retrieve the idea from memory. Check what you missed, then try again.',
+        bestFor: 'Definitions, processes, formulas and key facts',
+    },
+    {
+        name: 'Spaced repetition',
+        description: 'Return to material over several sessions instead of trying to learn it all in one sitting.',
+        bestFor: 'Keeping earlier chapters fresh while learning new ones',
+    },
+    {
+        name: 'The Feynman technique',
+        description: 'Explain the concept in plain language. Every place you get vague points to a gap worth revisiting.',
+        bestFor: 'Complex concepts and topics that feel memorised but unclear',
+    },
+];
+
+const KNOWN_BOARDS = ['ICSE', 'IGCSE', 'ISC', 'CBSE', 'IB', 'Other'];
 
 const UnifiedStudy = () => {
     const navigate = useNavigate();
-    const { subjects, boards, techniques } = useStudy();
-    const [activeTab, setActiveTab] = useState('subjects'); // subjects, frameworks
+    const {
+        subjects = [],
+        boards = [],
+        techniques = [],
+        assignments = [],
+        practiceLogs = [],
+        reviews = [],
+        loading = false,
+        loadError = '',
+    } = useStudy();
+
+    const [activeTab, setActiveTab] = useState('subjects');
+    const [subjectQuery, setSubjectQuery] = useState('');
+    const [selectedBoard, setSelectedBoard] = useState(() => {
+        const savedBoard = localStorage.getItem('studybud_board') || 'all';
+        return KNOWN_BOARDS.includes(savedBoard) ? savedBoard : 'all';
+    });
+
+    const boardOptions = useMemo(() => {
+        const fromContext = boards
+            .map(board => board?.name)
+            .filter(name => typeof name === 'string' && name.trim());
+        return ['all', ...new Set([...KNOWN_BOARDS, ...fromContext])];
+    }, [boards]);
+
+    const visibleSubjects = useMemo(() => {
+        const query = subjectQuery.trim().toLocaleLowerCase();
+        return subjects.filter(subject => {
+            const matchesQuery = !query || String(subject.name || '').toLocaleLowerCase().includes(query);
+            const subjectBoards = Array.isArray(subject.boards) ? subject.boards : [];
+            const matchesBoard = selectedBoard === 'all' ||
+                subjectBoards.length === 0 ||
+                subjectBoards.includes(selectedBoard);
+            return matchesQuery && matchesBoard;
+        });
+    }, [subjects, subjectQuery, selectedBoard]);
+
+    const frameworks = techniques.length
+        ? techniques.map(technique => ({
+            name: technique.name,
+            description: technique.description || technique.why_it_works || 'A practical framework to use during your next study session.',
+            bestFor: technique.when_to_use || technique.category || 'General revision',
+        }))
+        : DEFAULT_FRAMEWORKS;
+
+    const activeBoard = useMemo(
+        () => selectedBoard === 'all'
+            ? null
+            : boards.find(board => board?.name === selectedBoard) || null,
+        [boards, selectedBoard]
+    );
+
+    const dueReviewCount = reviews.filter(review => {
+        if (!review.next_review_date) return false;
+        return new Date(review.next_review_date).getTime() <= Date.now();
+    }).length;
+
+    const greetingBoard = selectedBoard === 'all' ? '' : selectedBoard;
+    const formatCount = (count, singular, plural = `${singular}s`) =>
+        `${count} ${count === 1 ? singular : plural}`;
 
     return (
         <div className={styles.container}>
-            <header className={styles.header}>
-                <div>
-                    <h1 className={styles.title}>Study Hub</h1>
-                    <p className={styles.subtitle}>Curriculum strategies and high-performance frameworks.</p>
+            <header className={styles.hubHero}>
+                <div className={styles.hubHeroCopy}>
+                    <span className={styles.hubEyebrow}>YOUR LEARNING WORKSPACE</span>
+                    <h1 className={styles.hubTitle}>Make your next study session count.</h1>
+                    <p className={styles.hubSubtitle}>
+                        Pick one useful action, work on it, then come back to what needs review.
+                        StudyBud keeps your tools in one place.
+                    </p>
+                    <p className={styles.hubStudyDisclaimer} role="note">
+                        Subject tips are general learning guidance tagged to common curricula—not an official syllabus or mark scheme. Confirm chapter lists, weightings and exam requirements with your current board or school.
+                    </p>
+                    {greetingBoard && (
+                        <span className={styles.hubBoardBadge}>
+                            <BookOpen size={14} aria-hidden="true" />
+                            {greetingBoard} study strategies
+                        </span>
+                    )}
+                </div>
+                <div className={styles.hubHeroMark} aria-hidden="true">
+                    <BrainCircuit size={42} strokeWidth={1.5} />
+                    <span>Learn · Practise · Recall</span>
                 </div>
             </header>
 
-            <div className={styles.dashboardGrid}>
-                {/* Left Panel: Tabs & Content */}
-                <div className={styles.mainPanel}>
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                        <button 
+            {activeBoard?.strategies?.length > 0 && (
+                <section className={styles.hubLibrarySection} aria-labelledby="board-guidance-title">
+                    <div className={styles.hubSectionHeading}>
+                        <div>
+                            <span className={styles.hubEyebrow}>CURRICULUM APPROACH</span>
+                            <h2 id="board-guidance-title">{activeBoard.name} study approaches</h2>
+                            <p className={styles.hubSectionDescription}>
+                                General ways to prepare for this curriculum. Check your current subject syllabus for exact topics, weightings and mark schemes.
+                            </p>
+                        </div>
+                    </div>
+                    <div className={styles.hubFrameworkGrid}>
+                        {activeBoard.strategies.map((strategy, index) => (
+                            <article key={`${activeBoard.name}-${strategy.title}`} className={styles.hubFrameworkCard}>
+                                <span className={styles.hubFrameworkNumber}>{String(index + 1).padStart(2, '0')}</span>
+                                <h3>{strategy.title}</h3>
+                                <p>{strategy.content}</p>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {loadError && (
+                <div className={styles.hubDataWarning} role="alert">
+                    <div>
+                        <strong>Saved Study data is unavailable</strong>
+                        <p>{loadError}</p>
+                    </div>
+                    <button type="button" onClick={() => window.location.reload()}>
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            <section className={styles.hubQuickSection} aria-labelledby="quick-actions-title">
+                <div className={styles.hubSectionHeading}>
+                    <div>
+                        <span className={styles.hubEyebrow}>START HERE</span>
+                        <h2 id="quick-actions-title">What do you want to do?</h2>
+                    </div>
+                    <span className={styles.hubSectionHint}>Choose one. You can switch tools any time.</span>
+                </div>
+
+                <div className={styles.hubActionGrid}>
+                    {QUICK_ACTIONS.map(action => {
+                        const Icon = action.icon;
+                        return (
+                            <button
+                                key={action.id}
+                                type="button"
+                                className={`${styles.hubActionCard} ${styles[`hubTone_${action.tone}` ]}`}
+                                onClick={() => navigate(action.path)}
+                            >
+                                <span className={styles.hubActionIcon}>
+                                    <Icon size={21} aria-hidden="true" />
+                                </span>
+                                <span className={styles.hubActionTitle}>{action.title}</span>
+                                <span className={styles.hubActionDescription}>{action.description}</span>
+                                <span className={styles.hubActionLink}>
+                                    {action.label} <ArrowRight size={15} aria-hidden="true" />
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </section>
+
+            <section className={styles.hubStats} aria-label="Your study overview">
+                <div className={styles.hubStat}>
+                    <span className={styles.hubStatIcon}><ClipboardList size={17} aria-hidden="true" /></span>
+                    <span className={styles.hubStatValue}>{loading ? '—' : assignments.length}</span>
+                    <span className={styles.hubStatLabel}>{formatCount(assignments.length, 'assignment')}</span>
+                </div>
+                <div className={styles.hubStat}>
+                    <span className={styles.hubStatIcon}><Zap size={17} aria-hidden="true" /></span>
+                    <span className={styles.hubStatValue}>{loading ? '—' : practiceLogs.length}</span>
+                    <span className={styles.hubStatLabel}>{formatCount(practiceLogs.length, 'practice record')}</span>
+                </div>
+                <div className={styles.hubStat}>
+                    <span className={styles.hubStatIcon}><CalendarClock size={17} aria-hidden="true" /></span>
+                    <span className={styles.hubStatValue}>{loading ? '—' : dueReviewCount}</span>
+                    <span className={styles.hubStatLabel}>{formatCount(dueReviewCount, 'review due', 'reviews due')}</span>
+                </div>
+            </section>
+
+            <section className={styles.hubLibrarySection} aria-labelledby="study-library-title">
+                <div className={styles.hubSectionHeading}>
+                    <div>
+                        <span className={styles.hubEyebrow}>BUILD YOUR METHOD</span>
+                        <h2 id="study-library-title">Study library</h2>
+                        <p className={styles.hubSectionDescription}>
+                            Find a subject strategy or choose a repeatable technique.
+                        </p>
+                    </div>
+                </div>
+
+                <div className={styles.hubLibraryToolbar}>
+                    <div className={styles.hubTabs} role="tablist" aria-label="Study library">
+                        <button
+                            id="study-tab-subjects"
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === 'subjects'}
+                            aria-controls="study-panel-subjects"
+                            className={activeTab === 'subjects' ? styles.hubTabActive : styles.hubTab}
                             onClick={() => setActiveTab('subjects')}
-                            style={{ 
-                                padding: '0.8rem 1.5rem', 
-                                border: 'none', 
-                                borderRadius: '8px', 
-                                background: activeTab === 'subjects' ? '#2F2F2F' : '#E8E8E8',
-                                color: activeTab === 'subjects' ? '#FFF' : '#333',
-                                cursor: 'pointer',
-                                fontWeight: 500,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
                         >
-                            <Library size={18} /> Curriculum Strategies
+                            <Library size={17} aria-hidden="true" /> Subjects
                         </button>
-                        <button 
+                        <button
+                            id="study-tab-frameworks"
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === 'frameworks'}
+                            aria-controls="study-panel-frameworks"
+                            className={activeTab === 'frameworks' ? styles.hubTabActive : styles.hubTab}
                             onClick={() => setActiveTab('frameworks')}
-                            style={{ 
-                                padding: '0.8rem 1.5rem', 
-                                border: 'none', 
-                                borderRadius: '8px', 
-                                background: activeTab === 'frameworks' ? '#2F2F2F' : '#E8E8E8',
-                                color: activeTab === 'frameworks' ? '#FFF' : '#333',
-                                cursor: 'pointer',
-                                fontWeight: 500,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
                         >
-                            <BrainCircuit size={18} /> Master Frameworks
+                            <BrainCircuit size={17} aria-hidden="true" /> Study techniques
                         </button>
                     </div>
 
                     {activeTab === 'subjects' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-                            {subjects.map(sub => (
-                                <div key={sub.id} className={styles.card} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ fontSize: '2rem' }}>{sub.icon}</div>
-                                        <div>
-                                            <h3 style={{ margin: 0 }}>{sub.name}</h3>
-                                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
-                                                {sub.boards.map(b => (
-                                                    <span key={b} style={{ fontSize: '0.7rem', background: '#F0F0F0', padding: '2px 6px', borderRadius: '4px' }}>{b}</span>
-                                                ))}
+                        <div className={styles.hubFilters}>
+                            <label className={styles.hubSearch}>
+                                <Search size={17} aria-hidden="true" />
+                                <span className={styles.visuallyHidden}>Search subjects</span>
+                                <input
+                                    type="search"
+                                    value={subjectQuery}
+                                    onChange={event => setSubjectQuery(event.target.value)}
+                                    placeholder="Find a subject…"
+                                />
+                            </label>
+                            <label className={styles.hubBoardFilter}>
+                                <span className={styles.visuallyHidden}>Filter subjects by curriculum</span>
+                                <select
+                                    value={selectedBoard}
+                                    onChange={event => setSelectedBoard(event.target.value)}
+                                >
+                                    <option value="all">All curricula</option>
+                                    {boardOptions.filter(board => board !== 'all').map(board => (
+                                        <option key={board} value={board}>{board}</option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                    )}
+                </div>
+
+                {activeTab === 'subjects' && (
+                    <div id="study-panel-subjects" role="tabpanel" aria-labelledby="study-tab-subjects">
+                        {loading && (
+                            <div className={styles.hubNotice} role="status">Loading your study library…</div>
+                        )}
+
+                        {!loading && visibleSubjects.length > 0 && (
+                            <div className={styles.hubSubjectGrid}>
+                                {visibleSubjects.map(subject => (
+                                    <article key={subject.id || subject.name} className={styles.hubSubjectCard}>
+                                        <div className={styles.hubSubjectHead}>
+                                            <span className={styles.hubSubjectIcon} aria-hidden="true">{subject.icon || '📘'}</span>
+                                            <div>
+                                                <h3>{subject.name}</h3>
+                                                <div className={styles.hubBoardTags}>
+                                                    {(subject.boards || []).map(board => (
+                                                        <span key={board}>{board}</span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
+                                        <p className={styles.hubStrategyCopy}>
+                                            {subject.strategies?.how_to_study || subject.description || 'Choose one topic, test what you remember, then review the gaps.'}
+                                        </p>
+                                        <div className={styles.hubStuckTip}>
+                                            <strong>When you get stuck</strong>
+                                            <p>{subject.strategies?.when_stuck || 'Write down the exact part that confuses you, then work through one example step by step.'}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={styles.hubSubjectAction}
+                                            onClick={() => {
+                                                localStorage.setItem('studybud_selected_subject', subject.name || '');
+                                                navigate('/study/exams');
+                                            }}
+                                        >
+                                            Practise this subject <ArrowRight size={15} aria-hidden="true" />
+                                        </button>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+
+                        {!loading && visibleSubjects.length === 0 && (
+                            <div className={styles.hubEmptyState}>
+                                <div className={styles.hubEmptyIcon}><Search size={22} aria-hidden="true" /></div>
+                                <h3>No subjects match that filter.</h3>
+                                <p>Clear the search or show all curricula to find another subject.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSubjectQuery('');
+                                        setSelectedBoard('all');
+                                    }}
+                                >
+                                    Show all subjects
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'frameworks' && (
+                    <div id="study-panel-frameworks" role="tabpanel" aria-labelledby="study-tab-frameworks">
+                        <div className={styles.hubFrameworkGrid}>
+                            {frameworks.map((framework, index) => (
+                                <article key={framework.id || framework.name || index} className={styles.hubFrameworkCard}>
+                                    <span className={styles.hubFrameworkNumber}>{String(index + 1).padStart(2, '0')}</span>
+                                    <h3>{framework.name}</h3>
+                                    <p>{framework.description}</p>
+                                    <div className={styles.hubFrameworkBestFor}>
+                                        <strong>Useful for</strong>
+                                        <span>{framework.bestFor}</span>
                                     </div>
-                                    <p style={{ fontSize: '0.9rem', color: '#555', flex: 1 }}>{sub.strategies.how_to_study}</p>
-                                    <div style={{ background: '#FDF8F3', padding: '0.8rem', borderRadius: '6px', borderLeft: '3px solid #C9883A' }}>
-                                        <strong style={{ fontSize: '0.8rem', color: '#C9883A', display: 'block', marginBottom: '4px' }}>When Stuck:</strong>
-                                        <span style={{ fontSize: '0.85rem' }}>{sub.strategies.when_stuck}</span>
-                                    </div>
-                                </div>
+                                </article>
                             ))}
                         </div>
-                    )}
-
-                    {activeTab === 'frameworks' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                            {/* Static Frameworks since Context might be empty temporarily */}
-                            <div className={styles.card}>
-                                <h3>Active Recall</h3>
-                                <p style={{ fontSize: '0.95rem', color: '#444', marginTop: '8px' }}>Stop re-reading. Force your brain to fetch information without looking at the source. This creates stronger neural pathways.</p>
-                            </div>
-                            <div className={styles.card}>
-                                <h3>Spaced Repetition</h3>
-                                <p style={{ fontSize: '0.95rem', color: '#444', marginTop: '8px' }}>Review material at systematically increasing intervals to flatten the forgetting curve.</p>
-                            </div>
-                            <div className={styles.card}>
-                                <h3>The Feynman Technique</h3>
-                                <p style={{ fontSize: '0.95rem', color: '#444', marginTop: '8px' }}>Simplify a concept so much that a 6th grader could understand it. Identifies gaps in logic immediately.</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Right Panel: Interactive Tools Menu */}
-                <div className={styles.sidePanel}>
-                    <h3 style={{ marginBottom: '1rem' }}>Interactive Tools</h3>
-                    
-                    <div 
-                        className={styles.card} 
-                        style={{ cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid transparent' }}
-                        onMouseOver={e => e.currentTarget.style.borderColor = '#C9883A'}
-                        onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}
-                        onClick={() => navigate('/study/feynman')}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <div style={{ background: '#FFF3E0', padding: '8px', borderRadius: '8px', color: '#F57C00' }}>
-                                <Zap size={20} />
-                            </div>
-                            <h4 style={{ margin: 0 }}>Feynman Sandbox</h4>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: '1.4' }}>
-                            Explain a topic in your own words. Our AI acts as a 6th grader and critiques your explanation for jargon and logic gaps.
-                        </p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: '#C9883A', marginTop: '12px', fontWeight: 500 }}>
-                            Launch Sandbox <ArrowRight size={14} />
-                        </div>
                     </div>
-
-                    <div 
-                        className={styles.card} 
-                        style={{ cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid transparent', marginTop: '1rem' }}
-                        onMouseOver={e => e.currentTarget.style.borderColor = '#2E7D32'}
-                        onMouseOut={e => e.currentTarget.style.borderColor = 'transparent'}
-                        onClick={() => navigate('/study/exams')}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <div style={{ background: '#E8F5E9', padding: '8px', borderRadius: '8px', color: '#2E7D32' }}>
-                                <Target size={20} />
-                            </div>
-                            <h4 style={{ margin: 0 }}>Mock Exam Simulator</h4>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: '#666', lineHeight: '1.4' }}>
-                            Upload a PDF or paste text. The AI will generate a strict, timed multiple-choice exam based precisely on your material.
-                        </p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: '#2E7D32', marginTop: '12px', fontWeight: 500 }}>
-                            Take Exam <ArrowRight size={14} />
-                        </div>
-                    </div>
-                </div>
-            </div>
+                )}
+            </section>
         </div>
     );
 };

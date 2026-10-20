@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useTime } from '../../../context/TimeContext';
+import { useTime } from '../../../context/useTime';
 import styles from './EnergyMatching.module.css';
 import { PlayCircle, User, ArrowRight, Zap, Battery, BatteryMedium, BatteryLow } from 'lucide-react';
 

@@ -1,13 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MindContext } from './MindContextCore.js';
 import { supabase } from '../supabaseClient';
-
-const MindContext = createContext();
-
-export const useMind = () => {
-    const context = useContext(MindContext);
-    if (!context) throw new Error('useMind must be used within a MindProvider');
-    return context;
-};
 
 export const MindProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
@@ -20,32 +13,79 @@ export const MindProvider = ({ children }) => {
     // --- Actions ---
 
     const addLog = async (logData) => {
-        // Optimistic
-        const newLog = { ...logData, id: Date.now(), created_at: new Date() };
-        setLogs(prev => [newLog, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save this reflection.');
+
+        const tempId = Date.now();
+        const payload = { ...logData, user_id: user.id };
+        setLogs(prev => [{ ...payload, id: tempId, created_at: new Date() }, ...prev]);
 
         try {
-            const { data, error } = await supabase.from('mind_logs').insert([logData]).select();
+            const { data, error } = await supabase
+                .from('mind_logs')
+                .insert([payload])
+                .select()
+                .single();
             if (error) throw error;
-        } catch (e) { console.error("Error adding log:", e); }
+            setLogs(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setLogs(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error saving reflection:', error);
+            throw error;
+        }
     };
 
     const addOffloadItem = async (item) => {
-        // Optimistic
-        const newItem = { ...item, id: Date.now(), created_at: new Date(), is_archived: false };
-        setOffloadItems(prev => [newItem, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save this item.');
+
+        const tempId = Date.now();
+        const payload = { ...item, user_id: user.id };
+        setOffloadItems(prev => [{ ...payload, id: tempId, created_at: new Date(), is_archived: false }, ...prev]);
 
         try {
-            const { error } = await supabase.from('mind_offload_items').insert([item]);
+            const { data, error } = await supabase
+                .from('mind_offload_items')
+                .insert([payload])
+                .select()
+                .single();
             if (error) throw error;
-        } catch (e) { console.error("Error adding offload:", e); }
+            setOffloadItems(prev => prev.map(entry => entry.id === tempId ? data : entry));
+        } catch (error) {
+            setOffloadItems(prev => prev.filter(entry => entry.id !== tempId));
+            console.error('Error saving offload item:', error);
+            throw error;
+        }
     };
 
     const addWin = async (win) => {
-        setWins(prev => [{ ...win, id: Date.now() }, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save this win.');
+
+        const tempId = Date.now();
+        // The database uses created_at, not a separate client-supplied date column.
+        const payload = {
+            content: win.content,
+            type: win.type || 'micro_win',
+            impact_score: win.impact_score ?? 1,
+            user_id: user.id,
+        };
+        setWins(prev => [{ ...payload, date: win.date, id: tempId }, ...prev]);
         try {
-            await supabase.from('mind_wins').insert([win]);
-        } catch (e) { console.error(e); }
+            const { data, error } = await supabase
+                .from('mind_wins')
+                .insert([payload])
+                .select()
+                .single();
+            if (error) throw error;
+            setWins(prev => prev.map(item => item.id === tempId
+                ? { ...data, date: data.created_at }
+                : item));
+        } catch (error) {
+            setWins(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error saving win:', error);
+            throw error;
+        }
     };
 
     // Load Data

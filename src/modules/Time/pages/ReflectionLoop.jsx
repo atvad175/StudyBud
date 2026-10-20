@@ -1,28 +1,57 @@
 import React, { useState } from 'react';
-import { useTime } from '../../../context/TimeContext';
+import { useTime } from '../../../context/useTime';
+import { useToast } from '../../../context/useToast';
 import styles from '../TimeShared.module.css';
 import { Check, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
 
 const ReflectionLoop = () => {
     const { tasks, updateTask } = useTime();
+    const { toast } = useToast();
 
     const readyTasks = tasks.filter(t => t.status === 'Planned' && t.energy_block);
     const executedTasks = tasks.filter(t => t.status === 'Executed');
     const reflectedTasks = tasks.filter(t => t.status === 'Reflected');
 
     const [reflectData, setReflectData] = useState({});
+    const [savingTaskId, setSavingTaskId] = useState(null);
 
-    const markExecuted = (id) => updateTask(id, { status: 'Executed' });
+    const markExecuted = async (id) => {
+        if (savingTaskId) return;
+        setSavingTaskId(id);
+        try {
+            await updateTask(id, { status: 'Executed' });
+            toast.success('Task marked as done. You can reflect on it next.');
+        } catch (error) {
+            toast.error(error?.message || 'Task progress could not be saved. Please try again.');
+        } finally {
+            setSavingTaskId(null);
+        }
+    };
 
-    const submitReflection = (task) => {
+    const submitReflection = async (task) => {
+        if (savingTaskId) return;
         const data = reflectData[task.id] || { actual_time: task.time_estimate, mood: 'Mid', execution_quality: 'Mid' };
-        updateTask(task.id, {
-            status: 'Reflected',
-            actual_time: parseInt(data.actual_time),
-            mood: data.mood,
-            execution_quality: data.execution_quality,
-            notes: data.notes
-        });
+        const actualTime = Number.parseInt(data.actual_time, 10);
+        if (!Number.isFinite(actualTime) || actualTime < 1) {
+            toast.error('Enter a time taken of at least one minute.');
+            return;
+        }
+
+        setSavingTaskId(task.id);
+        try {
+            await updateTask(task.id, {
+                status: 'Reflected',
+                actual_time: actualTime,
+                mood: data.mood || 'Mid',
+                execution_quality: data.execution_quality || 'Mid',
+                notes: data.notes || '',
+            });
+            toast.success('Reflection saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Reflection could not be saved. Please try again.');
+        } finally {
+            setSavingTaskId(null);
+        }
     };
 
     const handleReflectChange = (id, field, value) => {
@@ -59,7 +88,7 @@ const ReflectionLoop = () => {
                                         <span style={pill}>{task.energy_block} Energy</span>
                                     </div>
                                 </div>
-                                <button onClick={() => markExecuted(task.id)} style={checkBtn}>
+                                <button onClick={() => markExecuted(task.id)} disabled={savingTaskId !== null} style={{ ...checkBtn, opacity: savingTaskId !== null ? 0.55 : 1, cursor: savingTaskId !== null ? 'wait' : 'pointer' }}>
                                     <Check size={20} />
                                 </button>
                             </div>
@@ -71,7 +100,10 @@ const ReflectionLoop = () => {
                 {/* RIGHT: Comparison */}
                 <div>
                     <h2 style={sectionHeader}>Step 2: Learn & Improve</h2>
-                    <p style={{ color: '#666', marginBottom: '1.5rem' }}>See how your actual time compared to your plan. This helps you plan better tomorrow!</p>
+                    <p style={{ color: '#666', marginBottom: '0.4rem' }}>See how your actual time compared to your plan. This helps you plan better tomorrow.</p>
+                    <p style={{ color: '#888', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
+                        Already reflected: {reflectedTasks.length} {reflectedTasks.length === 1 ? 'task' : 'tasks'}.
+                    </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                         {executedTasks.map(task => {
@@ -80,7 +112,7 @@ const ReflectionLoop = () => {
                             const act = currentData.actual_time || est;
 
                             // Visual bar diff
-                            const percentage = Math.min((act / est) * 100, 200); // Cap at 200% width
+                            const percentage = est > 0 ? Math.min((act / est) * 100, 200) : 0;
                             const isOver = act > est;
 
                             return (
@@ -91,7 +123,7 @@ const ReflectionLoop = () => {
                                     <div style={{ marginBottom: '1.5rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8rem', fontWeight: '600', color: '#888' }}>
                                             <span>Target: {est}m</span>
-                                            <span style={{ color: isOver ? '#d63031' : '#2ecc71' }}>Actual: {act}m {isOver ? '(+' + (act - est) + ')' : ''}</span>
+                                            <span style={{ color: isOver ? '#d63031' : '#2ecc71' }}>Actual: {act}m ({Math.round(percentage)}% of plan)</span>
                                         </div>
                                         <div style={{ height: '8px', background: '#f0f0f0', borderRadius: '100px', overflow: 'hidden', position: 'relative' }}>
                                             {/* Target Marker */}
@@ -134,8 +166,12 @@ const ReflectionLoop = () => {
                                         />
                                     </div>
 
-                                    <button onClick={() => submitReflection(task)} style={finishBtn}>
-                                        Save Reflection <ArrowRight size={16} />
+                                    <button
+                                        onClick={() => submitReflection(task)}
+                                        disabled={savingTaskId !== null}
+                                        style={{ ...finishBtn, opacity: savingTaskId !== null ? 0.6 : 1, cursor: savingTaskId !== null ? 'wait' : 'pointer' }}
+                                    >
+                                        {savingTaskId === task.id ? 'Saving…' : <>Save Reflection <ArrowRight size={16} /></>}
                                     </button>
                                 </div>
                             );

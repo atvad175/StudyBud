@@ -30,35 +30,39 @@ export const calculateNextReview = (quality, interval, repetition) => {
 };
 
 // Study Session Recommendations
+// Treat the learner's stated energy/availability as preferences, not measurements.
+// If the user has not set a preference, use the current daypart only as a neutral default.
 export const getStudyRecommendation = (timeOfDay, energyLevel, subject) => {
     const hour = new Date().getHours();
+    const selectedDaypart = String(timeOfDay || '').trim().toLowerCase();
+    const daypart = selectedDaypart || (hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening');
+    const energy = String(energyLevel || 'medium').trim().toLowerCase();
+    const chosenSubject = typeof subject === 'string' ? subject.trim() : '';
+    const subjectRecommendation = chosenSubject ? [chosenSubject, 'Flashcards', 'Practice Questions'] : null;
 
-    // Morning (6-12): High cognitive load subjects
-    if (hour >= 6 && hour < 12) {
+    if (energy === 'low' || daypart.includes('evening') || daypart.includes('night')) {
         return {
-            recommended: ['Math', 'Physics', 'Chemistry'],
+            recommended: subjectRecommendation || ['Review', 'Flashcards', 'Light Practice'],
+            technique: 'Spaced Review',
+            duration: 20,
+            reason: 'A short review session may be a manageable option when you want a lighter task.'
+        };
+    }
+
+    if (energy === 'high' || daypart.includes('morning')) {
+        return {
+            recommended: subjectRecommendation || ['Math', 'Science', 'Problem Solving'],
             technique: 'Practice Problems',
-            duration: 45,
-            reason: 'Morning is best for problem-solving and analytical thinking.'
+            duration: 35,
+            reason: 'If you feel alert, try a focused problem-solving session and adjust the length to suit your day.'
         };
     }
 
-    // Afternoon (12-17): Medium cognitive load
-    if (hour >= 12 && hour < 17) {
-        return {
-            recommended: ['History', 'English', 'Biology'],
-            technique: 'Active Reading & Outlines',
-            duration: 40,
-            reason: 'Afternoon energy is good for reading and organizing information.'
-        };
-    }
-
-    // Evening (17-22): Light review
     return {
-        recommended: ['Review', 'Flashcards', 'Light Practice'],
-        technique: 'Spaced Review',
-        duration: 30,
-        reason: 'Evening is ideal for reviewing what you learned earlier.'
+        recommended: subjectRecommendation || ['Reading', 'Active Recall', 'Short Practice'],
+        technique: 'Active Recall & Outlines',
+        duration: 25,
+        reason: 'Try a balanced session with recall and a few practice questions; change the method if it does not fit your energy or subject.'
     };
 };
 

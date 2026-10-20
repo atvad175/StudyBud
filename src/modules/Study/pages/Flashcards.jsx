@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, BookOpen, Clock, ChevronLeft, Check, X } from 'lucide-react';
+import { supabase } from '../../../supabaseClient';
+import { useToast } from '../../../context/useToast';
 
 const Flashcards = () => {
+    const { toast } = useToast();
     const [data, setData] = useState({ decks: [], cards: [] });
     const [viewMode, setViewMode] = useState('DECKS'); // DECKS, DECK_VIEW, STUDY
     const [activeDeckId, setActiveDeckId] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [legacyBackup, setLegacyBackup] = useState(null);
+    const [isImportingLegacy, setIsImportingLegacy] = useState(false);
 
     // Modals & Inputs
     const [showNewDeck, setShowNewDeck] = useState(false);
     const [newDeckName, setNewDeckName] = useState('');
     const [newDeckSubject, setNewDeckSubject] = useState('');
-
     const [showNewCard, setShowNewCard] = useState(false);
     const [newCardFront, setNewCardFront] = useState('');
     const [newCardBack, setNewCardBack] = useState('');
@@ -21,121 +28,325 @@ const Flashcards = () => {
     const [isFlipped, setIsFlipped] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem('studybud_flashcards');
-        if (stored) {
-            setData(JSON.parse(stored));
-        } else {
-            setData({ decks: [], cards: [] });
-        }
+        let active = true;
+
+        const loadFlashcards = async () => {
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError || !user) {
+                    throw new Error('Sign in to view and save your flashcards.');
+                }
+
+                const [deckResult, cardResult] = await Promise.all([
+                    supabase
+                        .from('flashcard_decks')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('flashcards')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false }),
+                ]);
+
+                if (deckResult.error) throw deckResult.error;
+                if (cardResult.error) throw cardResult.error;
+                if (!active) return;
+
+                setData({
+                    decks: deckResult.data || [],
+                    cards: (cardResult.data || []).map(card => ({ ...card, deckId: card.deck_id })),
+                });
+
+                // Older releases stored flashcards only in this browser. Keep them
+                // separate from the database until the signed-in user explicitly imports.
+                const ownerBackupKey = 'studybud_flashcards_backup_' + user.id;
+                const candidateKeys = [
+                    ownerBackupKey,
+                    localStorage.getItem('studybud_flashcards_user_id') === user.id
+                        ? 'studybud_flashcards'
+                        : null,
+                    // Legacy cards without a trustworthy account marker remain
+                    // unassigned until the student explicitly confirms import.
+                    !localStorage.getItem(ownerBackupKey)
+                        ? 'studybud_flashcards_backup_unassigned'
+                        : null,
+                ].filter(Boolean);
+
+                for (const key of candidateKeys) {
+                    const stored = localStorage.getItem(key);
+                    if (!stored) continue;
+                    try {
+                        const parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed.decks) && Array.isArray(parsed.cards)) {
+                            setLegacyBackup({ sourceKey: key, data: parsed });
+                            break;
+                        }
+                    } catch (parseError) {
+                        console.warn('Could not read older flashcard backup:', parseError);
+                    }
+                }
+            } catch (error) {
+                if (active) setLoadError(error?.message || 'Flashcards could not be loaded. Please try again.');
+            } finally {
+                if (active) setIsLoading(false);
+            }
+        };
+
+        loadFlashcards();
+        return () => { active = false; };
     }, []);
 
-    const saveData = (newData) => {
-        setData(newData);
-        localStorage.setItem('studybud_flashcards', JSON.stringify(newData));
-    };
+    const handleImportLegacy = async () => {
+        if (!legacyBackup || isImportingLegacy) return;
+        setIsImportingLegacy(true);
 
-    // --- DECKS ---
-    const handleCreateDeck = () => {
-        if (!newDeckName || !newDeckSubject) return;
-        const newDeck = {
-            id: Date.now().toString(),
-            name: newDeckName,
-            subject: newDeckSubject,
-            last_reviewed: null
-        };
-        saveData({ ...data, decks: [...data.decks, newDeck] });
-        setShowNewDeck(false);
-        setNewDeckName('');
-        setNewDeckSubject('');
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in before importing flashcards.');
+
+            const importedDecks = [];
+            const deckIdMap = new Map();
+
+            for (const [index, oldDeck] of legacyBackup.data.decks.entries()) {
+                if (!oldDeck?.name) continue;
+                const legacyId = String(oldDeck.id ?? ('legacy-deck-' + index));
+                const { data: deck, error } = await supabase
+                    .from('flashcard_decks')
+                    .upsert({
+                        user_id: user.id,
+                        legacy_id: legacyId,
+                        name: String(oldDeck.name).trim(),
+                        subject: String(oldDeck.subject || 'Uncategorized').trim(),
+                        last_reviewed: oldDeck.last_reviewed || null,
+                    }, { onConflict: 'user_id,legacy_id' })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                importedDecks.push(deck);
+                deckIdMap.set(String(oldDeck.id ?? ('legacy-deck-' + index)), deck.id);
+            }
+
+            const importedCards = [];
+            for (const [index, oldCard] of legacyBackup.data.cards.entries()) {
+                const newDeckId = deckIdMap.get(String(oldCard.deckId));
+                if (!newDeckId || !oldCard.front || !oldCard.back) continue;
+
+                const legacyId = String(oldCard.id ?? ('legacy-card-' + index));
+                const { data: card, error } = await supabase
+                    .from('flashcards')
+                    .upsert({
+                        user_id: user.id,
+                        legacy_id: legacyId,
+                        deck_id: newDeckId,
+                        front: String(oldCard.front),
+                        back: String(oldCard.back),
+                        next_review_date: oldCard.next_review_date || new Date().toISOString(),
+                    }, { onConflict: 'user_id,legacy_id' })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                importedCards.push({ ...card, deckId: card.deck_id });
+            }
+
+            setData(previous => ({
+                decks: [...new Map([...previous.decks, ...importedDecks].map(deck => [String(deck.id), deck])).values()],
+                cards: [...new Map([...previous.cards, ...importedCards].map(card => [String(card.id), card])).values()],
+            }));
+            localStorage.removeItem(legacyBackup.sourceKey);
+            setLegacyBackup(null);
+            toast.success('Your older flashcards were imported into this account.');
+        } catch (error) {
+            console.error('Flashcard import failed:', error);
+            toast.error(error?.message || 'Flashcards could not be imported. Your backup has been kept.');
+        } finally {
+            setIsImportingLegacy(false);
+        }
     };
 
     const getDueCardsCount = (deckId) => {
         const now = new Date();
-        return data.cards.filter(c => c.deckId === deckId && (!c.next_review_date || new Date(c.next_review_date) <= now)).length;
+        return data.cards.filter(card =>
+            String(card.deckId) === String(deckId) &&
+            (!card.next_review_date || new Date(card.next_review_date) <= now)
+        ).length;
     };
 
-    const getTotalCardsCount = (deckId) => {
-        return data.cards.filter(c => c.deckId === deckId).length;
+    const getTotalCardsCount = (deckId) =>
+        data.cards.filter(card => String(card.deckId) === String(deckId)).length;
+
+    const handleCreateDeck = async () => {
+        const name = newDeckName.trim();
+        const subject = newDeckSubject.trim();
+        if (!name || !subject || isSaving) return;
+
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save flashcard decks.');
+
+            const { data: deck, error } = await supabase
+                .from('flashcard_decks')
+                .insert({ user_id: user.id, name, subject })
+                .select()
+                .single();
+            if (error) throw error;
+
+            setData(previous => ({ ...previous, decks: [deck, ...previous.decks] }));
+            setShowNewDeck(false);
+            setNewDeckName('');
+            setNewDeckSubject('');
+            toast.success('Flashcard deck created.');
+        } catch (error) {
+            toast.error(error?.message || 'The deck could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    // --- DECK_VIEW ---
     const handleOpenDeck = (deckId) => {
         setActiveDeckId(deckId);
         setViewMode('DECK_VIEW');
     };
 
-    const handleCreateCard = () => {
-        if (!newCardFront || !newCardBack) return;
-        const newCard = {
-            id: Date.now().toString(),
-            deckId: activeDeckId,
-            front: newCardFront,
-            back: newCardBack,
-            next_review_date: new Date().toISOString() // Due immediately
-        };
-        saveData({ ...data, cards: [...data.cards, newCard] });
-        setShowNewCard(false);
-        setNewCardFront('');
-        setNewCardBack('');
+    const handleCreateCard = async () => {
+        const front = newCardFront.trim();
+        const back = newCardBack.trim();
+        if (!front || !back || !activeDeckId || isSaving) return;
+
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save flashcards.');
+
+            const { data: card, error } = await supabase
+                .from('flashcards')
+                .insert({
+                    user_id: user.id,
+                    deck_id: activeDeckId,
+                    front,
+                    back,
+                    next_review_date: new Date().toISOString(),
+                })
+                .select()
+                .single();
+            if (error) throw error;
+
+            setData(previous => ({
+                ...previous,
+                cards: [{ ...card, deckId: card.deck_id }, ...previous.cards],
+            }));
+            setShowNewCard(false);
+            setNewCardFront('');
+            setNewCardBack('');
+            toast.success('Flashcard saved.');
+        } catch (error) {
+            toast.error(error?.message || 'The flashcard could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    // --- STUDY MODE ---
-    const handleStartStudy = () => {
+    const handleStartStudy = async () => {
         const now = new Date();
-        const due = data.cards.filter(c => c.deckId === activeDeckId && (!c.next_review_date || new Date(c.next_review_date) <= now));
-        
-        if (due.length === 0) {
-            alert('No cards due for review in this deck!');
-            return;
-        }
-
-        // Update deck's last_reviewed date
-        const updatedDecks = data.decks.map(d => d.id === activeDeckId ? { ...d, last_reviewed: new Date().toISOString() } : d);
-        saveData({ ...data, decks: updatedDecks });
-
-        setStudyQueue(due);
-        setCurrentStudyIndex(0);
-        setIsFlipped(false);
-        setViewMode('STUDY');
-    };
-
-    const handleRateCard = (isEasy) => {
-        const currentCard = studyQueue[currentStudyIndex];
-        const now = new Date();
-        
-        if (isEasy) {
-            now.setDate(now.getDate() + 3); // next review in 3 days
-        } else {
-            // Next session (due immediately or tomorrow? prompt says "next session" meaning immediately due again or just leave as now)
-            // Let's set it to 1 hour from now so they don't see it this exact second, but next time they open it
-            now.setHours(now.getHours() + 1);
-        }
-
-        const updatedCards = data.cards.map(c => 
-            c.id === currentCard.id ? { ...c, next_review_date: now.toISOString() } : c
+        const due = data.cards.filter(card =>
+            String(card.deckId) === String(activeDeckId) &&
+            (!card.next_review_date || new Date(card.next_review_date) <= now)
         );
 
-        saveData({ ...data, cards: updatedCards });
+        if (due.length === 0) {
+            toast.info('No cards are due for review in this deck yet.');
+            return;
+        }
+        if (isSaving) return;
 
-        // Next card
-        if (currentStudyIndex + 1 < studyQueue.length) {
-            setCurrentStudyIndex(currentStudyIndex + 1);
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to start a review session.');
+
+            const lastReviewed = new Date().toISOString();
+            const { error } = await supabase
+                .from('flashcard_decks')
+                .update({ last_reviewed: lastReviewed })
+                .eq('id', activeDeckId)
+                .eq('user_id', user.id);
+            if (error) throw error;
+
+            setData(previous => ({
+                ...previous,
+                decks: previous.decks.map(deck =>
+                    String(deck.id) === String(activeDeckId)
+                        ? { ...deck, last_reviewed: lastReviewed }
+                        : deck
+                ),
+            }));
+            setStudyQueue(due);
+            setCurrentStudyIndex(0);
             setIsFlipped(false);
-        } else {
-            alert('Study session complete!');
-            setViewMode('DECK_VIEW');
+            setViewMode('STUDY');
+        } catch (error) {
+            toast.error(error?.message || 'The review session could not start. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
+    const handleRateCard = async (isEasy) => {
+        const currentCard = studyQueue[currentStudyIndex];
+        if (!currentCard || isSaving) return;
 
-    const activeDeck = data.decks.find(d => d.id === activeDeckId);
-    const activeDeckCards = data.cards.filter(c => c.deckId === activeDeckId);
+        const nextReview = new Date();
+        if (isEasy) nextReview.setDate(nextReview.getDate() + 3);
+        else nextReview.setHours(nextReview.getHours() + 1);
+
+        const nextReviewDate = nextReview.toISOString();
+        setIsSaving(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to save your review progress.');
+
+            const { error } = await supabase
+                .from('flashcards')
+                .update({ next_review_date: nextReviewDate })
+                .eq('id', currentCard.id)
+                .eq('user_id', user.id);
+            if (error) throw error;
+
+            setData(previous => ({
+                ...previous,
+                cards: previous.cards.map(card =>
+                    String(card.id) === String(currentCard.id)
+                        ? { ...card, next_review_date: nextReviewDate }
+                        : card
+                ),
+            }));
+
+            if (currentStudyIndex + 1 < studyQueue.length) {
+                setCurrentStudyIndex(currentStudyIndex + 1);
+                setIsFlipped(false);
+            } else {
+                setViewMode('DECK_VIEW');
+                toast.success('Review complete. Your next review times are saved.');
+            }
+        } catch (error) {
+            toast.error(error?.message || 'Your review progress could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const activeDeck = data.decks.find(deck => String(deck.id) === String(activeDeckId));
+    const activeDeckCards = data.cards.filter(card => String(card.deckId) === String(activeDeckId));
 
     return (
         <div className="page-container" style={{ paddingBottom: '80px', maxWidth: '900px', margin: '0 auto' }}>
             <header style={{ marginBottom: '3rem' }}>
                 <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Study / Flashcards</span>
-                <h1 style={{ fontSize: '3.5rem', fontFamily: 'var(--font-serif)', marginTop: '0.5rem', color: 'var(--color-soft-black)' }}>
+                <h1 style={{ fontSize: 'clamp(2rem, 7vw, 3.5rem)', fontFamily: 'var(--font-serif)', marginTop: '0.5rem', color: 'var(--color-soft-black)' }}>
                     {viewMode === 'DECKS' ? 'Flashcards' : activeDeck?.name}
                 </h1>
                 <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)' }}>
@@ -143,14 +354,43 @@ const Flashcards = () => {
                 </p>
             </header>
 
+            {isLoading && (
+                <div role="status" style={{ padding: '1rem', marginBottom: '1.5rem', borderRadius: '12px', background: 'white', color: 'var(--color-text-secondary)' }}>
+                    Loading your saved flashcards…
+                </div>
+            )}
+            {loadError && (
+                <div role="alert" style={{ padding: '1rem', marginBottom: '1.5rem', borderRadius: '12px', background: '#fff3e0', color: '#7a4b00' }}>
+                    <p>{loadError}</p>
+                    <button type="button" onClick={() => window.location.reload()} style={{ marginTop: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}>Retry</button>
+                </div>
+            )}
+
             {/* DECKS LIST */}
             {viewMode === 'DECKS' && (
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    {legacyBackup && !loadError && (
+                        <section style={{ padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--color-gold)', background: '#fffaf0', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.15rem', marginBottom: '0.5rem' }}>Older flashcards found on this device</h2>
+                            <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
+                                These cards are not linked to an account. Only import them if they are yours; on a shared device, choose Not now if you are unsure. Imported cards will be saved to this signed-in account.
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                <button type="button" onClick={handleImportLegacy} disabled={isImportingLegacy} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: 'none', background: 'var(--color-soft-black)', color: 'white', cursor: isImportingLegacy ? 'wait' : 'pointer' }}>
+                                    {isImportingLegacy ? 'Importing…' : 'Import my flashcards'}
+                                </button>
+                                <button type="button" onClick={() => setLegacyBackup(null)} disabled={isImportingLegacy} style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer' }}>
+                                    Not now
+                                </button>
+                            </div>
+                        </section>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Your Decks</h2>
                         <button 
                             onClick={() => setShowNewDeck(true)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.2rem', backgroundColor: 'var(--color-soft-black)', color: 'white', borderRadius: '100px', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                            disabled={isLoading || Boolean(loadError) || isSaving}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.2rem', backgroundColor: 'var(--color-soft-black)', color: 'white', borderRadius: '100px', border: 'none', cursor: isLoading || loadError || isSaving ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: isLoading || loadError || isSaving ? 0.65 : 1 }}
                         >
                             <Plus size={18} /> New Deck
                         </button>
@@ -159,7 +399,7 @@ const Flashcards = () => {
                     {showNewDeck && (
                         <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '2rem', boxShadow: 'var(--shadow-soft)', marginBottom: '2rem', border: '1px solid var(--color-border)' }}>
                             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.2rem' }}>Create New Deck</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 600 }}>Deck Name</label>
                                     <input type="text" value={newDeckName} onChange={e => setNewDeckName(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--color-border)' }} placeholder="e.g. Neuroscience 101" />
@@ -171,12 +411,12 @@ const Flashcards = () => {
                             </div>
                             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                                 <button onClick={() => setShowNewDeck(false)} style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancel</button>
-                                <button onClick={handleCreateDeck} disabled={!newDeckName || !newDeckSubject} style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', border: 'none', backgroundColor: 'var(--color-soft-black)', color: 'white', cursor: 'pointer', opacity: (!newDeckName || !newDeckSubject) ? 0.5 : 1 }}>Create</button>
+                                <button onClick={handleCreateDeck} disabled={!newDeckName.trim() || !newDeckSubject.trim() || isSaving} style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', border: 'none', backgroundColor: 'var(--color-soft-black)', color: 'white', cursor: isSaving ? 'wait' : 'pointer', opacity: (!newDeckName.trim() || !newDeckSubject.trim() || isSaving) ? 0.5 : 1 }}>{isSaving ? 'Saving…' : 'Create'}</button>
                             </div>
                         </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '1.5rem' }}>
                         {data.decks.map(deck => {
                             const due = getDueCardsCount(deck.id);
                             const total = getTotalCardsCount(deck.id);
@@ -184,6 +424,15 @@ const Flashcards = () => {
                                 <div 
                                     key={deck.id} 
                                     onClick={() => handleOpenDeck(deck.id)}
+                                    onKeyDown={event => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            handleOpenDeck(deck.id);
+                                        }
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={'Open ' + deck.name + ' flashcard deck'}
                                     style={{ backgroundColor: 'white', borderRadius: '24px', padding: '1.5rem', boxShadow: 'var(--shadow-soft)', cursor: 'pointer', border: '1px solid transparent', transition: 'border 0.2s' }}
                                     onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-gold)'}
                                     onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}
@@ -194,7 +443,7 @@ const Flashcards = () => {
                                         </div>
                                         {due > 0 && (
                                             <span style={{ backgroundColor: '#fff3e0', color: '#f57c00', padding: '0.3rem 0.8rem', borderRadius: '100px', fontSize: '0.8rem', fontWeight: 600 }}>
-                                                {due} due today
+                                                {due} due for review
                                             </span>
                                         )}
                                     </div>
@@ -208,7 +457,7 @@ const Flashcards = () => {
                                 </div>
                             );
                         })}
-                        {data.decks.length === 0 && !showNewDeck && (
+                        {!isLoading && !loadError && data.decks.length === 0 && !showNewDeck && !legacyBackup && (
                             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--color-text-secondary)' }}>
                                 You haven't created any flashcard decks yet.
                             </div>
@@ -224,7 +473,7 @@ const Flashcards = () => {
                         <button onClick={() => setViewMode('DECKS')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.2rem', backgroundColor: 'white', border: '1px solid var(--color-border)', borderRadius: '100px', cursor: 'pointer', fontWeight: 500 }}>
                             <ChevronLeft size={18} /> Back to Decks
                         </button>
-                        <button onClick={handleStartStudy} disabled={getDueCardsCount(activeDeckId) === 0} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem', backgroundColor: 'var(--color-soft-black)', color: 'white', borderRadius: '100px', border: 'none', cursor: getDueCardsCount(activeDeckId) === 0 ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: getDueCardsCount(activeDeckId) === 0 ? 0.5 : 1 }}>
+                        <button onClick={handleStartStudy} disabled={getDueCardsCount(activeDeckId) === 0 || isSaving} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem', backgroundColor: 'var(--color-soft-black)', color: 'white', borderRadius: '100px', border: 'none', cursor: getDueCardsCount(activeDeckId) === 0 ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: getDueCardsCount(activeDeckId) === 0 || isSaving ? 0.5 : 1 }}>
                             <BookOpen size={18} fill="currentColor" /> Study Now ({getDueCardsCount(activeDeckId)} due)
                         </button>
                     </div>
@@ -242,7 +491,7 @@ const Flashcards = () => {
                     {showNewCard && (
                         <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '2rem', boxShadow: 'var(--shadow-soft)', marginBottom: '2rem', border: '1px solid var(--color-gold)' }}>
                             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.2rem' }}>New Flashcard</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 600 }}>Front (Prompt)</label>
                                     <textarea value={newCardFront} onChange={e => setNewCardFront(e.target.value)} rows={3} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--color-border)', resize: 'vertical', fontFamily: 'inherit' }} placeholder="Question or concept..." />
@@ -254,7 +503,7 @@ const Flashcards = () => {
                             </div>
                             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                                 <button onClick={() => setShowNewCard(false)} style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'transparent', cursor: 'pointer' }}>Cancel</button>
-                                <button onClick={handleCreateCard} disabled={!newCardFront || !newCardBack} style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', border: 'none', backgroundColor: 'var(--color-gold)', color: 'white', cursor: 'pointer', fontWeight: 600, opacity: (!newCardFront || !newCardBack) ? 0.5 : 1 }}>Save Card</button>
+                                <button onClick={handleCreateCard} disabled={!newCardFront.trim() || !newCardBack.trim() || isSaving} style={{ padding: '0.6rem 1.2rem', borderRadius: '12px', border: 'none', backgroundColor: 'var(--color-gold)', color: 'white', cursor: isSaving ? 'wait' : 'pointer', fontWeight: 600, opacity: (!newCardFront.trim() || !newCardBack.trim() || isSaving) ? 0.5 : 1 }}>{isSaving ? 'Saving…' : 'Save Card'}</button>
                             </div>
                         </div>
                     )}
@@ -302,6 +551,15 @@ const Flashcards = () => {
                     {/* Card Container - Flip Effect */}
                     <div 
                         onClick={() => setIsFlipped(!isFlipped)}
+                        onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setIsFlipped(current => !current);
+                            }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={isFlipped ? 'Show flashcard prompt' : 'Reveal flashcard answer'}
                         style={{ 
                             perspective: '1000px',
                             minHeight: '350px',
@@ -373,12 +631,14 @@ const Flashcards = () => {
                     <div style={{ display: 'flex', gap: '1rem', opacity: isFlipped ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: isFlipped ? 'auto' : 'none' }}>
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleRateCard(false); }}
+                            disabled={isSaving}
                             style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', border: '1px solid #ffcdd2', backgroundColor: '#ffebee', color: '#c62828', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                         >
                             Hard <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>(Review soon)</span>
                         </button>
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleRateCard(true); }}
+                            disabled={isSaving}
                             style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', border: '1px solid #c8e6c9', backgroundColor: '#e8f5e9', color: '#2e7d32', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                         >
                             <Check size={20} /> Easy <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>(in 3 days)</span>

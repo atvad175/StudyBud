@@ -1,461 +1,463 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, BookOpen, Activity, Wind, CheckSquare, Moon, Zap } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import StudyBudLogo from '../../../components/brand/StudyBudLogo';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/useToast';
 import styles from './OnboardingSetup.module.css';
 
 const SUBJECTS = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'History',
-    'English', 'Economics', 'Computer Science', 'Psychology', 'Geography',
-    'Business', 'Art & Design', 'Music', 'Languages', 'Philosophy',
+    'English', 'Economics', 'Computer Science', 'Geography',
+    'Business', 'Art & Design', 'Music', 'Languages', 'Psychology',
 ];
 
 const PROFESSIONS = [
     'Engineering', 'Medicine & Healthcare', 'Law', 'Finance & Banking',
     'Marketing & Sales', 'Design & Creative', 'Education & Teaching',
     'Technology & Software', 'Research & Science', 'Entrepreneurship',
-    'Consulting', 'Media & Journalism', 'Architecture', 'Human Resources', 'Other',
+    'Consulting', 'Media & Journalism', 'Architecture', 'Other',
 ];
 
+const BOARDS = ['ICSE', 'ISC', 'IGCSE', 'IB', 'CBSE', 'Other'];
+const GRADES = ['6', '7', '8', '9', '10', '11', '12', 'Other'];
+
 const ATOM_OPTIONS = [
-    { id: 'early', label: 'Wake up early', icon: <Sun size={24} /> },
-    { id: 'read', label: 'Read 20 mins', icon: <BookOpen size={24} /> },
-    { id: 'nophone', label: 'No phone first hour', icon: <Activity size={24} /> },
-    { id: 'exercise', label: 'Exercise', icon: <Zap size={24} /> },
-    { id: 'meditate', label: 'Meditate', icon: <Wind size={24} /> },
-    { id: 'plan', label: 'Plan the day', icon: <CheckSquare size={24} /> },
-    { id: 'sleep11', label: 'Sleep by 11pm', icon: <Moon size={24} /> },
+    { id: 'early', label: 'Wake up early', icon: <Sun size={20} />, category: 'health', fissionEntry: 'Set your alarm and place your feet on the floor when it rings.' },
+    { id: 'read', label: 'Read 20 minutes', icon: <BookOpen size={20} />, category: 'study', fissionEntry: 'Open your book and read one page.' },
+    { id: 'nophone', label: 'Phone-free first hour', icon: <Activity size={20} />, category: 'mind', fissionEntry: 'Put your phone out of reach for the next two minutes.' },
+    { id: 'exercise', label: 'Exercise', icon: <Zap size={20} />, category: 'health', fissionEntry: 'Do two minutes of comfortable movement.' },
+    { id: 'meditate', label: 'Meditate', icon: <Wind size={20} />, category: 'mind', fissionEntry: 'Sit comfortably and take five slow, natural breaths.' },
+    { id: 'plan', label: 'Plan the day', icon: <CheckSquare size={20} />, category: 'study', fissionEntry: 'Write down the single most important task for today.' },
+    { id: 'sleep11', label: 'Consistent sleep time', icon: <Moon size={20} />, category: 'health', fissionEntry: 'Choose a realistic wind-down time for tonight.' },
+];
+
+const LEARNING_STYLES = [
+    { id: 'visual', label: 'Visual', desc: 'Diagrams and charts' },
+    { id: 'reading', label: 'Reading / writing', desc: 'Notes and summaries' },
+    { id: 'auditory', label: 'Listen and discuss', desc: 'Talk ideas through' },
+    { id: 'hands-on', label: 'Hands-on practice', desc: 'Learn by doing' },
+    { id: 'social', label: 'Study with others', desc: 'Groups and discussions' },
+    { id: 'solo', label: 'Solo deep work', desc: 'Quiet, independent focus' },
+];
+
+const STRUGGLES = [
+    'Focus', 'Procrastination', 'Time management', 'Motivation',
+    'Consistency', 'Exam preparation', 'Stress',
+];
+
+const MOTIVATIONS = [
+    'To prove it to myself',
+    'To get into my dream institution',
+    'To get really good at what I do',
+    'To build something impactful',
+    'To make my family proud',
 ];
 
 const OnboardingSetup = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
+
     const [step, setStep] = useState(1);
-
-    // Step 1
     const [name, setName] = useState(localStorage.getItem('studybud_username') || '');
-    const [role, setRole] = useState('');
-
-    // Step 2
-    const [struggles, setStruggles] = useState([]);
-
-    // Step 3 – learning style
-    const [learningStyle, setLearningStyle] = useState('');
-
-    // Step 4 – subjects OR professions depending on role
+    const [role, setRole] = useState('School student');
+    const [board, setBoard] = useState('');
+    const [grade, setGrade] = useState('');
     const [favTopics, setFavTopics] = useState([]);
-
-    // Step 5 – keystone habit
-    const [firstAtom, setFirstAtom] = useState(null);
-
-    // Step 6 – north star intention
+    const [struggles, setStruggles] = useState([]);
+    const [learningStyle, setLearningStyle] = useState('');
+    const [firstAtom, setFirstAtom] = useState('');
     const [intention, setIntention] = useState('');
-
-    // Step 7 – productive time
     const [productiveTime, setProductiveTime] = useState('');
-
-    // Step 8 – motivation
     const [motivation, setMotivation] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Step 9 – sign up
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isSigningUp, setIsSigningUp] = useState(false);
+    const isSchoolStudent = role === 'School student';
+    const topicList = role === 'Working professional' ? PROFESSIONS : SUBJECTS;
 
-    const isWorkingPro = role === 'Working professional';
-    const topicList = isWorkingPro ? PROFESSIONS : SUBJECTS;
-    const step4Title = isWorkingPro ? 'Which field do you work in?' : 'Which subjects are yours?';
-    const step4Subtitle = isWorkingPro
-        ? 'Pick your field or fields — Bud will tailor support to your professional context.'
-        : 'Pick everything you study or care about.';
-
-    useEffect(() => {
-        if (localStorage.getItem('studybud_onboarded') === 'true') setStep(9);
-    }, []);
-
-    const toggleStruggle = (s) =>
-        setStruggles(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
-
-    const toggleTopic = (t) =>
-        setFavTopics(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-
-    // ── Save everything ──────────────────────────────────────────────────────
-    const persistLocalData = () => {
-        const atom = ATOM_OPTIONS.find(a => a.id === firstAtom);
-        try {
-            localStorage.setItem('studybud_username', name);
-            localStorage.setItem('studybud_role', role);
-            localStorage.setItem('studybud_struggles', JSON.stringify(struggles));
-            localStorage.setItem('studybud_intention', intention);
-            localStorage.setItem('studybud_learning_style', learningStyle);
-            localStorage.setItem('studybud_fav_subjects', JSON.stringify(favTopics));
-            localStorage.setItem('studybud_fav_topics', JSON.stringify(favTopics));
-            localStorage.setItem('studybud_topic_type', isWorkingPro ? 'professions' : 'subjects');
-            localStorage.setItem('studybud_productive_time', productiveTime);
-            localStorage.setItem('studybud_motivation', motivation);
-            if (atom) localStorage.setItem('studybud_onboarding_atom', JSON.stringify({ id: atom.id, label: atom.label }));
-        } catch (err) { console.warn('Onboarding local save failed:', err); }
+    const toggleValue = (value, setter) => {
+        setter(current => current.includes(value)
+            ? current.filter(item => item !== value)
+            : [...current, value]);
     };
 
-    const persistToSupabase = async (userId) => {
-        if (!userId || userId === 'guest-user') return;
-        try {
-            await supabase.from('user_onboarding').upsert({
+    const isStepValid = () => {
+        if (step === 1) return Boolean(name.trim() && role);
+        if (step === 2) {
+            return favTopics.length > 0 && (!isSchoolStudent || Boolean(board && grade));
+        }
+        return true;
+    };
+
+    const persistLocalData = () => {
+        const atom = ATOM_OPTIONS.find(option => option.id === firstAtom);
+        localStorage.setItem('studybud_username', name.trim());
+        localStorage.setItem('studybud_role', role);
+        localStorage.setItem('studybud_board', board);
+        localStorage.setItem('studybud_grade', grade);
+        localStorage.setItem('studybud_struggles', JSON.stringify(struggles));
+        localStorage.setItem('studybud_intention', intention.trim());
+        localStorage.setItem('studybud_learning_style', learningStyle);
+        localStorage.setItem('studybud_fav_subjects', JSON.stringify(favTopics));
+        localStorage.setItem('studybud_fav_topics', JSON.stringify(favTopics));
+        localStorage.setItem('studybud_topic_type', role === 'Working professional' ? 'professions' : 'subjects');
+        localStorage.setItem('studybud_productive_time', productiveTime);
+        localStorage.setItem('studybud_motivation', motivation);
+        if (atom) {
+            localStorage.setItem('studybud_onboarding_atom', JSON.stringify({ id: atom.id, label: atom.label }));
+        } else {
+            localStorage.removeItem('studybud_onboarding_atom');
+        }
+    };
+
+    const createStarterHabit = async (userId) => {
+        const starter = ATOM_OPTIONS.find(option => option.id === firstAtom);
+        if (!starter) return;
+
+        // Do not create duplicate starter habits when setup is retried or revisited.
+        const { data: existing, error: lookupError } = await supabase
+            .from('atoms')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('title', starter.label)
+            .limit(1)
+            .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (existing) return;
+
+        const { data: createdHabit, error } = await supabase
+            .from('atoms')
+            .insert({
                 user_id: userId,
-                name,
+                title: starter.label,
+                frequency: 'daily',
+                category: starter.category,
+                fission_entry: starter.fissionEntry,
+            })
+            .select()
+            .single();
+        if (error) throw error;
+
+        window.dispatchEvent(new CustomEvent('studybud-starter-habit-created', {
+            detail: { userId, habit: createdHabit },
+        }));
+    };
+
+    const finishOnboarding = async () => {
+        setIsSaving(true);
+        try {
+            const { data, error: sessionError } = await supabase.auth.getSession();
+            const userId = data?.session?.user?.id;
+            if (sessionError || !userId) {
+                toast.error('Please sign in before saving your setup.');
+                navigate('/login', { replace: true, state: { mode: 'login' } });
+                return;
+            }
+
+            const { error } = await supabase.from('user_onboarding').upsert({
+                user_id: userId,
+                name: name.trim(),
                 role,
+                board,
+                grade,
                 struggles,
                 learning_style: learningStyle,
                 fav_topics: favTopics,
-                topic_type: isWorkingPro ? 'professions' : 'subjects',
-                first_atom: firstAtom,
-                intention,
+                topic_type: role === 'Working professional' ? 'professions' : 'subjects',
+                first_atom: firstAtom || null,
+                intention: intention.trim(),
                 productive_time: productiveTime,
                 motivation,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'user_id' });
-        } catch (e) { console.warn('Supabase onboarding save failed:', e); }
-    };
 
-    const finishOnboarding = async (userId) => {
-        persistLocalData();
-        localStorage.setItem('studybud_onboarded', 'true');
-        localStorage.setItem('studybud_first_visit', 'true');
-        await persistToSupabase(userId);
-        window.dispatchEvent(new Event('studybud-onboarded'));
-    };
+            if (error) throw error;
 
-    const handleEmailSignup = async (e) => {
-        e.preventDefault();
-        
-        // Validation
-        if (!email.trim() || !password.trim()) {
-            toast.error('Please fill in all fields.');
-            return;
-        }
-        
-        if (password.length < 6) {
-            toast.error('Password must be at least 6 characters.');
-            return;
-        }
-
-        setIsSigningUp(true);
-        
-        // Save all onboarding data locally
-        persistLocalData();
-        localStorage.setItem('studybud_onboarded', 'true');
-        localStorage.setItem('studybud_first_visit', 'true');
-        localStorage.setItem('studybud_email', email.trim());
-        localStorage.setItem('studybud_password', password);
-        
-        // Try Supabase signup in background without blocking
-        supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: { 
-                data: { full_name: name, role },
-                emailRedirectTo: `${window.location.origin}/`
-            },
-        }).then(({ data, error }) => {
-            if (data?.user?.id) {
-                persistToSupabase(data.user.id).catch(err => console.warn('Supabase save failed:', err));
+            // The starter habit is optional: profile setup should still complete if
+            // the separate Habits write fails, but the student must be told clearly.
+            try {
+                await createStarterHabit(userId);
+            } catch (habitError) {
+                console.warn('Starter habit was not saved:', habitError?.code || 'unknown');
+                toast.info('Your setup was saved, but the starter habit could not be added. You can create it later from Habits.');
             }
-        }).catch(err => {
-            console.warn('Background signup failed:', err);
-        });
 
-        // Navigate immediately - don't wait for anything
-        window.location.href = '/';
-    };
-
-    const handleOAuthLogin = async (provider) => {
-        persistLocalData();
-        localStorage.setItem('studybud_onboarded', 'true');
-        localStorage.setItem('studybud_first_visit', 'true');
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider,
-            options: { redirectTo: `${window.location.origin}/` },
-        });
-        if (error) {
-            alert(`${error.message} — Enable this provider in Supabase → Authentication → Providers, and add ${window.location.origin}/ to Redirect URLs.`);
+            persistLocalData();
+            localStorage.setItem('studybud_onboarded_user_id', userId);
+            localStorage.setItem('studybud_first_visit', 'true');
+            localStorage.removeItem('studybud_onboarded');
+            window.dispatchEvent(new CustomEvent('studybud-onboarded', { detail: { userId } }));
+            navigate('/', { replace: true });
+        } catch (error) {
+            console.error('Unable to save onboarding:', error);
+            toast.error('We could not save your setup. Check your connection and try again.');
+        } finally {
+            setIsSaving(false);
         }
-    };
-
-    const handleSkipAuth = async () => {
-        await finishOnboarding(null);
-        navigate('/', { replace: true });
-    };
-
-    const isStepValid = () => {
-        if (step === 1) return name.trim().length > 0 && role !== '';
-        if (step === 2) return struggles.length > 0;
-        if (step === 3) return learningStyle !== '';
-        if (step === 4) return favTopics.length > 0;
-        if (step === 5) return firstAtom !== null;
-        if (step === 6) return intention.trim().length > 0;
-        if (step === 7) return productiveTime !== '';
-        if (step === 8) return motivation !== '';
-        return true;
     };
 
     const nextStep = async () => {
-        if (isStepValid()) {
-            if (step === 8) {
-                // If they have a session or are already a guest, skip step 9 and finish
-                const { data } = await supabase.auth.getSession();
-                const isGuest = localStorage.getItem('studybud_guest') === 'true';
-                if (data?.session || isGuest) {
-                    await finishOnboarding(data?.session?.user?.id || 'guest-user');
-                    navigate('/', { replace: true });
-                    return;
-                }
-            }
-            setStep(s => s + 1);
+        if (!isStepValid() || isSaving) return;
+        if (step < 4) {
+            setStep(current => current + 1);
+            return;
         }
+        await finishOnboarding();
     };
 
     return (
         <div className={styles.onboardingRoot}>
-            <div className={styles.glowTop} aria-hidden />
-            <div className={styles.glowBottom} aria-hidden />
+            <div className={styles.glowTop} aria-hidden="true" />
+            <div className={styles.glowBottom} aria-hidden="true" />
 
             <header className={styles.topBar}>
                 <StudyBudLogo variant="onLight" size="md" stacked showTagline />
-                <div className={styles.progressRow}>
-                    {[1,2,3,4,5,6,7,8,9].map(i => (
-                        <div key={i}
-                            className={`${styles.progressSeg} ${i <= step ? styles.progressSegActive : ''}`}
+                <div className={styles.progressRow} aria-label={`Step ${step} of 4`}>
+                    {[1, 2, 3, 4].map(index => (
+                        <div
+                            key={index}
+                            className={`${styles.progressSeg} ${index <= step ? styles.progressSegActive : ''}`}
                         />
                     ))}
                 </div>
             </header>
 
-            <div className={styles.main}>
+            <main className={styles.main}>
                 <div className={styles.inner}>
-
-                    {/* ── Step 1: Name + Role ─────────────────────────────── */}
                     {step === 1 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">First, tell us about you</h1>
-                            <p className="step-subtitle">Your name and where you are in your journey.</p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '3rem' }}>
-                                <input
-                                    type="text" value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    placeholder="Enter your name"
-                                    className="hitech-input" autoFocus
-                                    onKeyDown={e => e.key === 'Enter' && role && name ? nextStep() : null}
-                                />
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    {['School student', 'College student', 'Self-learner', 'Working professional'].map(r => (
-                                        <button key={r} type="button"
-                                            onClick={() => setRole(r)}
-                                            className={`hitech-choice ${role === r ? 'selected' : ''}`}
+                        <section className="fade-in-up">
+                            <p className="step-subtitle">STEP 1 OF 4 · YOUR PROFILE</p>
+                            <h1 className="step-title">Let's make StudyBud yours.</h1>
+                            <p className="step-subtitle">Just the basics. You can change them later.</p>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '2rem' }}>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <span>Your name</span>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={event => setName(event.target.value)}
+                                        placeholder="Enter your name"
+                                        className="hitech-input"
+                                        autoComplete="name"
+                                        autoFocus
+                                        required
+                                    />
+                                </label>
+                                <div>
+                                    <p style={{ marginBottom: '0.75rem' }}>Which best describes you?</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '0.75rem' }}>
+                                        {['School student', 'College student', 'Self-learner', 'Working professional'].map(option => (
+                                            <button
+                                                key={option}
+                                                type="button"
+                                                onClick={() => {
+                                                    setRole(option);
+                                                    if (option !== 'School student') {
+                                                        setBoard('');
+                                                        setGrade('');
+                                                    }
+                                                }}
+                                                aria-pressed={role === option}
+                                                className={`hitech-choice ${role === option ? 'selected' : ''}`}
+                                            >
+                                                {option}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {step === 2 && (
+                        <section className="fade-in-up">
+                            <p className="step-subtitle">STEP 2 OF 4 · YOUR LEARNING WORLD</p>
+                            <h1 className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
+                            <p className="step-subtitle">This helps StudyBud tailor techniques and practice to your subjects.</p>
+
+                            {isSchoolStudent && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '1rem', marginTop: '1.75rem' }}>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <span>Board / curriculum</span>
+                                        <select value={board} onChange={event => setBoard(event.target.value)} className="hitech-input" required>
+                                            <option value="">Choose a board</option>
+                                            {BOARDS.map(option => <option key={option} value={option}>{option}</option>)}
+                                        </select>
+                                    </label>
+                                    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <span>Grade</span>
+                                        <select value={grade} onChange={event => setGrade(event.target.value)} className="hitech-input" required>
+                                            <option value="">Choose your grade</option>
+                                            {GRADES.map(option => <option key={option} value={option}>{option}</option>)}
+                                        </select>
+                                    </label>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: '1.75rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>Choose your subjects or areas</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                    {topicList.map(topic => (
+                                        <button
+                                            key={topic}
+                                            type="button"
+                                            onClick={() => toggleValue(topic, setFavTopics)}
+                                            aria-pressed={favTopics.includes(topic)}
+                                            className={`hitech-pill ${favTopics.includes(topic) ? 'selected' : ''}`}
                                         >
-                                            {r}
+                                            {topic}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                        </div>
+                            {!isStepValid() && (
+                                <p role="status" style={{ color: '#9a5a13', marginTop: '1rem' }}>
+                                    {isSchoolStudent ? 'Choose your board, grade and at least one subject to continue.' : 'Choose at least one area to continue.'}
+                                </p>
+                            )}
+                        </section>
                     )}
 
-                    {/* ── Step 2: Struggles ───────────────────────────────── */}
-                    {step === 2 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">What gets in your way?</h1>
-                            <p className="step-subtitle">Pick anything that fits. Bud will shape its support around these.</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '3rem' }}>
-                                {['Focus', 'Procrastination', 'Anxiety', 'Sleep', 'Time management', 'Motivation', 'Consistency', 'Stress'].map(s => (
-                                    <button key={s} type="button"
-                                        onClick={() => toggleStruggle(s)}
-                                        className={`hitech-pill ${struggles.includes(s) ? 'selected' : ''}`}
-                                    >
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Step 3: Learning Style ──────────────────────────── */}
                     {step === 3 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">How do you learn best?</h1>
-                            <p className="step-subtitle">This helps Bud give you the right kind of advice.</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '3rem' }}>
-                                {[
-                                    { id: 'visual',      emoji: '👁️',  label: 'Visual',          desc: 'Diagrams, charts, colour-coding' },
-                                    { id: 'reading',     emoji: '📖',  label: 'Reading / Writing', desc: 'Notes, textbooks, summaries' },
-                                    { id: 'auditory',    emoji: '🎧',  label: 'Auditory',          desc: 'Listening, talking through ideas' },
-                                    { id: 'kinesthetic', emoji: '🤲',  label: 'Hands-on',          desc: 'Practice, doing, building' },
-                                    { id: 'social',      emoji: '👥',  label: 'Social',            desc: 'Study groups, discussions' },
-                                    { id: 'solo',        emoji: '🧘',  label: 'Solo deep work',    desc: 'Quiet, focused, independent' },
-                                ].map(s => (
-                                    <div key={s.id}
-                                        onClick={() => setLearningStyle(s.id)}
-                                        className={`hitech-box-choice ${learningStyle === s.id ? 'selected' : ''}`}
-                                    >
-                                        <div className="icon-wrapper" style={{ fontSize: '1.5rem' }}>{s.emoji}</div>
-                                        <div>
-                                            <div style={{ fontWeight: 600 }}>{s.label}</div>
-                                            <div style={{ fontSize: '0.8rem', opacity: 0.6, marginTop: 2 }}>{s.desc}</div>
-                                        </div>
-                                    </div>
-                                ))}
+                        <section className="fade-in-up">
+                            <p className="step-subtitle">STEP 3 OF 4 · OPTIONAL PERSONALIZATION</p>
+                            <h1 className="step-title">Where should Bud help first?</h1>
+                            <p className="step-subtitle">Pick any challenges that sound familiar. This step is optional.</p>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>What gets in your way?</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+                                    {STRUGGLES.map(value => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => toggleValue(value, setStruggles)}
+                                            aria-pressed={struggles.includes(value)}
+                                            className={`hitech-pill ${struggles.includes(value) ? 'selected' : ''}`}
+                                        >
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>How do you prefer to learn?</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '0.75rem' }}>
+                                    {LEARNING_STYLES.map(option => (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            onClick={() => setLearningStyle(option.id)}
+                                            aria-pressed={learningStyle === option.id}
+                                            className={`hitech-box-choice ${learningStyle === option.id ? 'selected' : ''}`}
+                                            style={{ textAlign: 'left' }}
+                                        >
+                                            <div style={{ fontWeight: 600 }}>{option.label}</div>
+                                            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{option.desc}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>One small habit to build (optional)</p>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: '0.65rem' }}>
+                                    {ATOM_OPTIONS.map(option => (
+                                        <button
+                                            key={option.id}
+                                            type="button"
+                                            onClick={() => setFirstAtom(current => current === option.id ? '' : option.id)}
+                                            aria-pressed={firstAtom === option.id}
+                                            className={`hitech-choice ${firstAtom === option.id ? 'selected' : ''}`}
+                                            style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}
+                                        >
+                                            {option.icon}<span>{option.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
                     )}
 
-                    {/* ── Step 4: Subjects OR Professions ────────────────── */}
                     {step === 4 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">{step4Title}</h1>
-                            <p className="step-subtitle">{step4Subtitle}</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '3rem' }}>
-                                {topicList.map(t => (
-                                    <button key={t} type="button"
-                                        onClick={() => toggleTopic(t)}
-                                        className={`hitech-pill ${favTopics.includes(t) ? 'selected' : ''}`}
-                                    >
-                                        {t}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                        <section className="fade-in-up">
+                            <p className="step-subtitle">STEP 4 OF 4 · YOUR FIRST GOAL</p>
+                            <h1 className="step-title">Start small. Build momentum.</h1>
+                            <p className="step-subtitle">Set one goal if useful. Everything on this page is optional.</p>
 
-                    {/* ── Step 5: Keystone Atom ───────────────────────────── */}
-                    {step === 5 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">Pick one small habit to start</h1>
-                            <p className="step-subtitle">Something tiny you can do tomorrow. You can change it later.</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '3rem' }}>
-                                {ATOM_OPTIONS.map(atom => (
-                                    <div key={atom.id}
-                                        onClick={() => setFirstAtom(atom.id)}
-                                        className={`hitech-box-choice ${firstAtom === atom.id ? 'selected' : ''}`}
-                                    >
-                                        <div className="icon-wrapper">{atom.icon}</div>
-                                        <div>{atom.label}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Step 6: North Star Intention ────────────────────── */}
-                    {step === 6 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">Your main goal this week</h1>
-                            <p className="step-subtitle">One sentence is enough. What matters most right now?</p>
-                            <div style={{ marginTop: '3rem' }}>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1.5rem' }}>
+                                <span>What would make this week a success?</span>
                                 <textarea
                                     value={intention}
-                                    onChange={e => setIntention(e.target.value)}
-                                    placeholder="I will finally..."
-                                    rows={4}
+                                    onChange={event => setIntention(event.target.value)}
+                                    placeholder="For example, finish my chemistry revision."
+                                    rows={3}
                                     className="hitech-input"
                                     style={{ resize: 'vertical' }}
                                 />
+                            </label>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>When do you usually focus best?</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+                                    {['Morning', 'Afternoon', 'Evening', 'It varies'].map(option => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            onClick={() => setProductiveTime(current => current === option ? '' : option)}
+                                            aria-pressed={productiveTime === option}
+                                            className={`hitech-pill ${productiveTime === option ? 'selected' : ''}`}
+                                        >
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <p style={{ marginBottom: '0.75rem' }}>What motivates you?</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+                                    {MOTIVATIONS.map(option => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            onClick={() => setMotivation(current => current === option ? '' : option)}
+                                            aria-pressed={motivation === option}
+                                            className={`hitech-pill ${motivation === option ? 'selected' : ''}`}
+                                        >
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
                     )}
 
-                    {/* ── Step 7: Productive Time ──────────────────────────── */}
-                    {step === 7 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">When are you most focused?</h1>
-                            <p className="step-subtitle">We'll schedule harder work for when you're naturally sharpest.</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '3rem' }}>
-                                {['Early Bird (5am–9am)', 'Morning (9am–12pm)', 'Afternoon (1pm–5pm)', 'Night Owl (8pm–2am)'].map(t => (
-                                    <button key={t} type="button"
-                                        onClick={() => setProductiveTime(t)}
-                                        className={`hitech-choice ${productiveTime === t ? 'selected' : ''}`}
-                                    >
-                                        {t}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Step 8: Motivation ───────────────────────────────── */}
-                    {step === 8 && (
-                        <div className="fade-in-up">
-                            <h1 className="step-title">What drives you?</h1>
-                            <p className="step-subtitle">When things get hard — what's the real reason you keep going?</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginTop: '3rem' }}>
-                                {[
-                                    'To prove it to myself',
-                                    "To secure my family's future",
-                                    'To get into my dream institution',
-                                    'To get really good at what I do',
-                                    'I want to build something impactful',
-                                ].map(m => (
-                                    <button key={m} type="button"
-                                        onClick={() => setMotivation(m)}
-                                        className={`hitech-choice ${motivation === m ? 'selected' : ''}`}
-                                    >
-                                        {m}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Step 9: Sign Up / In ─────────────────────────────── */}
-                    {step === 9 && (
-                        <div className={`fade-in-up ${styles.step9Wrap}`}>
-                            <div className={styles.step9Logo}>
-                                <StudyBudLogo variant="onLight" size="hero" stacked showTagline={false} />
-                            </div>
-                            <h1 className="step-title">You're all set{name ? `, ${name}` : ''}!</h1>
-                            <p className="step-subtitle">Create an account to save everything, or skip and keep it on this device.</p>
-
-                            <div className={styles.authCol}>
-                                <form onSubmit={handleEmailSignup} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', textAlign: 'left' }}>
-                                    <input type="email" placeholder="Email address" value={email}
-                                        onChange={e => setEmail(e.target.value)}
-                                        className="hitech-input" style={{ padding: '1rem', fontSize: '1rem' }} required />
-                                    <input type="password" placeholder="Create password" value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        className="hitech-input" style={{ padding: '1rem', fontSize: '1rem' }} required />
-                                    <button type="submit" className="auth-btn" style={{ backgroundColor: '#C9883A', color: '#fff', border: 'none', marginTop: '0.5rem' }} disabled={isSigningUp}>
-                                        {isSigningUp ? 'Creating account...' : 'Create account'}
-                                    </button>
-                                </form>
-
-
-
-                                <button type="button" onClick={handleSkipAuth} className={styles.skipBtn}>
-                                    Skip sign-in (this device only)
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── Navigation ───────────────────────────────────────── */}
-                    {step < 9 && (
-                        <div className={styles.navRow}>
-                            {step > 1 ? (
-                                <button type="button" onClick={() => setStep(s => s - 1)} className="nav-btn-back">
-                                    ← Back
-                                </button>
-                            ) : <div />}
-                            <button
-                                type="button" onClick={nextStep}
-                                disabled={!isStepValid()}
-                                className={`nav-btn-next ${isStepValid() ? 'active' : ''}`}
-                            >
-                                Continue →
+                    <div className={styles.navRow}>
+                        {step > 1 ? (
+                            <button type="button" onClick={() => setStep(current => current - 1)} className="nav-btn-back" disabled={isSaving}>
+                                ← Back
                             </button>
-                        </div>
+                        ) : <span />}
+
+                        <button
+                            type="button"
+                            onClick={nextStep}
+                            disabled={!isStepValid() || isSaving}
+                            className={`nav-btn-next ${isStepValid() && !isSaving ? 'active' : ''}`}
+                        >
+                            {isSaving ? 'Saving…' : step === 4 ? 'Finish setup' : 'Continue →'}
+                        </button>
+                    </div>
+                    {step >= 3 && step < 4 && (
+                        <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '1rem', opacity: 0.7 }}>
+                            Optional — you can continue without answering these questions.
+                        </p>
                     )}
                 </div>
-            </div>
+            </main>
         </div>
     );
 };

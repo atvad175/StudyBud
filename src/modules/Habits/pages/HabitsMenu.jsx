@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Plus, Target, BookOpen, Trophy, Flame, CheckCircle, TrendingUp } from 'lucide-react';
-import { useHabits } from '../../../context/HabitsContext';
+import { useHabits } from '../../../context/useHabits';
 import styles from './HabitsMenu.module.css';
 
 const HabitsMenu = () => {

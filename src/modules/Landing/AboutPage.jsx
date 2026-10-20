@@ -1,10 +1,8 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Users, Brain, Shield, Heart } from 'lucide-react';
 import LandingLayout from './LandingLayout';
 
 const AboutPage = () => {
-    const navigate = useNavigate();
 
     return (
         <LandingLayout>

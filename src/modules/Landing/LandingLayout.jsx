@@ -56,7 +56,11 @@ const LandingLayout = ({ children }) => {
                     <button type="button" className="btn-secondary" onClick={go('/login')}>
                         Sign in
                     </button>
-                    <button type="button" className="btn-primary" onClick={go('/login')}>
+                    <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => navigate('/login', { state: { mode: 'signup' } })}
+                    >
                         Get started
                     </button>
                 </div>

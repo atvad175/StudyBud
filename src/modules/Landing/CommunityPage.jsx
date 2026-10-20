@@ -107,7 +107,7 @@ const CommunityPage = () => {
                     Community is our next big venture. We're building spaces where students can study together, share wins, and support each other. Watch this space.
                 </p>
 
-                {/* Launch notifications are unavailable until a real notification service is connected. */}
+                {/* Notification signup stays closed until a real service can deliver the promised updates. */}
                 <div
                     className="fade-in-up"
                     role="status"

@@ -1,0 +1,48 @@
+name: Quality checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-build:
+    name: Lint and production build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check serverless API syntax
+        run: node --check api/ai.js
+
+      - name: Test AI provider fallback behavior
+        run: npm test
+
+      - name: Lint new AI and onboarding code
+        run: npx eslint api/ai.js src/services/aiService.js src/App.jsx src/components/AICompanion/AICompanion.jsx src/modules/Auth/pages/LoginPage.jsx src/modules/Auth/pages/OnboardingSetup.jsx src/modules/Focus/pages/FocusSession.jsx src/modules/Settings/pages/SettingsPage.jsx src/modules/Study/pages/AssignmentsBreakdown.jsx src/modules/Study/pages/ExamsPrep.jsx src/modules/Study/pages/UnifiedStudy.jsx src/context/StudyContext.jsx src/context/StudyContextCore.js src/context/useStudy.js src/context/AIContext.jsx src/context/AIContextCore.js src/context/useAI.js src/modules/Study/pages/Flashcards.jsx src/modules/Study/pages/FeynmanSandbox.jsx src/modules/Time/pages/TaskIntelligence.jsx src/modules/Mind/pages/CognitiveOffload.jsx src/modules/Mind/pages/ReflectionEngine.jsx src/modules/Mind/pages/PositiveAffect.jsx src/modules/Mind/pages/EmotionalBuddy.jsx src/modules/Dashboard/pages/MainDashboard.jsx src/modules/Mind/pages/MindDashboard.jsx src/modules/Study/ambientParticles.js src/modules/Study/pages/StudyDashboard.jsx src/modules/Study/pages/StudyMethods.jsx src/modules/Study/pages/SubjectsHub.jsx src/modules/Study/studyUtils.js src/modules/Habits/pages/Fission.jsx src/modules/Habits/pages/StreakBoard.jsx src/modules/Habits/pages/TrackAtom.jsx src/modules/Time/pages/ReflectionLoop.jsx src/modules/Time/pages/TimeDashboard.jsx src/modules/Time/pages/WeeklyReview.jsx src/components/ai/AIChat.jsx src/components/layout/FocusOverlay.jsx src/context/FocusContext.jsx src/context/FocusContextCore.js src/context/useFocus.js src/context/HabitsContext.jsx src/context/HabitsContextCore.js src/context/useHabits.js src/context/MindContext.jsx src/context/MindContextCore.js src/context/useMind.js src/context/MusicContext.jsx src/context/MusicContextCore.js src/context/useMusic.js src/context/TimeContext.jsx src/context/TimeContextCore.js src/context/useTime.js src/context/ToastContext.jsx src/context/ToastContextCore.js src/context/useToast.js src/modules/Mind/pages/MoodTimeline.jsx
+
+      - name: Run full ESLint suite
+        run: npm run lint
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Check browser bundle for Gemini secrets or SDK
+        shell: bash
+        run: |
+          if grep -RqE 'AIza[[:alnum:]_-]{30,}|GoogleGenerativeAI|VITE_GEMINI_API_KEY' dist/assets; then
+            echo "A possible provider key or client-side Gemini SDK was found in the browser bundle."
+            exit 1
+          fi

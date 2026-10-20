@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useMind } from '../../../context/MindContext';
+import React, { useMemo, useState } from 'react';
+import { useMind } from '../../../context/useMind';
 
 const MoodTimeline = () => {
   const { logs } = useMind();
-  const [entries, setEntries] = useState([]);
   const [filter, setFilter] = useState('All');
-
-  useEffect(() => {
+  const entries = useMemo(() => {
     const aggregated = (logs || []).map(log => {
       if(log.type === 'reflection') {
         const hasAnswers = log.content && log.content.answers;
@@ -70,7 +68,7 @@ const MoodTimeline = () => {
     });
 
     aggregated.sort((a, b) => b.date - a.date);
-    setEntries(aggregated);
+    return aggregated;
   }, [logs]);
 
   const filteredEntries = entries.filter(entry => filter === 'All' || entry.type === filter);

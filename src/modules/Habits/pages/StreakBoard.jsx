@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Flame, Trophy, Percent } from 'lucide-react';
-import { useHabits } from '../../../context/HabitsContext';
+import { useHabits } from '../../../context/useHabits';
 
 const getColor = (count) => {
     if (count === 0) return '#EDE8DF';
@@ -11,11 +11,9 @@ const getColor = (count) => {
 
 const StreakBoard = () => {
     const { logs } = useHabits();
-    const [heatmap, setHeatmap] = useState([]);
-    const [stats, setStats] = useState({ currentStreak: 0, longestStreak: 0, completionRate: 0 });
     const [selectedCell, setSelectedCell] = useState(null);
 
-    useEffect(() => {
+    const { heatmap, stats } = useMemo(() => {
         // Build map of YYYY-MM-DD to count from actual Supabase Context Logs
         const dateMap = {};
         if (logs) {
@@ -106,14 +104,14 @@ const StreakBoard = () => {
             }
         }
 
-        setStats({
-            currentStreak: actualCurrentStreak,
-            longestStreak: maxStreak,
-            completionRate: monthTotalDays > 0 ? Math.round((monthActiveDays / monthTotalDays) * 100) : 0
-        });
-        
-        setHeatmap(newHeatmap);
-
+        return {
+            heatmap: newHeatmap,
+            stats: {
+                currentStreak: actualCurrentStreak,
+                longestStreak: maxStreak,
+                completionRate: monthTotalDays > 0 ? Math.round((monthActiveDays / monthTotalDays) * 100) : 0,
+            },
+        };
     }, [logs]);
 
     const daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];

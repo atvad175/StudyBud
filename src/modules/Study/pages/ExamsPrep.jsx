@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../StudyShared.module.css';
 import { Target, Play, TrendingUp, Clock, CheckCircle, AlertTriangle, FileText, X, Sparkles } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
-import { useToast } from '../../../context/ToastContext';
-import { analyzeMistakePatterns } from '../studyUtils';
+import { useStudy } from '../../../context/useStudy';
+import { useToast } from '../../../context/useToast';
 import { getMockExam } from '../../../services/aiService';
 import { extractTextFromFile } from '../../../utils/fileParser';
 
 // Mock Exam Configs
 const EXAM_TYPES = [
-    { id: 'quick', label: 'Quick Quiz', duration: 15, questions: 10 },
-    { id: 'standard', label: 'Standard Unit Test', duration: 45, questions: 25 },
-    { id: 'mock', label: 'Full Mock Exam', duration: 120, questions: 50 },
+    { id: 'quick', label: 'Quick Quiz', duration: 5, questions: 5 },
+    { id: 'standard', label: 'Unit Practice', duration: 15, questions: 10 },
+    { id: 'mock', label: 'Practice Mock', duration: 30, questions: 20 },
 ];
 
 const ExamsPrep = () => {
@@ -25,6 +24,11 @@ const ExamsPrep = () => {
     const [aiTopic, setAiTopic] = useState('');
     const [aiNumQs, setAiNumQs] = useState(5);
     const [aiTime, setAiTime] = useState(15);
+    const [requestedExamLabel, setRequestedExamLabel] = useState('AI Custom Mock Exam');
+    const [studentCurriculum] = useState(() => ({
+        board: localStorage.getItem('studybud_board') || '',
+        grade: localStorage.getItem('studybud_grade') || '',
+    }));
     const [isGenerating, setIsGenerating] = useState(false);
 
     // Exam State
@@ -32,15 +36,34 @@ const ExamsPrep = () => {
     const [currentQuestion, setCurrentQuestion] = useState(1);
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
+    const examSubmittedRef = useRef(false);
+
+    useEffect(() => {
+        const selectedSubject = localStorage.getItem('studybud_selected_subject');
+        if (!selectedSubject) return;
+
+        // Include the saved learner level as context, not as a syllabus guarantee.
+        const seedTopic = [
+            selectedSubject,
+            studentCurriculum.board ? `Curriculum: ${studentCurriculum.board}` : '',
+            studentCurriculum.grade && studentCurriculum.grade !== 'Other'
+                ? `Grade: ${studentCurriculum.grade}`
+                : '',
+        ].filter(Boolean).join('\n');
+
+        setAiTopic(current => current.trim() ? current : seedTopic);
+        localStorage.removeItem('studybud_selected_subject');
+    }, [studentCurriculum.board, studentCurriculum.grade]);
 
     // Start predefined AI Exam
     const generateAiExam = async () => {
         if(!aiTopic.trim()) return toast.error("Please provide a topic or paste study material.");
         setIsGenerating(true);
         try {
-            const generated = await getMockExam(aiTopic, aiNumQs);
+            const generated = await getMockExam(aiTopic, aiNumQs, studentCurriculum);
+            examSubmittedRef.current = false;
             setExamQuestions(generated);
-            setActiveExam({ label: 'AI Custom Mock Exam', duration: aiTime, questions: generated.length });
+            setActiveExam({ label: requestedExamLabel, duration: aiTime, questions: generated.length });
             setTimer(aiTime * 60);
             setCurrentQuestion(1);
             setUserAnswers({});
@@ -52,47 +75,75 @@ const ExamsPrep = () => {
         }
     };
 
-    // Start basic placeholder Exam
+    // Presets set up an actual AI practice paper; they no longer launch dummy questions.
     const startExam = (exam) => {
-        // Dummy questions if not AI generated
-        const dummies = Array.from({length: exam.questions}).map((_, i) => ({
-            question: `Sample Question ${i+1} for ${exam.label}?`,
-            options: ['Option A', 'Option B', 'Option C', 'Option D'],
-            correctAnswer: 'Option A'
-        }));
-        setExamQuestions(dummies);
-        setActiveExam(exam);
-        setTimer(exam.duration * 60);
-        setCurrentQuestion(1);
-        setUserAnswers({});
-        setMode('exam');
+        setRequestedExamLabel(exam.label);
+        setAiNumQs(exam.questions);
+        setAiTime(exam.duration);
+        setMode('config');
     };
 
-    // Timer Logic
+    // Score once and save the result to this account's private study history.
+    const submitExam = useCallback(() => {
+        if (examSubmittedRef.current || !activeExam || examQuestions.length === 0) return;
+        examSubmittedRef.current = true;
+
+        const total = examQuestions.length;
+        const correct = examQuestions.reduce((sum, question, index) =>
+            sum + (userAnswers[index] === question.correctAnswer ? 1 : 0), 0);
+        const answered = Object.keys(userAnswers).length;
+        const percentage = Math.round((correct / total) * 100);
+        const wrongAnswers = examQuestions.map((question, index) => ({
+            question: question.question,
+            selectedAnswer: userAnswers[index] || null,
+            correctAnswer: question.correctAnswer,
+            isCorrect: userAnswers[index] === question.correctAnswer,
+        }));
+
+        setScore(correct);
+        setMode('review');
+
+        const topicTitle = aiTopic.trim().split(/\r?\n/)[0].slice(0, 120) || activeExam.label;
+        const record = {
+            subject: topicTitle,
+            mistake_type: 'practice_exam',
+            question_content: JSON.stringify({
+                exam: activeExam.label,
+                questions: wrongAnswers,
+            }),
+            notes: `Score: ${correct}/${total} (${percentage}%). Answered ${answered}/${total} questions.`,
+            tags: ['practice-exam', 'ai-generated', activeExam.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')],
+        };
+
+        void logPractice(record)
+            .then(() => toast.success('Practice result saved to your Study history.'))
+            .catch((error) => {
+                console.error('Unable to save practice result:', error);
+                toast.error('Your exam is complete, but its result could not be saved. Please check your connection.');
+            });
+    }, [activeExam, aiTopic, examQuestions, logPractice, toast, userAnswers]);
+
+    // Timer expiry uses the same guarded submit path as the manual button.
     useEffect(() => {
-        let interval;
-        if (mode === 'exam' && timer > 0) {
-            interval = setInterval(() => setTimer(t => t - 1), 1000);
-        } else if (timer === 0 && mode === 'exam') {
-            // Auto submit or alert
+        if (mode !== 'exam') return undefined;
+
+        if (timer <= 0) {
+            const submitTimeout = window.setTimeout(() => {
+                submitExam();
+            }, 0);
+            return () => window.clearTimeout(submitTimeout);
         }
-        return () => clearInterval(interval);
-    }, [mode, timer]);
+
+        const interval = window.setInterval(() => {
+            setTimer(current => Math.max(0, current - 1));
+        }, 1000);
+        return () => window.clearInterval(interval);
+    }, [mode, timer, submitExam]);
 
     const formatTime = (s) => {
         const mins = Math.floor(s / 60);
         const secs = s % 60;
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    };
-
-    const submitExam = () => {
-        // Calculate score
-        let correct = 0;
-        examQuestions.forEach((q, idx) => {
-            if(userAnswers[idx] === q.correctAnswer) correct++;
-        });
-        setScore(correct);
-        setMode('review');
     };
 
     const handleOptionSelect = (opt) => {
@@ -135,6 +186,12 @@ const ExamsPrep = () => {
                             <span className={styles.breadcrumb}>Study / Exam Prep</span>
                             <h1>Exam Simulation</h1>
                             <p style={{ color: 'var(--study-secondary)' }}>Train under pressure. Analyze your performance.</p>
+                            {(studentCurriculum.board || studentCurriculum.grade) && (
+                                <p style={{ margin: '0.7rem 0 0', fontSize: '0.82rem', color: 'var(--study-secondary)' }}>
+                                    Learner context: {[studentCurriculum.board, studentCurriculum.grade && studentCurriculum.grade !== 'Other' ? `Grade ${studentCurriculum.grade}` : ''].filter(Boolean).join(' · ')}.
+                                    AI questions are practice material, not verified syllabus or official past-paper questions.
+                                </p>
+                            )}
                         </div>
                     </header>
 
@@ -153,7 +210,7 @@ const ExamsPrep = () => {
                                             {exam.duration} min • {exam.questions} Questions
                                         </div>
                                         <button onClick={() => startExam(exam)} style={startBtn}>
-                                            Begin Exam
+                                            Set up
                                         </button>
                                     </div>
                                 ))}
@@ -167,7 +224,7 @@ const ExamsPrep = () => {
                                     <div style={{ fontSize: '0.9rem', color: 'var(--study-secondary)', marginBottom: '1.5rem' }}>
                                         Paste study material or topics and let AI generate a customized test for you.
                                     </div>
-                                    <button onClick={() => setMode('config')} style={{...startBtn, background: '#8e24aa'}}>
+                                    <button onClick={() => { setRequestedExamLabel('AI Custom Mock Exam'); setMode('config'); }} style={{...startBtn, background: '#8e24aa'}}>
                                         Configure
                                     </button>
                                 </div>

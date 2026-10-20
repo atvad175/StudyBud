@@ -1,16 +1,26 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { AIContext } from './AIContextCore.js';
 import * as aiService from '../services/aiService';
 
-const AIContext = createContext();
+const EMPTY_CHAT_HISTORY = [];
+const MAX_CONTEXT_MESSAGES = 12;
+const MAX_STORED_CHAT_MESSAGES = 30;
 
-export const useAI = () => {
-    const context = useContext(AIContext);
-    if (!context) throw new Error('useAI must be used within AIProvider');
-    return context;
+const prepareChatHistory = (history, newMessage) => {
+    const updatedHistory = [...history, newMessage].slice(-MAX_STORED_CHAT_MESSAGES);
+    const requestHistory = updatedHistory.slice(-MAX_CONTEXT_MESSAGES);
+
+    // Gemini chat history must begin with a user message. This also guarantees
+    // the current user message is the final item sent to the server.
+    while (requestHistory.length && requestHistory[0].role !== 'user') {
+        requestHistory.shift();
+    }
+
+    return { updatedHistory, requestHistory };
 };
 
 export const AIProvider = ({ children }) => {
-    const [isAvailable, setIsAvailable] = useState(aiService.isAIAvailable());
+    const isAvailable = aiService.isAIAvailable();
     const [chatHistory, setChatHistory] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -68,14 +78,14 @@ export const AIProvider = ({ children }) => {
         // Get or create chat history for this session
         const history = chatHistory[sessionId] || [];
         const newMessage = { role: 'user', content: message };
-        const updatedHistory = [...history, newMessage];
+        const { updatedHistory, requestHistory } = prepareChatHistory(history, newMessage);
 
         try {
-            const response = await aiService.chat(updatedHistory, context);
+            const response = await aiService.chat(requestHistory, context);
             const assistantMessage = { role: 'assistant', content: response };
 
-            // Update chat history
-            const finalHistory = [...updatedHistory, assistantMessage];
+            // Keep bounded UI history, but send only the supported recent context.
+            const finalHistory = [...updatedHistory, assistantMessage].slice(-MAX_STORED_CHAT_MESSAGES);
             setChatHistory(prev => ({
                 ...prev,
                 [sessionId]: finalHistory
@@ -97,13 +107,13 @@ export const AIProvider = ({ children }) => {
 
         const history = chatHistory[sessionId] || [];
         const newMessage = { role: 'user', content: message };
-        const updatedHistory = [...history, newMessage];
+        const { updatedHistory, requestHistory } = prepareChatHistory(history, newMessage);
 
         try {
-            const response = await aiService.chatStream(updatedHistory, context, onChunk);
+            const response = await aiService.chatStream(requestHistory, context, onChunk);
             const assistantMessage = { role: 'assistant', content: response };
 
-            const finalHistory = [...updatedHistory, assistantMessage];
+            const finalHistory = [...updatedHistory, assistantMessage].slice(-MAX_STORED_CHAT_MESSAGES);
             setChatHistory(prev => ({
                 ...prev,
                 [sessionId]: finalHistory
@@ -128,9 +138,9 @@ export const AIProvider = ({ children }) => {
     };
 
     // Get chat history for a session
-    const getChatHistory = (sessionId = 'default') => {
-        return chatHistory[sessionId] || [];
-    };
+    const getChatHistory = useCallback((sessionId = 'default') => {
+        return chatHistory[sessionId] || EMPTY_CHAT_HISTORY;
+    }, [chatHistory]);
 
     return (
         <AIContext.Provider value={{

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useHabits } from '../../../context/HabitsContext';
+import { useHabits } from '../../../context/useHabits';
 import { ArrowLeft, Check, Clock } from 'lucide-react';
 import styles from './AddAtom.module.css';
 

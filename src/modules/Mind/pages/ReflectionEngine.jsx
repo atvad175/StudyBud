@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import styles from '../MindShared.module.css';
 import { Feather, Sun, Moon, CheckCircle } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const ReflectionEngine = () => {
     const { addLog } = useMind();
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
     const [mode, setMode] = useState('daily'); // daily, weekly
     const [answers, setAnswers] = useState({});
     const [submitted, setSubmitted] = useState(false);
@@ -22,14 +25,24 @@ const ReflectionEngine = () => {
         { id: 'identity', label: "What story are you telling yourself about your ability?" },
     ];
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        addLog({
-            type: 'reflection',
-            content: { mode, answers },
-            tags: [mode]
-        });
-        setSubmitted(true);
+        if (isSaving) return;
+
+        setIsSaving(true);
+        try {
+            await addLog({
+                type: 'reflection',
+                content: { mode, answers },
+                tags: [mode]
+            });
+            setSubmitted(true);
+            toast.success('Reflection saved privately.');
+        } catch (error) {
+            toast.error(error?.message || 'Your reflection could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     if (submitted) {
@@ -92,8 +105,8 @@ const ReflectionEngine = () => {
                         </div>
                     ))}
 
-                    <button type="submit" className={styles.sendBtn} style={{ width: '100%', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                        Log Reflection
+                    <button type="submit" disabled={isSaving} className={styles.sendBtn} style={{ width: '100%', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', opacity: isSaving ? 0.7 : 1 }}>
+                        {isSaving ? 'Saving privately…' : 'Log Reflection'}
                     </button>
                 </form>
             </div>

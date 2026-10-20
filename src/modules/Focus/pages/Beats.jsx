@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Music2, ChevronRight, Headphones, Waves, Play, Pause } from 'lucide-react';
-import { useMusic } from '../../../context/MusicContext';
+import { useMusic } from '../../../context/useMusic';
 
 const SPOTIFY_PLAYLISTS = [
     {
@@ -66,7 +66,7 @@ const SPOTIFY_PLAYLISTS = [
 ];
 
 const Beats = () => {
-    const { activePlaylist, isPlaying, togglePlay } = useMusic();
+    const { activePlaylist, togglePlay } = useMusic();
     const [hovered, setHovered] = useState(null);
 
     return (

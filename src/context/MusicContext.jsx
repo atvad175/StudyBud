@@ -1,12 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-
-const MusicContext = createContext();
-
-export const useMusic = () => {
-    const context = useContext(MusicContext);
-    if (!context) throw new Error('useMusic must be used within a MusicProvider');
-    return context;
-};
+import React, { useState } from 'react';
+import { MusicContext } from './MusicContextCore.js';
 
 export const MusicProvider = ({ children }) => {
     const [activePlaylist, setActivePlaylist] = useState(null);

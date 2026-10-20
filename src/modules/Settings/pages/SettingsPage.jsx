@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { User, Palette, Shield, HardDrive, Download, AlertTriangle } from 'lucide-react';
 import styles from './SettingsPage.module.css';
+import { supabase } from '../../../supabaseClient';
+import { useToast } from '../../../context/useToast';
 
 const SettingsPage = () => {
     // Section 1: Profile
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [nameChanged, setNameChanged] = useState(false);
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [avatarUrl, setAvatarUrl] = useState('');
 
     // Section 2: Appearance
@@ -17,9 +20,12 @@ const SettingsPage = () => {
     // Section 3: Account
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+    const { toast } = useToast();
 
     // Section 4: Data
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [isClearingData, setIsClearingData] = useState(false);
     const [clearText, setClearText] = useState('');
 
     useEffect(() => {
@@ -41,20 +47,101 @@ const SettingsPage = () => {
                 // Default 15%
                 document.documentElement.style.setProperty('--night-light-intensity', 0.15);
             }
-        } catch(e){}
+        } catch (error) { console.warn('Unable to load saved appearance settings:', error); }
     }, []);
 
-    const handleSaveProfile = () => {
-        localStorage.setItem('studybud_username', name);
-        localStorage.setItem('studybud_role', role);
-        localStorage.setItem('studybud_avatar', avatarUrl);
-        setNameChanged(false);
-        // Dispatch event or just let it be for next load
+    const handleSaveProfile = async () => {
+        const displayName = name.trim();
+        if (!displayName) {
+            toast.error('Enter a display name before saving.');
+            return;
+        }
+        if (!['School student', 'College student', 'Self-learner', 'Working professional'].includes(role)) {
+            toast.error('Choose a valid profile type before saving.');
+            return;
+        }
+        if (isSavingProfile) return;
+
+        setIsSavingProfile(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in again before saving profile changes.');
+
+            const profileUpdate = {
+                name: displayName,
+                role,
+                updated_at: new Date().toISOString(),
+            };
+            if (role !== 'School student') {
+                profileUpdate.board = '';
+                profileUpdate.grade = '';
+            }
+
+            const { data: savedProfile, error } = await supabase
+                .from('user_onboarding')
+                .update(profileUpdate)
+                .eq('user_id', user.id)
+                .select('user_id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!savedProfile) {
+                throw new Error('We could not find your saved setup. Please complete setup again, then retry.');
+            }
+
+            localStorage.setItem('studybud_username', displayName);
+            localStorage.setItem('studybud_role', role);
+            localStorage.setItem('studybud_avatar', avatarUrl);
+            if (role !== 'School student') {
+                localStorage.setItem('studybud_board', '');
+                localStorage.setItem('studybud_grade', '');
+            }
+
+            setName(displayName);
+            setNameChanged(false);
+            toast.success('Profile changes saved to your account.');
+            if (role !== 'School student') {
+                toast.info('Your curriculum filters were cleared because they only apply to school students.');
+            }
+        } catch (error) {
+            console.error('Unable to save profile changes:', error?.code || 'unknown');
+            toast.error(error?.message || 'Profile changes could not be saved. Please try again.');
+        } finally {
+            setIsSavingProfile(false);
+        }
     };
+
+    const handleUpdatePassword = async () => {
+        if (password.length < 8) {
+            toast.error('Choose a password with at least 8 characters.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.error('The passwords do not match.');
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+            setPassword('');
+            setConfirmPassword('');
+            toast.success('Password updated successfully.');
+        } catch (error) {
+            toast.error(error?.message || 'Unable to update your password. Please try again.');
+        } finally {
+            setIsUpdatingPassword(false);
+        }
+    };
+
 
     const handleAppearanceChange = (key, value) => {
         let settings = {};
-        try { settings = JSON.parse(localStorage.getItem('studybud_settings') || '{}'); } catch(e){}
+        try {
+            settings = JSON.parse(localStorage.getItem('studybud_settings') || '{}');
+        } catch (error) {
+            console.warn('Unable to read saved appearance settings:', error);
+        }
         
         if (key === 'warmMode') {
             setWarmMode(value);
@@ -88,7 +175,11 @@ const SettingsPage = () => {
         const data = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith('studybud_')) {
+            if (
+                key &&
+                key.startsWith('studybud_') &&
+                !/(password|secret|token|api[_-]?key|flashcards_backup_)/i.test(key)
+            ) {
                 data[key] = localStorage.getItem(key);
             }
         }
@@ -103,18 +194,29 @@ const SettingsPage = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleClearData = () => {
-        if (clearText !== 'DELETE') return;
-        
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('studybud_')) {
-                keysToRemove.push(key);
+    const handleClearData = async () => {
+        if (clearText !== 'CLEAR' || isClearingData) return;
+
+        setIsClearingData(true);
+        try {
+            // Sign out first so App-level account hydration cannot immediately restore
+            // the local cache before we navigate to the public landing page.
+            const { error } = await supabase.auth.signOut({ scope: 'local' });
+            if (error) throw error;
+
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('studybud_')) keysToRemove.push(key);
             }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            window.location.replace('/landing');
+        } catch (error) {
+            console.error('Unable to clear local StudyBud data:', error?.code || 'unknown');
+            toast.error('We could not sign you out and clear this browser data. Please try again.');
+        } finally {
+            setIsClearingData(false);
         }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-        window.location.href = '/landing'; // Hard reload to clear state and redirect correctly
     };
 
     const getInitials = (n) => {
@@ -202,9 +304,9 @@ const SettingsPage = () => {
                                     type="button"
                                     className={styles.btnGold}
                                     onClick={handleSaveProfile}
-                                    disabled={!nameChanged}
+                                    disabled={!nameChanged || isSavingProfile || !name.trim()}
                                 >
-                                    Save changes
+                                    {isSavingProfile ? 'Saving…' : 'Save changes'}
                                 </button>
                             </div>
                         </div>
@@ -347,9 +449,10 @@ const SettingsPage = () => {
                                 <button
                                     type="button"
                                     className={styles.btnDark}
-                                    disabled={!password || password !== confirmPassword}
+                                    disabled={isUpdatingPassword || !password || password !== confirmPassword}
+                                    onClick={handleUpdatePassword}
                                 >
-                                    Update password
+                                    {isUpdatingPassword ? 'Updating…' : 'Update password'}
                                 </button>
                             </div>
                         </div>
@@ -366,11 +469,11 @@ const SettingsPage = () => {
                         <div className={styles.dataCard}>
                             <div className={styles.rowText}>
                                 <strong>Export your data</strong>
-                                <span>Download a JSON backup of everything saved locally for StudyBud.</span>
+                                <span>Download a JSON backup of browser-stored StudyBud preferences and cached data. Cloud records are not included.</span>
                             </div>
                             <button type="button" className={styles.btnOutline} onClick={handleExport}>
                                 <Download size={16} strokeWidth={2} aria-hidden />
-                                Export my data
+                                Export local backup
                             </button>
                         </div>
 
@@ -381,7 +484,7 @@ const SettingsPage = () => {
                                     Danger zone
                                 </div>
                                 <p className={styles.dangerDesc}>
-                                    Permanently remove all local StudyBud data and return to the landing experience.
+                                    Clear cached StudyBud data from this browser and sign out. Saved account records in Supabase are not deleted and can sync back when you sign in again.
                                 </p>
                             </div>
 
@@ -391,25 +494,25 @@ const SettingsPage = () => {
                                     className={styles.btnDangerOutline}
                                     onClick={() => setShowClearConfirm(true)}
                                 >
-                                    Clear all data
+                                    Clear local cache
                                 </button>
                             ) : (
                                 <div className={styles.confirmRow}>
                                     <input
                                         type="text"
                                         className={styles.confirmInput}
-                                        placeholder="Type DELETE"
+                                        placeholder="Type CLEAR"
                                         value={clearText}
-                                        onChange={(e) => setClearText(e.target.value)}
-                                        aria-label="Type DELETE to confirm"
+                                        onChange={(e) => setClearText(e.target.value.toUpperCase())}
+                                        aria-label="Type CLEAR to confirm local cache reset"
                                     />
                                     <button
                                         type="button"
                                         className={styles.btnDangerFill}
                                         onClick={handleClearData}
-                                        disabled={clearText !== 'DELETE'}
+                                        disabled={clearText !== 'CLEAR' || isClearingData}
                                     >
-                                        Confirm
+                                        {isClearingData ? 'Clearing…' : 'Clear local cache'}
                                     </button>
                                     <button
                                         type="button"

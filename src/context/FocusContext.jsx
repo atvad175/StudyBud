@@ -1,15 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FocusContext } from './FocusContextCore.js';
 import { supabase } from '../supabaseClient';
-
-const FocusContext = createContext();
-
-export const useFocus = () => {
-    const context = useContext(FocusContext);
-    if (!context) {
-        throw new Error('useFocus must be used within a FocusProvider');
-    }
-    return context;
-};
 
 export const FocusProvider = ({ children }) => {
     const [isActive, setIsActive] = useState(false);
@@ -20,78 +11,123 @@ export const FocusProvider = ({ children }) => {
     const [category, setCategory] = useState('Deep Work');
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [saveError, setSaveError] = useState('');
 
     const timerRef = useRef(null);
 
-    // Fetch session history
+    // Fetch only the signed-in user's focus history. RLS is still enforced in Postgres.
     useEffect(() => {
+        let active = true;
+
         const fetchSessions = async () => {
-            const { data } = await supabase
-                .from('focus_sessions')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(50);
-            if (data) setSessions(data);
-            setLoading(false);
+            setLoadError('');
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw authError;
+                if (!user) {
+                    if (active) setSessions([]);
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('focus_sessions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+                if (error) throw error;
+                if (active) setSessions(data || []);
+            } catch (error) {
+                console.error('Unable to load focus history:', error);
+                if (active) {
+                    setSessions([]);
+                    setLoadError('Your saved focus history could not be loaded. You can still start a session; reload this page when your connection is stable.');
+                }
+            } finally {
+                if (active) setLoading(false);
+            }
         };
+
         fetchSessions();
+        return () => { active = false; };
     }, []);
 
-    // Timer Logic
-    useEffect(() => {
-        if (isActive && !isPaused) {
-            timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (mode === 'TIMER') {
-                        if (prev <= 1) {
-                            handleSessionComplete();
-                            return 0;
-                        }
-                        return prev - 1;
-                    } else {
-                        return prev + 1;
-                    }
-                });
-            }, 1000);
-        } else {
-            clearInterval(timerRef.current);
-        }
+    const saveSession = useCallback(async (actualDuration) => {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error('Sign in to save focus sessions.');
 
-        return () => clearInterval(timerRef.current);
-    }, [isActive, isPaused, mode]);
+        const sessionData = {
+            user_id: user.id,
+            category,
+            duration_seconds: actualDuration,
+            mode,
+        };
 
-    const handleSessionComplete = async () => {
+        const { data, error } = await supabase
+            .from('focus_sessions')
+            .insert([sessionData])
+            .select()
+            .single();
+
+        if (error) throw error;
+        setSessions(previous => [data, ...previous].slice(0, 50));
+        setLoadError('');
+        return data;
+    }, [category, mode]);
+
+    const handleSessionComplete = useCallback(async () => {
         clearInterval(timerRef.current);
         setIsActive(false);
         setIsPaused(true);
 
-        const finalDuration = mode === 'TIMER' ? duration : timeLeft;
-        await saveSession(finalDuration);
-
-        if (mode === 'TIMER') setTimeLeft(duration);
-        else setTimeLeft(0);
-    };
-
-    const saveSession = async (actualDuration) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const sessionData = {
-                user_id: user.id,
-                category,
-                duration_seconds: actualDuration,
-                mode
-            };
-
-            const { data, error } = await supabase
-                .from('focus_sessions')
-                .insert([sessionData])
-                .select();
-
-            if (data) setSessions(prev => [data[0], ...prev]);
+        try {
+            await saveSession(duration);
+            setSaveError('');
+        } catch (error) {
+            console.error('Unable to save completed focus session:', error);
+            setSaveError('Your focus timer finished, but the session could not be saved. Check your connection and try again.');
         }
-    };
+
+        setTimeLeft(duration);
+    }, [duration, saveSession]);
+
+    // Keep interval callbacks pure: the zero-time transition is handled separately,
+    // outside the React state updater.
+    useEffect(() => {
+        if (isActive && !isPaused) {
+            timerRef.current = window.setInterval(() => {
+                setTimeLeft(previous => mode === 'TIMER'
+                    ? Math.max(0, previous - 1)
+                    : previous + 1
+                );
+            }, 1000);
+        } else {
+            window.clearInterval(timerRef.current);
+        }
+
+        return () => window.clearInterval(timerRef.current);
+    }, [isActive, isPaused, mode]);
+
+    const completionStartedRef = useRef(false);
+    useEffect(() => {
+        if (!isActive || isPaused || mode !== 'TIMER' || timeLeft > 0) {
+            if (!isActive) completionStartedRef.current = false;
+            return undefined;
+        }
+        if (completionStartedRef.current) return undefined;
+
+        completionStartedRef.current = true;
+        const timeoutId = window.setTimeout(() => {
+            void handleSessionComplete();
+        }, 0);
+        return () => window.clearTimeout(timeoutId);
+    }, [isActive, isPaused, mode, timeLeft, handleSessionComplete]);
 
     const startSession = () => {
+        completionStartedRef.current = false;
+        setSaveError('');
         setIsActive(true);
         setIsPaused(false);
         if (mode === 'STOPWATCH') {
@@ -108,16 +144,28 @@ export const FocusProvider = ({ children }) => {
     };
 
     const stopSession = async () => {
+        setSaveError('');
         if (isActive) {
             const actualDuration = mode === 'TIMER' ? (duration - timeLeft) : timeLeft;
-            if (actualDuration > 10) { // Only save if more than 10 seconds
-                await saveSession(actualDuration);
+            if (actualDuration > 10) {
+                try {
+                    await saveSession(actualDuration);
+                } catch (error) {
+                    console.error('Unable to save stopped focus session:', error);
+                    setSaveError('This focus session could not be saved. Your progress may be lost if you leave this screen.');
+                    setIsActive(false);
+                    setIsPaused(true);
+                    if (mode === 'TIMER') setTimeLeft(duration);
+                    else setTimeLeft(0);
+                    return false;
+                }
             }
         }
         setIsActive(false);
         setIsPaused(true);
         if (mode === 'TIMER') setTimeLeft(duration);
         else setTimeLeft(0);
+        return true;
     };
 
     const updateDuration = (minutes) => {
@@ -150,7 +198,10 @@ export const FocusProvider = ({ children }) => {
                 stopSession,
                 formatTime,
                 sessions,
-                loading
+                loading,
+                loadError,
+                saveError,
+                clearSaveError: () => setSaveError('')
             }}
         >
             {children}

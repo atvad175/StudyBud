@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import styles from '../MindShared.module.css';
 import { Star, Heart, PenTool, Calendar, Award, BookOpen } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const GrowthEngine = () => {
     const { addWin, wins = [] } = useMind();
+    const { toast } = useToast();
+    const [savingType, setSavingType] = useState(null);
     const [activeTab, setActiveTab] = useState('wins'); // wins, gratitude, journal
 
     // Local state for forms
@@ -12,25 +15,55 @@ const GrowthEngine = () => {
     const [gratitudeInput, setGratitudeInput] = useState('');
     const [journalInput, setJournalInput] = useState('');
 
-    const handleWinSubmit = (e) => {
+    const handleWinSubmit = async (e) => {
         e.preventDefault();
-        if (!winInput.trim()) return;
-        addWin({ type: 'win', content: winInput, date: new Date().toISOString() });
-        setWinInput('');
+        const content = winInput.trim();
+        if (!content || savingType) return;
+
+        setSavingType('win');
+        try {
+            await addWin({ type: 'win', content, date: new Date().toISOString() });
+            setWinInput('');
+            toast.success('Win saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Your win could not be saved. Please try again.');
+        } finally {
+            setSavingType(null);
+        }
     };
 
-    const handleGratitudeSubmit = (e) => {
+    const handleGratitudeSubmit = async (e) => {
         e.preventDefault();
-        if (!gratitudeInput.trim()) return;
-        addWin({ type: 'gratitude', content: gratitudeInput, date: new Date().toISOString() });
-        setGratitudeInput('');
+        const content = gratitudeInput.trim();
+        if (!content || savingType) return;
+
+        setSavingType('gratitude');
+        try {
+            await addWin({ type: 'gratitude', content, date: new Date().toISOString() });
+            setGratitudeInput('');
+            toast.success('Gratitude entry saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Your entry could not be saved. Please try again.');
+        } finally {
+            setSavingType(null);
+        }
     };
 
-    const handleJournalSubmit = (e) => {
+    const handleJournalSubmit = async (e) => {
         e.preventDefault();
-        if (!journalInput.trim()) return;
-        addWin({ type: 'journal', content: journalInput, date: new Date().toISOString() });
-        setJournalInput('');
+        const content = journalInput.trim();
+        if (!content || savingType) return;
+
+        setSavingType('journal');
+        try {
+            await addWin({ type: 'journal', content, date: new Date().toISOString() });
+            setJournalInput('');
+            toast.success('Journal entry saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Your journal entry could not be saved. Please try again.');
+        } finally {
+            setSavingType(null);
+        }
     };
 
     const filterEntries = (type) => wins.filter(w => w.type === type);
@@ -108,7 +141,7 @@ const GrowthEngine = () => {
                                         onChange={e => setWinInput(e.target.value)}
                                         style={textInput}
                                     />
-                                    <button type="submit" style={submitBtn}>Log Win</button>
+                                    <button type="submit" disabled={Boolean(savingType) || !winInput.trim()} style={{ ...submitBtn, opacity: savingType || !winInput.trim() ? 0.65 : 1 }}>{savingType === 'win' ? 'Saving…' : 'Log Win'}</button>
                                 </div>
                             </form>
                             <div style={feed}>
@@ -137,7 +170,7 @@ const GrowthEngine = () => {
                                         onChange={e => setGratitudeInput(e.target.value)}
                                         style={textInput}
                                     />
-                                    <button type="submit" style={submitBtn}>Save</button>
+                                    <button type="submit" disabled={Boolean(savingType) || !gratitudeInput.trim()} style={{ ...submitBtn, opacity: savingType || !gratitudeInput.trim() ? 0.65 : 1 }}>{savingType === 'gratitude' ? 'Saving…' : 'Save'}</button>
                                 </div>
                             </form>
                             <div style={feed}>
@@ -164,7 +197,7 @@ const GrowthEngine = () => {
                                     onChange={e => setJournalInput(e.target.value)}
                                     style={textArea}
                                 />
-                                <button type="submit" style={{ ...submitBtn, alignSelf: 'flex-end', marginTop: '1rem', width: 'auto', padding: '0.8rem 2rem' }}>Save Entry</button>
+                                <button type="submit" disabled={Boolean(savingType) || !journalInput.trim()} style={{ ...submitBtn, alignSelf: 'flex-end', marginTop: '1rem', width: 'auto', padding: '0.8rem 2rem', opacity: savingType || !journalInput.trim() ? 0.65 : 1 }}>{savingType === 'journal' ? 'Saving…' : 'Save Entry'}</button>
                             </form>
                             <div style={{ ...feed, flex: 1, borderTop: '1px solid #eee', paddingTop: '1.5rem' }}>
                                 <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', color: '#444' }}>Previous Entries</h3>

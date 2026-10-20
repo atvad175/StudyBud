@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFocus } from '../../../context/FocusContext';
+import { useFocus } from '../../../context/useFocus';
 import { Minimize2, Maximize, X, Moon, Cloud, Sun, Clock } from 'lucide-react';
 import styles from './FocusSession.module.css';
 
@@ -14,7 +14,9 @@ const FocusSession = () => {
         stopSession,
         pauseSession,
         resumeSession,
-        formatTime
+        formatTime,
+        saveError,
+        clearSaveError
     } = useFocus();
 
     const [weather] = useState({ temp: 22, condition: 'Clear' });
@@ -59,7 +61,7 @@ const FocusSession = () => {
                     const style = document.createElement('style');
                     style.textContent = cssRules;
                     pipWindow.document.head.appendChild(style);
-                } catch (e) {
+                } catch {
                     // Cross-origin styles might fail
                 }
             });
@@ -109,11 +111,30 @@ const FocusSession = () => {
                     <button onClick={togglePiP} className={styles.iconBtn} title="Mini Player">
                         <Minimize2 size={24} />
                     </button>
-                    <button onClick={() => { stopSession(); navigate('/focus'); }} className={styles.iconBtn} title="Exit">
+                    <button onClick={async () => {
+                        const saved = await stopSession();
+                        if (saved) navigate('/focus');
+                    }} className={styles.iconBtn} title="Exit">
                         <X size={24} />
                     </button>
                 </div>
             </div>
+
+            {saveError && (
+                <div role="alert" aria-live="polite" style={{ margin: '1rem auto 0', maxWidth: '680px', padding: '1rem 1.25rem', borderRadius: '14px', background: '#fff4e5', color: '#7a4200', textAlign: 'center' }}>
+                    <p>{saveError}</p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            clearSaveError();
+                            navigate('/focus');
+                        }}
+                        style={{ marginTop: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
+                    >
+                        Exit without saving this session
+                    </button>
+                </div>
+            )}
 
             {/* Main Center */}
             <div className={styles.centerStage}>

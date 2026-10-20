@@ -1,19 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import styles from '../StudyShared.module.css';
 import { BookOpen, Lightbulb, FileText, Target, TrendingUp, Clock, Zap } from 'lucide-react';
-import { useStudy } from '../../../context/StudyContext';
-import { getStudyRecommendation, calculateStudyStreak } from '../studyUtils';
+import { useStudy } from '../../../context/useStudy';
+import { getStudyRecommendation } from '../studyUtils';
 
 const StudyDashboard = () => {
-    const { techniques, assignments, practiceLogs, boards } = useStudy();
-    const [recommendation, setRecommendation] = useState(null);
-    const [selectedBoard, setSelectedBoard] = useState(null);
-
-    useEffect(() => {
-        const rec = getStudyRecommendation();
-        setRecommendation(rec);
-    }, []);
+    const { techniques, assignments, practiceLogs } = useStudy();
+    const [recommendation] = useState(() => getStudyRecommendation());
 
     const activeAssignments = assignments.filter(a => a.status !== 'completed').length;
     const completedSteps = assignments.reduce((acc, a) =>

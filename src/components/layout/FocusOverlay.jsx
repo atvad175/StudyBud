@@ -1,22 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Play, Pause, X, Music, Timer, ChevronUp, ChevronDown, Minimize2, Maximize2, Headphones } from 'lucide-react';
-import { useFocus } from '../../context/FocusContext';
-import { useMusic } from '../../context/MusicContext';
+import { useFocus } from '../../context/useFocus';
+import { useMusic } from '../../context/useMusic';
 
 const FocusOverlay = () => {
     const { isActive, timeLeft, formatTime, isPaused, resumeSession, pauseSession, stopSession, category } = useFocus();
     const { activePlaylist, isPlaying, togglePlay, stopMusic } = useMusic();
     const [isMinimized, setIsMinimized] = useState(false);
-    const [isVisible, setIsVisible] = useState(false);
-
-    // Show overlay when something is active
-    useEffect(() => {
-        if (isActive || activePlaylist) {
-            setIsVisible(true);
-        } else {
-            setIsVisible(false);
-        }
-    }, [isActive, activePlaylist]);
+    const isVisible = isActive || Boolean(activePlaylist);
 
     if (!isVisible) return null;
 

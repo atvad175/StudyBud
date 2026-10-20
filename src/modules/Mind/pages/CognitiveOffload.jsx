@@ -1,19 +1,32 @@
 import React, { useState } from 'react';
 import styles from '../MindShared.module.css';
 import { Archive, Trash2, Box, ArrowRight } from 'lucide-react';
-import { useMind } from '../../../context/MindContext';
+import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const BUCKETS = ['Worry', 'Conflict', 'Conversation', 'Regret'];
 
 const CognitiveOffload = () => {
-    const { offloadItems = [], addOffloadItem, deleteOffloadItem } = useMind(); // Default to empty array
+    const { offloadItems = [], addOffloadItem, deleteOffloadItem } = useMind();
+    const { toast } = useToast();
     const [newItem, setNewItem] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleOffload = (e) => {
+    const handleOffload = async (e) => {
         e.preventDefault();
-        if (!newItem.trim()) return;
-        addOffloadItem({ content: newItem, bucket_category: 'Inbox' });
-        setNewItem('');
+        const content = newItem.trim();
+        if (!content || isSaving) return;
+
+        setIsSaving(true);
+        try {
+            await addOffloadItem({ content, bucket_category: 'Inbox' });
+            setNewItem('');
+            toast.success('Thought saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Your thought could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -45,8 +58,8 @@ const CognitiveOffload = () => {
                             onChange={e => setNewItem(e.target.value)}
                             style={{ width: '100%', marginBottom: '1.5rem', border: '1px solid #eee', borderRadius: '16px' }}
                         />
-                        <button type="submit" className={styles.sendBtn} style={{ width: '100%', borderRadius: '16px', padding: '1rem', fontSize: '1.1rem', fontWeight: '600' }}>
-                            Dump Thought & Focus
+                        <button type="submit" disabled={isSaving || !newItem.trim()} className={styles.sendBtn} style={{ width: '100%', borderRadius: '16px', padding: '1rem', fontSize: '1.1rem', fontWeight: '600', opacity: isSaving || !newItem.trim() ? 0.65 : 1 }}>
+                            {isSaving ? 'Saving…' : 'Dump Thought & Focus'}
                         </button>
                     </form>
                 </div>

@@ -1,16 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-
-const StudyContext = createContext();
-
-export const useStudy = () => {
-    const context = useContext(StudyContext);
-    if (!context) throw new Error('useStudy must be used within a StudyProvider');
-    return context;
-};
+import { StudyContext } from './StudyContextCore.js';
 
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
 
     // State
     const [techniques, setTechniques] = useState([]);
@@ -19,9 +13,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'english_lang_lit', name: 'English (Lang & Lit)', icon: '📖', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Read literature texts multiple times: first for story, second for themes, third for literary devices. Practice grammar consistently.',
+                how_to_study: 'Read set texts in focused passes: first understand the plot, then annotate themes and character choices, then analyse language and structure. Practise grammar and writing using your current syllabus and mark scheme.',
                 common_traps: ['Summarizing the plot instead of analyzing it', 'Ignoring the historical context of the author'],
-                practice_tips: ['Memorize short, powerful quotes', 'Write character sketches for all major characters', 'Time yourself while practicing comprehension essays'],
+                practice_tips: ['Learn a small set of accurate, useful quotations and practise integrating them into analysis', 'Write character sketches for all major characters', 'Time yourself while practicing comprehension essays'],
                 before_exam: 'Ensure you have a clear structure for essays (Intro, Body, Conclusion). Review key themes and character arcs.',
                 when_stuck: 'Think about character motivation. Why did they say that? How does it reflect the theme?'
             }
@@ -31,7 +25,7 @@ export const StudyProvider = ({ children }) => {
             strategies: {
                 how_to_study: 'Do not ignore it until the end. Read regional newspapers or stories to naturally improve vocabulary and spelling.',
                 common_traps: ['Spelling and ' + 'matra' + ' errors', 'Translating English idioms literally'],
-                practice_tips: ['Write one page daily to build speed', 'Memorize common essay structures and letter formats'],
+                practice_tips: ['Build writing fluency through regular, manageable practice and feedback', 'Memorize common essay structures and letter formats'],
                 before_exam: 'Revise grammar rules strictly. Practice reading unseen passages fast.',
                 when_stuck: 'Break down complex words into root meanings or read sentences aloud to check grammatical flow.'
             }
@@ -39,9 +33,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'history_civics', name: 'History & Civics', icon: '🏛️', boards: ['ICSE', 'CBSE', 'ISC'],
             strategies: {
-                how_to_study: 'Learn History as cause-and-effect, not standalone dates. Civics requires precise constitutional terminology.',
+                how_to_study: 'Connect historical events through causes, consequences and change over time; use dates as anchors. In Civics, practise the precise constitutional terms required by your course.',
                 common_traps: ['Mixing up dates and kings', 'Vague answers in Civics instead of constitutional terms'],
-                practice_tips: ['Create timelines for every era', 'Write answers in bullet points with heavy keywords'],
+                practice_tips: ['Create timelines for every era', 'Practise clear, well-organised answers using the structure and key terms expected by your mark scheme'],
                 before_exam: 'Review major turning points. For Civics, ensure you know powers and functions exactly as per constitution.',
                 when_stuck: 'Ask: Who stood to gain from this? Follow the money or political power.'
             }
@@ -49,10 +43,10 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'geography', name: 'Geography', icon: '🌍', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB'],
             strategies: {
-                how_to_study: 'Master map pointing and topography. It secures 30% of your marks free. Use mnemonics for soil, climate and agriculture.',
+                how_to_study: 'Practise the map and topographic skills required by your course. Mark allocations vary by board, level and exam, so check your current syllabus; use diagrams, maps and mnemonics when they help you recall patterns.',
                 common_traps: ['Not coloring maps with correct standard colors', 'Confusing topography grid references'],
-                practice_tips: ['Practice one topo map per week', 'Link climate patterns to agricultural crops geographically'],
-                before_exam: 'Sharpen your color pencils for map work. Review specific definitions (e.g. what is a ' + 'wadi' + '?).',
+                practice_tips: ['Practise map or topographic questions regularly, then review accuracy against a worked answer or mark scheme', 'Link climate patterns to agricultural crops geographically'],
+                before_exam: 'Review the map symbols, definitions and practical skills listed in your current syllabus, and prepare the tools your exam rules permit.',
                 when_stuck: 'Draw it out. Even if it is a rough sketch of wind movements, it brings clarity.'
             }
         },
@@ -61,29 +55,29 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'math', name: 'Mathematics', icon: '📐', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Math is a language of logic. You learn it by doing. Solve at least 15 problems every single day.',
+                how_to_study: 'Math develops through active problem-solving. Use a manageable mix of questions, then review errors and retry unfamiliar steps; adjust practice to the time and topics you have.',
                 common_traps: ['Skipping steps in calculation', 'Memorizing formulas without understanding derivation'],
-                practice_tips: ['Solve past year papers under timed conditions', 'Maintain a separate notebook exclusively for formulas and mistakes'],
+                practice_tips: ['Use past papers or specimen questions that match your course, and practise some under timed conditions as the exam approaches', 'Maintain a separate notebook exclusively for formulas and mistakes'],
                 before_exam: 'Review your mistake log. Focus on memorizing key identities and ensuring your calculator/geometry tools are ready.',
-                when_stuck: 'Break the problem down. What is given? What is needed? If stuck > 10 mins, look at the solution, understand the missed step, and hide it and solve again.'
+                when_stuck: 'List what is given and what you need to find. If stuck, identify the step you cannot justify, study a worked example, then cover it and try again; ask for help if the gap remains.'
             }
         },
         {
             id: 'physics', name: 'Physics', icon: '⚛️', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Understand the "Why" before the "How". Visualize the concept—whether it is a force, a circuit, or a wave—before you touch the math.',
+                how_to_study: 'Understand the physical idea, sketch the situation where useful, then connect it to equations and units. Practise explaining what each quantity represents before calculating.',
                 common_traps: ['Mixing up vector and scalar quantities', 'Forgetting to convert units to SI', 'Confusing acceleration with velocity'],
                 practice_tips: ['Draw free-body diagrams for every force problem', 'Link theories to real-world examples'],
-                before_exam: 'Ensure you know all definitions verbatim. Review ray diagrams, circuit symbols, and standard values (e.g. g = 9.8).',
+                before_exam: 'Review required definitions, diagrams, circuit symbols and constants from your current course. Use the value and units specified in a question or by your syllabus.',
                 when_stuck: 'Go back to fundamental laws. Does Newton’s second law apply? Is energy conserved?'
             }
         },
         {
             id: 'chemistry', name: 'Chemistry', icon: '🧪', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Chemistry bridges Physics and Biology. Understand the Periodic Table thoroughly—it maps everything else.',
+                how_to_study: 'Use the Periodic Table to understand patterns in elements, while practising reactions, structures and calculations as separate skills.',
                 common_traps: ['Balancing equations incorrectly', 'Forgetting states of matter (s, l, g, aq) in equations'],
-                practice_tips: ['Write and balance 5 equations every day', 'Perform "mental labs"—visualize color changes and precipitates'],
+                practice_tips: ['Practise balancing equations in short, regular sets and check atom counts on both sides', 'Perform "mental labs"—visualize color changes and precipitates'],
                 before_exam: 'Review organic functional groups and periodic trends. Memorize tests for specific gases and ions.',
                 when_stuck: 'Check the electrons. Chemistry is essentially just the study of how electrons move and share space.'
             }
@@ -91,19 +85,19 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'biology', name: 'Biology', icon: '🧬', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Heavy on terminology and processes. Diagrams are your primary tool—if you can draw and fully label it, you know it.',
+                how_to_study: 'Biology requires clear terms, processes and functions. Use diagrams to support learning, then test yourself by explaining the process without looking at the labels.',
                 common_traps: ['Using vague descriptions instead of biological terms', 'Poorly labeled diagrams', 'Ignoring the function of a part'],
                 practice_tips: ['Create mnemonics for long lists or human body sequences', 'Practice drawing neat, proportioned diagrams'],
-                before_exam: 'Go through ALL diagrams in your textbook. Ensure spelling for scientific names is flawless.',
+                before_exam: 'Prioritise diagrams and terms listed in your syllabus and mark scheme. Practise clear labels and accurate scientific spelling.',
                 when_stuck: 'Think macro. How does this microscopic process help the overall survival of the organism?'
             }
         },
         {
             id: 'economics', name: 'Economics', icon: '📈', boards: ['ICSE', 'CBSE', 'IGCSE', 'IB', 'ISC'],
             strategies: {
-                how_to_study: 'Focus immensely on graphs and principles (like Demand & Supply). Linking chapters makes answering macro questions easier.',
+                how_to_study: 'Practise interpreting graphs and core principles such as demand and supply. Link concepts across chapters when the question calls for it.',
                 common_traps: ['Drawing graphs without labelling axes correctly', 'Confusing shifts along the curve vs shifts of the curve'],
-                practice_tips: ['Practice defining terms exactly as in the textbook', 'Read financial news and connect it to syllabus concepts'],
+                practice_tips: ['Practise concise definitions using the terminology your course and mark scheme expect', 'Use a familiar real-world example to apply a concept, while keeping answers aligned with the question and syllabus'],
                 before_exam: 'Check all graphs. Revise the exact definitions and assumptions for main economic laws.',
                 when_stuck: 'Ask yourself: Does this behavior make sense for a normal consumer trying to maximize utility?'
             }
@@ -133,9 +127,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'physical_education', name: 'Physical Education', icon: '🏃‍♂️', boards: ['ICSE', 'CBSE', 'ISC'],
             strategies: {
-                how_to_study: 'Learn the exact rules and dimensions of your chosen sports. Understand the biology of sports injuries and first aid.',
-                common_traps: ['Providing vague measurements (e.g. "around 5 meters" instead of "4.57m")', 'Using slang terms for official sports rules'],
-                practice_tips: ['Draw and label the field/court with exact dimensions', 'Memorize specific tournament names and recent cup winners'],
+                how_to_study: 'Learn the rules, court dimensions and safety concepts specified for your chosen sport and course. Verify measurements against an authoritative course resource, as events can differ.',
+                common_traps: ['Giving approximate measurements when an exact value is required by the course or question', 'Using slang terms for official sports rules'],
+                practice_tips: ['Draw and label the field/court with exact dimensions', 'Revise the competitions, rules and examples explicitly included in your current syllabus'],
                 before_exam: 'Revise court diagram dimensions. Go over standard injury protocols (RICE).',
                 when_stuck: 'Put yourself in the umpire/referee’s shoes. What rule maintains fairness in this scenario?'
             }
@@ -143,9 +137,9 @@ export const StudyProvider = ({ children }) => {
         {
             id: 'art', name: 'Art', icon: '🎨', boards: ['ICSE', 'IGCSE', 'IB'],
             strategies: {
-                how_to_study: 'Practice building muscle memory. Understand light, perspective, and color theory mathematically.',
+                how_to_study: 'Develop technique through manageable repeated practice, observation and feedback; use perspective, light and colour theory to explain your choices.',
                 common_traps: ['Overworking the paper until it tears', 'Ignoring light sourcing when shading', 'Drawing the symbol of an eye instead of looking at the reference'],
-                practice_tips: ['Do quick 5-minute sketches daily to capture proportions', 'Always map out proportions before adding any dark shading'],
+                practice_tips: ['Try short observational sketches when useful, then compare proportions, shapes and light with the reference', 'Check proportions and light direction before adding stronger shading; adapt the order to your medium and subject'],
                 before_exam: 'Gather and organize your materials perfectly. Practice doing a full piece within the strict exam time limit.',
                 when_stuck: 'Squint your eyes. It removes details and lets you see the core values of light and dark.'
             }
@@ -154,7 +148,7 @@ export const StudyProvider = ({ children }) => {
     const [assignments, setAssignments] = useState([]);
     const [practiceLogs, setPracticeLogs] = useState([]);
     const [reviews, setReviews] = useState([]);
-    const [boards, setBoards] = useState([
+    const [boards] = useState([
         {
             id: 'igcse',
             name: 'IGCSE',
@@ -170,7 +164,7 @@ export const StudyProvider = ({ children }) => {
                 },
                 {
                     title: 'Linear Preparation',
-                    content: 'Since assessments are at the end of the course, regular spaced repetition is vital. Don\'t leave revision for the last month; keep reviewing old topics every week.'
+                    content: 'Check the assessment structure for your subject and syllabus code. Many courses use end-of-course exams, but components and options vary; use spaced review throughout the course instead of leaving everything until the end.'
                 },
                 {
                     title: 'Practical Skills',
@@ -185,11 +179,11 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'Comprehensive Coverage',
-                    content: 'The ICSE syllabus is very detailed. You need to have a thorough understanding of every chapter. Don\'t skip sections, as questions can come from any corner of the textbook.'
+                    content: 'Use the current syllabus and prescribed texts to prioritise coverage. Keep a chapter checklist and practise recalling key ideas, then compare your answers with the relevant mark scheme.'
                 },
                 {
                     title: 'Internal Assessments & Projects',
-                    content: 'Internal marks (20%) are crucial. Ensure your project work is high quality and submitted on time. These marks provide a strong foundation for your final percentage.'
+                    content: 'Internal assessments and projects can contribute to results in some subjects. Check the current subject requirements and weightings, and plan backwards from the actual deadlines.'
                 },
                 {
                     title: 'English Language & Literature',
@@ -207,16 +201,16 @@ export const StudyProvider = ({ children }) => {
             desc: 'Central Board of Secondary Education',
             strategies: [
                 {
-                    title: 'NCERT is King',
-                    content: 'For CBSE, the NCERT textbook is your bible. Almost every question in the board exams is based on or directly from NCERT. Read every line, including the examples and exercise questions.'
+                    title: 'Start with prescribed resources',
+                    content: 'NCERT is a core resource for many CBSE subjects, but requirements vary by subject and year. Start with the current prescribed material, then use the syllabus, exemplar/sample papers and official guidance to identify what to practise.'
                 },
                 {
                     title: 'Step-wise Marking',
-                    content: 'CBSE follows strict step-wise marking. Even if your final answer is wrong, you can get most of the marks if your steps are correct. Always show your working clearly, especially in Math and Physics.'
+                    content: 'For calculation-based answers, show clear working and units. Method marks depend on the question and official marking scheme, so treat worked steps as a way to communicate your reasoning—not a guarantee of marks.'
                 },
                 {
                     title: 'Previous Year Papers',
-                    content: 'CBSE often repeats question patterns. Solving the last 10 years of board papers is the most effective way to understand what examiners are looking for.'
+                    content: 'Use current sample papers and relevant past papers to understand formats, practise timing and identify gaps. Patterns can change when syllabi or assessment designs change, so do not rely on repeated questions.'
                 },
                 {
                     title: 'Presentation Matters',
@@ -231,19 +225,19 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'Conceptual Understanding',
-                    content: 'IB is all about "Big Ideas". Don\'t just learn facts; understand how they connect across subjects. Focus on the TOK (Theory of Knowledge) aspect of every topic.'
+                    content: 'IB courses often reward conceptual understanding and connections. Link ideas when it helps answer the task, and use Theory of Knowledge connections when they are relevant to your programme and subject.'
                 },
                 {
                     title: 'Internal Assessments (IA)',
-                    content: 'IAs are a huge part of your final grade. Start them early and treat them like mini-research papers. Choose topics you are genuinely interested in to make the process easier.'
+                    content: 'For IB Diploma Programme subjects with internal assessments, check the current task, criteria and weighting early. Break the work into research, drafting, feedback and final checks.'
                 },
                 {
                     title: 'Extended Essay (EE)',
-                    content: 'The EE is your chance to dive deep into a subject. It requires independent research and academic writing skills. Use your librarian and supervisor effectively.'
+                    content: 'For students completing the IB Diploma Programme Extended Essay, agree on a focused research question and use your supervisor, library resources and the official criteria to guide the process.'
                 },
                 {
                     title: 'CAS Balance',
-                    content: 'Creativity, Activity, Service (CAS) is mandatory. Don\'t treat it as a chore; use it to balance your academic stress and develop as a well-rounded person.'
+                    content: 'For IB Diploma Programme students completing CAS, follow the current programme requirements and reflect honestly on learning and contribution. Other IB year groups may have different requirements.'
                 }
             ]
         },
@@ -254,7 +248,7 @@ export const StudyProvider = ({ children }) => {
             strategies: [
                 {
                     title: 'In-depth Analysis',
-                    content: 'ISC requires a deeper level of analysis compared to ICSE. In Literature, focus on critical interpretations. In Science, understand the derivations and complex numericals.'
+                    content: 'In ISC courses, practise the depth of explanation and application required by the relevant subject syllabus. For Literature, support interpretations with textual evidence; for Science, practise derivations and multi-step problems that appear in your course.'
                 },
                 {
                     title: 'Elective Subjects',
@@ -262,11 +256,11 @@ export const StudyProvider = ({ children }) => {
                 },
                 {
                     title: 'English Proficiency',
-                    content: 'Like ICSE, ISC maintains high standards for English. Practice advanced composition and comprehension to secure high marks in Paper 1.'
+                    content: 'For English, practise composition, comprehension and language skills using the current paper structure and marking guidance. Review feedback to find recurring issues rather than memorising fixed templates.'
                 },
                 {
                     title: 'Project Work',
-                    content: 'Practical and project marks are significant. Ensure your lab journals and project reports are meticulous and demonstrate a clear understanding of the subject matter.'
+                    content: 'Where practical work or projects are part of your course, check the current requirements and rubrics. Keep methods, observations, reasoning and sources clear and complete.'
                 }
             ]
         }
@@ -275,40 +269,96 @@ export const StudyProvider = ({ children }) => {
     // --- Actions ---
 
     const addAssignment = async (assignment) => {
-        const newAssignment = { ...assignment, id: Date.now(), created_at: new Date(), status: 'not_started' };
-        setAssignments(prev => [newAssignment, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save assignments.');
+
+        const tempId = Date.now();
+        const payload = { ...assignment, user_id: user.id, status: assignment.status || 'not_started' };
+        const optimisticAssignment = { ...payload, id: tempId, created_at: new Date() };
+        setAssignments(prev => [optimisticAssignment, ...prev]);
 
         try {
-            const { error } = await supabase.from('study_assignments').insert([assignment]);
+            const { data, error } = await supabase
+                .from('study_assignments')
+                .insert([payload])
+                .select()
+                .single();
             if (error) throw error;
-        } catch (e) { console.error("Error adding assignment:", e); }
+            setAssignments(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setAssignments(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error adding assignment:', error);
+            throw error;
+        }
     };
 
     const updateAssignment = async (id, updates) => {
-        setAssignments(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+        const previous = assignments.find(item => item.id === id);
+        const safeUpdates = { ...updates };
+        delete safeUpdates.id;
+        delete safeUpdates.user_id;
+        setAssignments(prev => prev.map(item => item.id === id ? { ...item, ...safeUpdates } : item));
+
         try {
-            await supabase.from('study_assignments').update(updates).eq('id', id);
-        } catch (e) { console.error(e); }
+            const { error } = await supabase
+                .from('study_assignments')
+                .update(safeUpdates)
+                .eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            if (previous) setAssignments(prev => prev.map(item => item.id === id ? previous : item));
+            console.error('Error updating assignment:', error);
+            throw error;
+        }
     };
 
     const logPractice = async (log) => {
-        setPracticeLogs(prev => [{ ...log, id: Date.now() }, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to save practice logs.');
+
+        const tempId = Date.now();
+        setPracticeLogs(prev => [{ ...log, user_id: user.id, id: tempId }, ...prev]);
         try {
-            await supabase.from('study_practice_logs').insert([log]);
-        } catch (e) { console.error(e); }
+            const { data, error } = await supabase
+                .from('study_practice_logs')
+                .insert([{ ...log, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            setPracticeLogs(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setPracticeLogs(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error saving practice log:', error);
+            throw error;
+        }
     };
 
     const scheduleReview = async (review) => {
-        setReviews(prev => [{ ...review, id: Date.now() }, ...prev]);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to schedule a review.');
+
+        const tempId = Date.now();
+        setReviews(prev => [{ ...review, user_id: user.id, id: tempId }, ...prev]);
         try {
-            await supabase.from('study_reviews').insert([review]);
-        } catch (e) { console.error(e); }
+            const { data, error } = await supabase
+                .from('study_reviews')
+                .insert([{ ...review, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            setReviews(prev => prev.map(item => item.id === tempId ? data : item));
+        } catch (error) {
+            setReviews(prev => prev.filter(item => item.id !== tempId));
+            console.error('Error scheduling review:', error);
+            throw error;
+        }
     };
 
     // Load Data
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
+            setLoadError('');
             try {
                 const results = await Promise.all([
                     supabase.from('study_techniques').select('*'),
@@ -318,21 +368,33 @@ export const StudyProvider = ({ children }) => {
                     supabase.from('study_reviews').select('*').order('next_review_date', { ascending: true })
                 ]);
 
+                const privateQueryFailed = results.slice(2).some(result => Boolean(result.error));
+                const publicQueryFailed = results.slice(0, 2).some(result => Boolean(result.error));
+
+                if (publicQueryFailed) {
+                    console.warn('Some public study-library content could not be loaded.');
+                }
+                if (privateQueryFailed) {
+                    console.warn('Some saved study records could not be loaded.');
+                    setLoadError('Some saved Study data could not be loaded. Your records have not been deleted; refresh to try again.');
+                }
+
                 if (results[0].data) setTechniques(results[0].data);
                 
-                // Merge fallback subjects with DB subjects or use fallback if DB empty
+                // Merge public DB metadata into the fallback subject list using the
+                // latest state value. This avoids a stale effect closure and a fetch loop.
                 const dbSubjects = results[1].data || [];
-                const mergedSubjects = subjects.map(fallback => {
+                setSubjects(currentSubjects => currentSubjects.map(fallback => {
                     const dbMatch = dbSubjects.find(db => db.id === fallback.id || db.name === fallback.name);
                     return dbMatch ? { ...fallback, ...dbMatch } : fallback;
-                });
-                setSubjects(mergedSubjects);
+                }));
 
                 if (results[2].data) setAssignments(results[2].data);
                 if (results[3].data) setPracticeLogs(results[3].data);
                 if (results[4].data) setReviews(results[4].data);
-            } catch (e) {
-                console.error("Error fetching study data:", e);
+            } catch (error) {
+                console.error('Error fetching Study data:', error?.code || 'unknown');
+                setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
             } finally {
                 setLoading(false);
             }
@@ -348,6 +410,7 @@ export const StudyProvider = ({ children }) => {
             practiceLogs,
             reviews,
             boards,
+            loadError,
             addAssignment,
             updateAssignment,
             logPractice,

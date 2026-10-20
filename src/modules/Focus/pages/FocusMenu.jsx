@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFocus } from '../../../context/FocusContext';
+import { useFocus } from '../../../context/useFocus';
 import { Play, Clock, Timer, ChevronDown } from 'lucide-react';
 import styles from './FocusMenu.module.css';
 
