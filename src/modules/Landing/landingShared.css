@@ -194,11 +194,21 @@
 }
 
 @media (max-width: 900px) {
+    /*
+     * On tablet/mobile the navigation uses three rows. Keep it in document
+     * flow (sticky rather than fixed) so it reserves its real height and can
+     * never cover the hero headline or its CTAs.
+     */
     .landing-nav {
-        grid-template-columns: 1fr;
+        position: sticky;
+        top: 0;
+        grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto auto auto;
         justify-items: stretch;
-        padding: 1rem 1.25rem;
+        padding: 0.85rem 1.25rem;
+        background-color: rgba(5, 5, 5, 0.92);
+        backdrop-filter: blur(18px) saturate(1.35);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .landing-nav__left,
@@ -219,8 +229,19 @@
         flex-wrap: wrap;
     }
 
+    .landing-hero {
+        min-height: auto;
+        padding: clamp(2rem, 5vh, 3.5rem) 1.25rem 3rem;
+    }
+
     .hero-title {
         max-width: 100%;
+        font-size: clamp(2.35rem, 7.5vw, 4rem);
+        line-height: 1.08;
+    }
+
+    .hero-mockup {
+        margin-top: 3rem;
     }
 }
 
