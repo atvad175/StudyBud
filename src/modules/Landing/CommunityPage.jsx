@@ -5,8 +5,6 @@ import LandingLayout from './LandingLayout';
 
 const CommunityPage = () => {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
-    const [submitted, setSubmitted] = useState(false);
     const [dots, setDots] = useState(0);
 
     // Animated counting dots for the "building" effect
@@ -15,14 +13,6 @@ const CommunityPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleNotify = (e) => {
-        e.preventDefault();
-        if (email.trim()) {
-            const existing = JSON.parse(localStorage.getItem('studybud_notify_emails') || '[]');
-            localStorage.setItem('studybud_notify_emails', JSON.stringify([...existing, email.trim()]));
-            setSubmitted(true);
-        }
-    };
 
     const PANELS = [
         {
@@ -117,44 +107,38 @@ const CommunityPage = () => {
                     Community is our next big venture. We're building spaces where students can study together, share wins, and support each other. Watch this space.
                 </p>
 
-                {/* Email notify form */}
-                {!submitted ? (
-                    <form
-                        onSubmit={handleNotify}
-                        className="fade-in-up"
-                        style={{
-                            display: 'flex', gap: '0.75rem', maxWidth: 440,
-                            margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center',
-                            animationDelay: '0.5s',
-                        }}
-                    >
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            placeholder="your@email.com"
-                            required
-                            style={{
-                                flex: '1 1 240px', padding: '0.85rem 1.25rem',
-                                borderRadius: 100, border: '1px solid rgba(255,255,255,0.12)',
-                                background: 'rgba(255,255,255,0.06)', color: '#fff',
-                                fontSize: '0.95rem', outline: 'none', backdropFilter: 'blur(8px)',
-                            }}
-                        />
-                        <button type="submit" className="btn-primary" style={{ flexShrink: 0 }}>
-                            <Bell size={15} /> Notify me
-                        </button>
-                    </form>
-                ) : (
-                    <div className="fade-in-up" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                        padding: '0.85rem 1.75rem',
-                        background: 'rgba(39,201,63,0.1)', border: '1px solid rgba(39,201,63,0.3)',
-                        borderRadius: 100, color: '#27C93F', fontWeight: 600, fontSize: '0.95rem',
-                    }}>
-                        ✓ You're on the list! We'll let you know when community launches.
-                    </div>
-                )}
+                {/* Launch notifications are unavailable until a real notification service is connected. */}
+                <div
+                    className="fade-in-up"
+                    role="status"
+                    aria-live="polite"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        maxWidth: 560,
+                        margin: '0 auto 1.25rem',
+                        padding: '0.95rem 1.25rem',
+                        textAlign: 'left',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 18,
+                        animationDelay: '0.5s',
+                    }}
+                >
+                    <Bell size={18} color="#dda85d" style={{ flexShrink: 0 }} />
+                    <p style={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.55, margin: 0, fontSize: '0.92rem' }}>
+                        Launch notifications aren't open yet. We won't collect your email until we can actually send updates.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    className="btn-primary fade-in-up"
+                    onClick={() => navigate('/login', { state: { mode: 'signup' } })}
+                    style={{ animationDelay: '0.6s' }}
+                >
+                    Get started with StudyBud <ArrowRight size={14} style={{ display: 'inline', marginLeft: 4 }} />
+                </button>
             </section>
 
             {/* Feature cards */}
