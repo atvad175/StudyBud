@@ -25,7 +25,6 @@ export const summarizeFocusSessions = (sessions = [], now = new Date()) => {
     const weekStart = currentTime - (7 * DAY_IN_MS);
     const normalized = (Array.isArray(sessions) ? sessions : [])
         .map((session) => ({
-            session,
             createdAt: asDate(session?.created_at),
             durationSeconds: validDuration(session),
         }))
