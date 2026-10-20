@@ -76,6 +76,103 @@ const MainDashboard = () => {
                 <p className={styles.tagline}>Pick a section below to plan, focus, or study.</p>
             </div>
 
+            <style>{`
+                .studybudQuickStart {
+                    display: grid;
+                    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+                    align-items: center;
+                    gap: 2rem;
+                    padding: 2rem;
+                    border: 1px solid rgba(221, 168, 93, 0.25);
+                    border-radius: 28px;
+                    background: linear-gradient(135deg, rgba(221, 168, 93, 0.14), rgba(255,255,255,0.96));
+                    box-shadow: var(--shadow-soft);
+                }
+                .studybudQuickStartCopy { text-align: left; }
+                .studybudQuickStartEyebrow {
+                    margin: 0 0 0.75rem;
+                    color: var(--color-gold);
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                }
+                .studybudQuickStartCopy h2 {
+                    margin: 0 0 0.65rem;
+                    color: var(--color-soft-black);
+                    font-family: var(--font-serif);
+                    font-size: clamp(1.8rem, 3vw, 2.4rem);
+                    font-weight: 500;
+                    line-height: 1.15;
+                }
+                .studybudQuickStartCopy p:last-child {
+                    max-width: 28rem;
+                    margin: 0;
+                    color: var(--color-text-secondary);
+                    line-height: 1.6;
+                }
+                .studybudQuickStartActions { display: grid; gap: 0.8rem; min-width: 0; }
+                .studybudQuickStartAction {
+                    display: flex;
+                    align-items: center;
+                    box-sizing: border-box;
+                    gap: 1rem;
+                    width: 100%;
+                    min-height: 76px;
+                    padding: 1rem 1.1rem;
+                    border: 1px solid rgba(0,0,0,0.08);
+                    border-radius: 18px;
+                    text-decoration: none;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                .studybudQuickStartAction:hover { transform: translateY(-2px); box-shadow: var(--shadow-medium); }
+                .studybudQuickStartAction:focus-visible { outline: 3px solid var(--color-gold); outline-offset: 3px; }
+                .studybudQuickStartPrimary { background: var(--color-soft-black); color: #fff; }
+                .studybudQuickStartSecondary { background: #fff; color: var(--color-soft-black); }
+                .studybudQuickStartIcon {
+                    display: flex; align-items: center; justify-content: center;
+                    flex: 0 0 44px; width: 44px; height: 44px; border-radius: 14px;
+                    background: rgba(221,168,93,0.16); color: var(--color-gold);
+                }
+                .studybudQuickStartText { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 0.25rem; }
+                .studybudQuickStartText strong { color: inherit; font-size: 0.98rem; font-weight: 650; }
+                .studybudQuickStartText small { color: var(--color-text-secondary); font-size: 0.82rem; line-height: 1.4; }
+                .studybudQuickStartPrimary .studybudQuickStartText small { color: rgba(255,255,255,0.75); }
+                .studybudQuickStartAction > svg:last-child { flex-shrink: 0; }
+                @media (max-width: 768px) {
+                    .studybudQuickStart { grid-template-columns: minmax(0,1fr); padding: 1.25rem; gap: 1.25rem; }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .studybudQuickStartAction, .studybudQuickStartAction:hover { transition: none; transform: none; }
+                }
+            `}</style>
+
+            <section className="studybudQuickStart" aria-labelledby="studybud-quick-start-heading">
+                <div className="studybudQuickStartCopy">
+                    <p className="studybudQuickStartEyebrow">A good place to start</p>
+                    <h2 id="studybud-quick-start-heading">Start with one small win.</h2>
+                    <p>Pick one useful action. You can change course anytime.</p>
+                </div>
+                <div className="studybudQuickStartActions">
+                    <NavLink to="/focus/timer" className="studybudQuickStartAction studybudQuickStartPrimary">
+                        <span className="studybudQuickStartIcon" aria-hidden="true"><Clock size={22} /></span>
+                        <span className="studybudQuickStartText">
+                            <strong>Start a focus session</strong>
+                            <small>Choose one task and get going.</small>
+                        </span>
+                        <ArrowRight size={18} aria-hidden="true" />
+                    </NavLink>
+                    <NavLink to="/study" className="studybudQuickStartAction studybudQuickStartSecondary">
+                        <span className="studybudQuickStartIcon" aria-hidden="true"><BookOpen size={22} /></span>
+                        <span className="studybudQuickStartText">
+                            <strong>Open Study Hub</strong>
+                            <small>Revise, practise, or use flashcards.</small>
+                        </span>
+                        <ArrowRight size={18} aria-hidden="true" />
+                    </NavLink>
+                </div>
+            </section>
+
             <div className={styles.grid}>
                 {modules.map((m) => (
                     <NavLink to={m.path} key={m.name} className={styles.card}>
