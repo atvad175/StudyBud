@@ -165,7 +165,136 @@
     opacity: 0.6;
 }
 
+
+.quickStart {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    border: 1px solid rgba(221, 168, 93, 0.2);
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgba(221, 168, 93, 0.12), rgba(255, 255, 255, 0.94));
+    box-shadow: var(--shadow-soft);
+}
+
+.quickStartCopy {
+    text-align: left;
+}
+
+.quickStartEyebrow {
+    margin: 0 0 0.75rem;
+    color: var(--color-gold);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.quickStartCopy h2 {
+    margin: 0 0 0.65rem;
+    color: var(--color-soft-black);
+    font-family: var(--font-serif);
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    font-weight: 500;
+    line-height: 1.15;
+}
+
+.quickStartCopy > p:last-child {
+    max-width: 28rem;
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.quickStartActions {
+    display: grid;
+    gap: 0.8rem;
+    min-width: 0;
+}
+
+.quickStartAction {
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    gap: 1rem;
+    width: 100%;
+    min-height: 76px;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quickStartAction:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.quickStartAction:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 3px;
+}
+
+.primaryAction {
+    background: var(--color-soft-black);
+    border-color: var(--color-soft-black);
+    color: white;
+}
+
+.secondaryAction {
+    background: white;
+    color: var(--color-soft-black);
+}
+
+.quickStartIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(221, 168, 93, 0.16);
+    color: var(--color-gold);
+}
+
+.quickStartActionText {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.25rem;
+}
+
+.quickStartActionText strong {
+    color: inherit;
+    font-size: 0.98rem;
+    font-weight: 650;
+}
+
+.quickStartActionText small {
+    color: var(--color-text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.primaryAction .quickStartActionText small {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.quickStartAction > svg:last-child {
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
+    .quickStart {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 1.25rem;
+        gap: 1.25rem;
+    }
+
     .centerpiece {
         font-size: 4rem;
     }
