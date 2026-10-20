@@ -42,7 +42,7 @@ export const FocusProvider = ({ children }) => {
                 console.error('Unable to load focus history:', error);
                 if (active) {
                     setSessions([]);
-                    setLoadError('Your saved focus history could not be loaded. You can still start a session; try again when your connection is stable.');
+                    setLoadError('Your saved focus history could not be loaded. You can still start a session; reload this page when your connection is stable.');
                 }
             } finally {
                 if (active) setLoading(false);
