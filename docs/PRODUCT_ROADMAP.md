@@ -63,6 +63,7 @@ Security, authentication and reliable saving take priority over new features.
 - [x] Validate operation types and input sizes, validate generated exam structure, and add a best-effort per-user rate limit.
 - [x] Use the shared authenticated AI endpoint for the main chat and Bud Companion; apply context/persona instructions consistently.
 - [x] Validate structured exam output and bound input sizes; prevent remote chat history from being overwritten after failed reads.
+- [x] Add deterministic tests for AI model fallback on quota, overload, unavailable-model, and transient network errors; avoid retrying invalid requests or credential failures.
 - [ ] Migrate the legacy `@google/generative-ai` SDK to Google's maintained `@google/genai` SDK ([issue #8](https://github.com/atvad175/StudyBud/issues/8)).
 - [ ] Build an action-oriented Bud plan flow with explicit student approval before task creation or other write actions ([issue #9](https://github.com/atvad175/StudyBud/issues/9)).
 - [ ] Replace the per-instance in-memory limiter with shared server-side rate limiting and add usage monitoring/timeouts before public launch.
@@ -88,6 +89,7 @@ Security, authentication and reliable saving take priority over new features.
 - [x] Full-repository `npm run lint` passes with zero errors and warnings; it is a blocking CI step.
 - [x] `npm run build` succeeds in GitHub Actions.
 - [x] The compiled browser bundle passes the Gemini-key/SDK marker scan.
+- [x] AI fallback classification has built-in Node test coverage.
 - [ ] Browser flow tests and RLS access tests are added.
 - [ ] SQL migrations are exercised against a separate test database.
 
