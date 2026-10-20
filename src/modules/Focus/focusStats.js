@@ -31,7 +31,9 @@ export const summarizeFocusSessions = (sessions = [], now = new Date()) => {
         }))
         .filter((entry) => entry.createdAt);
 
-    const today = normalized.filter(({ createdAt }) => isSameLocalDay(createdAt, now));
+    const today = normalized.filter(({ createdAt }) =>
+        createdAt.getTime() <= currentTime && isSameLocalDay(createdAt, now)
+    );
     const lastSevenDays = normalized.filter(({ createdAt }) => {
         const timestamp = createdAt.getTime();
         return timestamp >= weekStart && timestamp <= currentTime;
