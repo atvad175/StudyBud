@@ -282,11 +282,13 @@ const LandingPage = () => {
                         Who is StudyBud for?
                     </h2>
                     <p style={{ marginBottom: '1rem', color: 'rgba(255,255,255,0.85)', lineHeight: 1.7 }}>
-                        StudyBud is for the dreamers and the beginners who are ready to take their first steps toward an extraordinary life. If you've ever felt overwhelmed or stuck, this is your clean, quiet space to organize your goals, build better habits, and finally focus on what truly matters to you.
+                        StudyBud is for students and lifelong learners who want a calmer way to plan their work,
+                        practise what they learn, and build routines that last. Start with one task, use the tools
+                        that help, and grow your system as you go.
                     </p>
                     <p style={{ margin: 0, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7 }}>
-                        We take privacy seriously: your space is yours. You can also try the app locally without
-                        signing in, then connect Google or Microsoft when you want your profile saved in the cloud.
+                        Create an account to save your profile and study progress across sessions. StudyBud
+                        currently uses email-and-password sign-in; Google and Microsoft sign-in are not available yet.
                     </p>
                 </div>
             </section>
