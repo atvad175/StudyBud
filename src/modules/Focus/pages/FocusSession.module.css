@@ -229,3 +229,93 @@
     gap: 8px;
     font-size: 1.1rem;
 }
+
+.pipSupportMessage {
+    width: min(680px, 100%);
+    box-sizing: border-box;
+    margin: 1rem auto 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(221, 168, 93, 0.35);
+    border-radius: 14px;
+    background: rgba(221, 168, 93, 0.1);
+    color: #f5d6a1;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+    .standbyContainer {
+        padding: 1.5rem;
+    }
+
+    .mainTimer {
+        font-size: clamp(5rem, 23vw, 10rem);
+    }
+
+    .widgetsRow {
+        flex-wrap: wrap;
+        gap: 1rem 2rem;
+        padding-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .standbyContainer {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .categoryBadge {
+        max-width: 58%;
+        overflow-wrap: anywhere;
+        font-size: 0.72rem;
+        padding: 0.55rem 0.8rem;
+    }
+
+    .controls {
+        gap: 0.35rem;
+    }
+
+    .iconBtn {
+        padding: 0.45rem;
+    }
+
+    .mainTimer {
+        font-size: clamp(4rem, 19vw, 6rem);
+        letter-spacing: -0.04em;
+    }
+
+    .statusText {
+        font-size: 0.75rem;
+        letter-spacing: 0.16em;
+    }
+
+    .toggleBtn {
+        margin-top: 1.25rem;
+        padding: 0.75rem 1.75rem;
+    }
+
+    .widgetsRow {
+        font-size: 0.8rem;
+    }
+
+    .widget {
+        font-size: 0.85rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .standbyContainer {
+        animation: none;
+    }
+
+    .iconBtn,
+    .toggleBtn,
+    .widget {
+        transition: none;
+    }
+
+    .toggleBtn:hover {
+        transform: none;
+    }
+}
