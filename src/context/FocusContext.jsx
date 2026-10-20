@@ -11,6 +11,7 @@ export const FocusProvider = ({ children }) => {
     const [category, setCategory] = useState('Deep Work');
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [saveError, setSaveError] = useState('');
 
     const timerRef = useRef(null);
@@ -20,6 +21,7 @@ export const FocusProvider = ({ children }) => {
         let active = true;
 
         const fetchSessions = async () => {
+            setLoadError('');
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw authError;
@@ -38,7 +40,10 @@ export const FocusProvider = ({ children }) => {
                 if (active) setSessions(data || []);
             } catch (error) {
                 console.error('Unable to load focus history:', error);
-                if (active) setSessions([]);
+                if (active) {
+                    setSessions([]);
+                    setLoadError('Your saved focus history could not be loaded. You can still start a session; try again when your connection is stable.');
+                }
             } finally {
                 if (active) setLoading(false);
             }
@@ -67,7 +72,8 @@ export const FocusProvider = ({ children }) => {
             .single();
 
         if (error) throw error;
-        setSessions(previous => [data, ...previous]);
+        setSessions(previous => [data, ...previous].slice(0, 50));
+        setLoadError('');
         return data;
     }, [category, mode]);
 
@@ -193,6 +199,7 @@ export const FocusProvider = ({ children }) => {
                 formatTime,
                 sessions,
                 loading,
+                loadError,
                 saveError,
                 clearSaveError: () => setSaveError('')
             }}
