@@ -272,3 +272,75 @@
         transform: none;
     }
 }
+
+
+.pendingSessionBanner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 1.5rem;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid #e8c28d;
+    border-radius: 18px;
+    background: #fff4e5;
+    color: #7a4200;
+}
+
+.pendingSessionBanner strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    line-height: 1.4;
+}
+
+.pendingSessionBanner p {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.pendingSessionActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.pendingSessionActions button {
+    min-height: 40px;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #7a4200;
+    border-radius: 999px;
+    background: #7a4200;
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.pendingSessionActions button + button {
+    background: transparent;
+    color: #7a4200;
+}
+
+.pendingSessionActions button:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 3px;
+}
+
+.pendingSessionActions button:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+@media (max-width: 620px) {
+    .pendingSessionBanner {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .pendingSessionActions {
+        justify-content: flex-start;
+    }
+}
