@@ -260,3 +260,29 @@
         gap: 2rem;
     }
 }
+
+.dailyPulse { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--color-border); border-radius: 28px; background: #fff; box-shadow: var(--shadow-soft); }
+.dailyPulseHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.35rem; }
+.dailyPulseEyebrow { display: block; margin-bottom: 0.6rem; color: #a06d2c; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; }
+.dailyPulseHeader h2 { margin: 0 0 0.45rem; color: var(--color-soft-black); font-family: var(--font-serif); font-weight: 500; font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.2; }
+.dailyPulseHeader p { margin: 0; max-width: 43rem; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.55; }
+.dailyPulseDate { padding: 0.5rem 0.75rem; border-radius: 999px; background: #f5f1e9; color: #7a684e; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+.dailyPulseGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7rem; }
+.pulseMetric { display: flex; align-items: flex-start; gap: 0.65rem; min-width: 0; padding: 0.9rem 0.75rem; border: 1px solid #eee9e1; border-radius: 16px; background: #fcfbf8; }
+.pulseMetricIcon { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 10px; background: rgba(221,168,93,0.15); color: #9f6b2b; }
+.pulseMetric > div { min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.pulseMetric strong { color: var(--color-soft-black); font-size: 1.35rem; line-height: 1.15; overflow-wrap: anywhere; }
+.pulseMetric strong small { color: var(--color-text-secondary); font-size: 0.75rem; }
+.pulseMetric > div > span { color: var(--color-text-secondary); font-size: 0.71rem; line-height: 1.35; }
+.dailyPulseNext { display: flex; align-items: center; gap: 0.85rem; margin-top: 1rem; padding: 1rem; border-radius: 18px; background: #28241f; color: #fff; }
+.dailyPulseNextIcon { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 13px; background: rgba(221,168,93,0.18); color: #e7bd7b; }
+.dailyPulseNextCopy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.dailyPulseNextCopy > span { color: #e5bd7b; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em; }
+.dailyPulseNextCopy strong { font-size: 0.95rem; line-height: 1.4; }
+.dailyPulseNextCopy p { margin: 0; color: rgba(255,255,255,0.68); font-size: 0.78rem; line-height: 1.5; }
+.dailyPulseNextLink { display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0; color: #28241f; background: #f0d4a6; text-decoration: none; border-radius: 999px; padding: 0.65rem 0.85rem; font-weight: 750; font-size: 0.8rem; }
+.dailyPulseNextLink:focus-visible { outline: 3px solid #e5bd7b; outline-offset: 3px; }
+.dailyPulseFootnote { margin: 0.75rem 0 0; color: var(--color-text-secondary); font-size: 0.72rem; line-height: 1.5; }
+@media (max-width: 960px) { .dailyPulseGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .dailyPulseGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dailyPulseNext { align-items: flex-start; flex-wrap: wrap; } .dailyPulseNextCopy { flex-basis: calc(100% - 60px); } .dailyPulseNextLink { margin-left: 3.2rem; } }
+@media (prefers-reduced-motion: reduce) { .container { animation: none; } .card, .quickStartAction, .dailyPulseNextLink { transition: none; } .card:hover, .quickStartAction:hover { transform: none; } }

@@ -128,10 +128,31 @@ const UnifiedStudy = () => {
         [boards, selectedBoard]
     );
 
-    const dueReviewCount = reviews.filter(review => {
-        if (!review.next_review_date) return false;
-        return new Date(review.next_review_date).getTime() <= Date.now();
-    }).length;
+    const dueReviewItems = useMemo(() => reviews
+        .filter(review => {
+            if (!review?.next_review_date) return false;
+            const timestamp = new Date(review.next_review_date).getTime();
+            return Number.isFinite(timestamp) && timestamp <= Date.now();
+        })
+        .sort((a, b) => new Date(a.next_review_date) - new Date(b.next_review_date)), [reviews]);
+
+    const dueReviewCount = dueReviewItems.length;
+    const openAssignments = useMemo(() => assignments
+        .filter(assignment => String(assignment?.status || '').toLowerCase() !== 'completed')
+        .sort((a, b) => {
+            const dateFor = assignment => {
+                const raw = assignment?.due_date || assignment?.due_at || assignment?.deadline;
+                const parsed = raw ? Date.parse(raw) : NaN;
+                return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+            };
+            return dateFor(a) - dateFor(b);
+        }), [assignments]);
+
+    const overdueAssignments = openAssignments.filter(assignment => {
+        const raw = assignment?.due_date || assignment?.due_at || assignment?.deadline;
+        const parsed = raw ? new Date(raw) : null;
+        return parsed && !Number.isNaN(parsed.getTime()) && parsed.getTime() < new Date().setHours(0, 0, 0, 0);
+    });
 
     const greetingBoard = selectedBoard === 'all' ? '' : selectedBoard;
     const formatCount = (count, singular, plural = `${singular}s`) =>
@@ -234,8 +255,8 @@ const UnifiedStudy = () => {
             <section className={styles.hubStats} aria-label="Your study overview">
                 <div className={styles.hubStat}>
                     <span className={styles.hubStatIcon}><ClipboardList size={17} aria-hidden="true" /></span>
-                    <span className={styles.hubStatValue}>{loading ? '—' : assignments.length}</span>
-                    <span className={styles.hubStatLabel}>{formatCount(assignments.length, 'assignment')}</span>
+                    <span className={styles.hubStatValue}>{loading ? '—' : openAssignments.length}</span>
+                    <span className={styles.hubStatLabel}>{formatCount(openAssignments.length, 'open assignment')}</span>
                 </div>
                 <div className={styles.hubStat}>
                     <span className={styles.hubStatIcon}><Zap size={17} aria-hidden="true" /></span>
@@ -247,6 +268,63 @@ const UnifiedStudy = () => {
                     <span className={styles.hubStatValue}>{loading ? '—' : dueReviewCount}</span>
                     <span className={styles.hubStatLabel}>{formatCount(dueReviewCount, 'review due', 'reviews due')}</span>
                 </div>
+            </section>
+
+            <section className={styles.hubPriorityGrid} aria-label="What needs attention next">
+                <article className={styles.hubPriorityCard}>
+                    <div className={styles.hubPriorityTop}>
+                        <span className={styles.hubPriorityIcon}><CalendarClock size={19} aria-hidden="true" /></span>
+                        <span className={dueReviewCount ? styles.hubPriorityBadge : styles.hubPriorityBadgeQuiet}>
+                            {loading ? 'Loading' : dueReviewCount ? `${dueReviewCount} due` : 'Clear'}
+                        </span>
+                    </div>
+                    <h2>Review queue</h2>
+                    <p>
+                        {loading
+                            ? 'Loading your saved review dates…'
+                            : dueReviewCount
+                                ? `${dueReviewCount} scheduled review${dueReviewCount === 1 ? ' is' : 's are'} ready. Do a short recall pass before moving on.`
+                                : 'No saved reviews are due. Use a short practice session to keep older topics fresh.'}
+                    </p>
+                    {dueReviewItems[0] && (
+                        <div className={styles.hubPriorityDetail}>
+                            <strong>Next in queue</strong>
+                            <span>{dueReviewItems[0].title || dueReviewItems[0].topic || dueReviewItems[0].subject || 'Scheduled review'}</span>
+                        </div>
+                    )}
+                    <button type="button" className={styles.hubPriorityAction} onClick={() => navigate('/study/flashcards')}>
+                        Open flashcards <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                </article>
+
+                <article className={styles.hubPriorityCard}>
+                    <div className={styles.hubPriorityTop}>
+                        <span className={styles.hubPriorityIcon}><ClipboardList size={19} aria-hidden="true" /></span>
+                        <span className={overdueAssignments.length ? styles.hubPriorityBadge : styles.hubPriorityBadgeQuiet}>
+                            {loading ? 'Loading' : overdueAssignments.length ? `${overdueAssignments.length} overdue` : `${openAssignments.length} open`}
+                        </span>
+                    </div>
+                    <h2>Assignment runway</h2>
+                    <p>
+                        {loading
+                            ? 'Loading your assignments…'
+                            : openAssignments.length
+                                ? 'Start with the next deadline when one is recorded; otherwise pick the first open assignment.'
+                                : 'Your saved assignments are clear. Add the next piece of work before it becomes urgent.'}
+                    </p>
+                    {openAssignments[0] && (
+                        <div className={styles.hubPriorityDetail}>
+                            <strong>Suggested next</strong>
+                            <span>{openAssignments[0].title || openAssignments[0].name || 'Untitled assignment'}</span>
+                            {(openAssignments[0].due_date || openAssignments[0].due_at || openAssignments[0].deadline) && (
+                                <small>Due {new Date(openAssignments[0].due_date || openAssignments[0].due_at || openAssignments[0].deadline).toLocaleDateString()}</small>
+                            )}
+                        </div>
+                    )}
+                    <button type="button" className={styles.hubPriorityAction} onClick={() => navigate('/study/assignments')}>
+                        Plan assignment <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                </article>
             </section>
 
             <section className={styles.hubLibrarySection} aria-labelledby="study-library-title">

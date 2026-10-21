@@ -1325,3 +1325,21 @@
         font-size: 0.72rem;
     }
 }
+
+
+.hubPriorityGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0 2.5rem; }
+.hubPriorityCard { min-width: 0; padding: clamp(1.15rem, 3vw, 1.6rem); border: 1px solid var(--color-border); border-radius: 22px; background: linear-gradient(145deg, #fff, #fcfaf6); box-shadow: var(--shadow-soft); display: flex; flex-direction: column; align-items: flex-start; }
+.hubPriorityTop { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.hubPriorityIcon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; background: rgba(221,168,93,0.15); color: #9c6b30; }
+.hubPriorityBadge, .hubPriorityBadgeQuiet { display: inline-flex; border-radius: 999px; padding: 0.35rem 0.6rem; background: #fff0df; color: #86501a; font-size: 0.7rem; font-weight: 800; }
+.hubPriorityBadgeQuiet { background: #edf5ee; color: #376a45; }
+.hubPriorityCard h2 { margin: 1rem 0 0.45rem; font-family: var(--font-serif); font-size: 1.45rem; color: var(--color-soft-black); }
+.hubPriorityCard > p { min-height: 3rem; margin: 0 0 0.7rem; color: var(--color-text-secondary); font-size: 0.86rem; line-height: 1.6; }
+.hubPriorityDetail { width: 100%; display: flex; flex-direction: column; gap: 0.2rem; margin: 0.25rem 0 1rem; padding: 0.75rem 0.85rem; border-radius: 12px; background: #f5f1e9; box-sizing: border-box; }
+.hubPriorityDetail strong { color: #a06d2c; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.hubPriorityDetail span { color: var(--color-soft-black); font-size: 0.84rem; font-weight: 700; overflow-wrap: anywhere; }
+.hubPriorityDetail small { color: var(--color-text-secondary); font-size: 0.75rem; }
+.hubPriorityAction { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: auto; border: 1px solid #29251f; border-radius: 999px; padding: 0.65rem 0.9rem; background: #29251f; color: white; font-size: 0.8rem; font-weight: 750; cursor: pointer; }
+.hubPriorityAction:hover { background: #4b4134; }
+.hubPriorityAction:focus-visible { outline: 3px solid var(--color-gold); outline-offset: 3px; }
+@media (max-width: 680px) { .hubPriorityGrid { grid-template-columns: minmax(0, 1fr); } .hubPriorityCard > p { min-height: 0; } }

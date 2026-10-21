@@ -610,3 +610,11 @@
     color: #888;
     font-style: italic;
 }
+
+
+.draftStatus { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: -0.75rem 0 1.25rem; padding: 0.85rem 1rem; border: 1px solid #d7c5a5; border-radius: 12px; background: #fff9ed; color: #4b3922; }
+.draftStatus strong { display: block; margin-bottom: 0.2rem; font-size: 0.85rem; }
+.draftStatus p { margin: 0; color: #806d53; font-size: 0.75rem; line-height: 1.5; }
+.draftStatus button { flex-shrink: 0; border: 1px solid #d7c5a5; border-radius: 8px; padding: 0.55rem 0.75rem; background: #fff; color: #604d33; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.draftStatus button:focus-visible { outline: 3px solid #c9883a; outline-offset: 3px; }
+@media (max-width: 560px) { .draftStatus { align-items: flex-start; flex-direction: column; } }

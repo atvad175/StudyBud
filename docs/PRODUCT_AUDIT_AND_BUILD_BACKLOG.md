@@ -99,3 +99,15 @@ A feature is complete only when:
 - Do not apply broad database policy changes without table-specific owner policies and cross-account tests.
 - Before a wider school rollout, resolve the known Row Level Security gaps and test that two accounts cannot access one another's records.
 - Never claim performance, learning gains, successful signup, or feature completion without verification.
+
+
+## Batch 5 — Student workflow upgrades (2026-10-21)
+
+**Implemented in this batch:**
+- Focus analytics: selectable 7/30-day calendar trend, total minutes, sessions, active days, category breakdown, recent sessions, and CSV export of the latest saved history available to the UI (maximum 50 records). CSV text fields are escaped and formula-prefixed cells are neutralized before export.
+- Home dashboard daily pulse: saved Focus, review, Time task, habit, and open assignment counts plus a next-step link that responds to active session/review/task state.
+- Study Hub priorities: due review queue and next open assignment, including overdue counts when the record provides a due date.
+- Feynman Whiteboard recovery: debounced sessionStorage autosave, restores the topic/stage/explanations/feedback within the same tab, warns that it is not yet in account history, and prompts before discarding a saved draft.
+- Time dashboard: due-date/priority-aware top-task ordering, clear deadline labels, a one-click mark-done action with save feedback, and a useful empty queue state.
+
+**Verification still required after deployment:** run the full test suite and exercise these flows in a signed-in browser against real saved records, including account switching, storage-disabled browsers, failed task updates, and CSV opening in spreadsheet software. Focus analytics intentionally reflects only the latest 50 sessions loaded by the current context, not lifetime data.

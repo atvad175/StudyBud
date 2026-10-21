@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Layers, Brain, Clock, Activity, BookOpen, Sparkles, ArrowRight } from 'lucide-react';
+import { Layers, Brain, Clock, Activity, BookOpen, Sparkles, ArrowRight, CalendarClock, ListTodo, Flame } from 'lucide-react';
+import { useFocus } from '../../../context/useFocus';
+import { useStudy } from '../../../context/useStudy';
+import { useTime } from '../../../context/useTime';
+import { useHabits } from '../../../context/useHabits';
+import { summarizeFocusSessions } from '../../Focus/focusStats';
 import styles from './MainDashboard.module.css';
 
 const MainDashboard = () => {
@@ -12,6 +17,32 @@ const MainDashboard = () => {
     const [welcomeMsg] = useState(() =>
         localStorage.getItem('studybud_first_visit') === 'true' ? 'Welcome' : 'Welcome back'
     );
+
+    const { sessions: focusSessions = [], isActive, isPaused, timeLeft, formatTime, loading: focusLoading = false } = useFocus();
+    const { assignments = [], reviews = [], loading: studyLoading = false } = useStudy();
+    const { tasks = [], loading: timeLoading = false } = useTime();
+    const { atoms = [], getTodayLog, loading: habitsLoading = false } = useHabits();
+
+    const focusToday = summarizeFocusSessions(focusSessions);
+    const todayLogs = typeof getTodayLog === 'function' ? getTodayLog() : {};
+    const completedHabits = Object.values(todayLogs || {}).filter(log => log?.status === 'completed' || log?.completed).length;
+    const openAssignments = assignments.filter(item => String(item?.status || '').toLowerCase() !== 'completed');
+    const plannedTasks = tasks.filter(task => task?.status === 'Planned');
+    const dueReviewCount = reviews.filter(review => {
+        const reviewDate = review?.next_review_date ? new Date(review.next_review_date) : null;
+        return reviewDate && !Number.isNaN(reviewDate.getTime()) && reviewDate.getTime() <= Date.now();
+    }).length;
+    const overviewLoading = focusLoading || studyLoading || timeLoading || habitsLoading;
+
+    const nextAction = isActive
+        ? { label: 'Continue your active focus session', detail: `${isPaused ? 'Paused' : 'In progress'} · ${formatTime(timeLeft)} remaining`, path: '/focus/active', icon: Clock }
+        : dueReviewCount > 0
+            ? { label: `Review ${dueReviewCount} due topic${dueReviewCount === 1 ? '' : 's'}`, detail: 'Short retrieval practice beats leaving reviews to pile up.', path: '/study/flashcards', icon: CalendarClock }
+            : plannedTasks.length > 0
+                ? { label: 'Choose your next planned task', detail: `${plannedTasks.length} task${plannedTasks.length === 1 ? '' : 's'} in your Time queue.`, path: '/time/tasks', icon: ListTodo }
+                : openAssignments.length > 0
+                    ? { label: 'Break down your next assignment', detail: 'Turn the next piece of schoolwork into clear steps.', path: '/study/assignments', icon: BookOpen }
+                    : { label: 'Start a short revision session', detail: 'Choose a subject and practise retrieval.', path: '/study', icon: BookOpen };
 
     useEffect(() => {
         if (localStorage.getItem('studybud_first_visit') === 'true') {
@@ -99,6 +130,53 @@ const MainDashboard = () => {
                         <ArrowRight size={18} aria-hidden="true" />
                     </NavLink>
                 </div>
+            </section>
+
+            <section className={styles.dailyPulse} aria-labelledby="daily-pulse-title">
+                <div className={styles.dailyPulseHeader}>
+                    <div>
+                        <span className={styles.dailyPulseEyebrow}>YOUR DAY AT A GLANCE</span>
+                        <h2 id="daily-pulse-title">Make today feel manageable.</h2>
+                        <p>Your saved progress across Focus, Study, Time and Habits. Nothing here is a grade.</p>
+                    </div>
+                    <span className={styles.dailyPulseDate}>{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+                </div>
+
+                <div className={styles.dailyPulseGrid}>
+                    <div className={styles.pulseMetric}>
+                        <span className={styles.pulseMetricIcon}><Clock size={17} aria-hidden="true" /></span>
+                        <div><strong>{overviewLoading ? '—' : focusToday.minutesToday}<small>{overviewLoading ? '' : ' min'}</small></strong><span>Focus today</span></div>
+                    </div>
+                    <div className={styles.pulseMetric}>
+                        <span className={styles.pulseMetricIcon}><CalendarClock size={17} aria-hidden="true" /></span>
+                        <div><strong>{overviewLoading ? '—' : dueReviewCount}</strong><span>Reviews due</span></div>
+                    </div>
+                    <div className={styles.pulseMetric}>
+                        <span className={styles.pulseMetricIcon}><ListTodo size={17} aria-hidden="true" /></span>
+                        <div><strong>{overviewLoading ? '—' : plannedTasks.length}</strong><span>Planned tasks</span></div>
+                    </div>
+                    <div className={styles.pulseMetric}>
+                        <span className={styles.pulseMetricIcon}><Flame size={17} aria-hidden="true" /></span>
+                        <div><strong>{overviewLoading ? '—' : `${completedHabits}/${atoms.length}`}</strong><span>Habits completed</span></div>
+                    </div>
+                    <div className={styles.pulseMetric}>
+                        <span className={styles.pulseMetricIcon}><BookOpen size={17} aria-hidden="true" /></span>
+                        <div><strong>{overviewLoading ? '—' : openAssignments.length}</strong><span>Open assignments</span></div>
+                    </div>
+                </div>
+
+                <div className={styles.dailyPulseNext}>
+                    <div className={styles.dailyPulseNextIcon}><nextAction.icon size={22} aria-hidden="true" /></div>
+                    <div className={styles.dailyPulseNextCopy}>
+                        <span>RECOMMENDED NEXT STEP</span>
+                        <strong>{nextAction.label}</strong>
+                        <p>{overviewLoading ? 'Loading your saved overview…' : nextAction.detail}</p>
+                    </div>
+                    <NavLink to={nextAction.path} className={styles.dailyPulseNextLink} aria-label={nextAction.label}>
+                        Open <ArrowRight size={16} aria-hidden="true" />
+                    </NavLink>
+                </div>
+                <p className={styles.dailyPulseFootnote}>Overview uses saved records from this account. Focus totals reflect the latest 50 sessions available in history.</p>
             </section>
 
             <div className={styles.grid}>

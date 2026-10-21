@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Send, RotateCcw, ChevronDown, CheckCircle2, AlertTriangle, BookOpen, Sparkles, Target, TrendingUp, Brain, Lightbulb, ChevronRight } from 'lucide-react';
 import { chat } from '../../../services/aiService';
 import { useToast } from '../../../context/useToast';
@@ -42,20 +42,94 @@ const extractScore = (text) => {
     return match ? parseInt(match[1], 10) : null;
 };
 
+const FEYNMAN_DRAFT_KEY = 'studybud_feynman_draft_v1';
+
+const readFeynmanDraft = () => {
+    try {
+        const raw = window.sessionStorage.getItem(FEYNMAN_DRAFT_KEY);
+        if (!raw) return null;
+        const draft = JSON.parse(raw);
+        if (draft?.version !== 1 || ![1, 2, 3, 4].includes(draft.stage)) return null;
+        return {
+            stage: draft.stage,
+            topic: typeof draft.topic === 'string' ? draft.topic.slice(0, 180) : '',
+            difficulty: ['beginner', 'intermediate', 'advanced'].includes(draft.difficulty) ? draft.difficulty : 'intermediate',
+            explanation: typeof draft.explanation === 'string' ? draft.explanation.slice(0, 12000) : '',
+            critique: draft.critique && typeof draft.critique.text === 'string'
+                ? { original: String(draft.critique.original || '').slice(0, 12000), text: draft.critique.text.slice(0, 12000) }
+                : null,
+            refinedExplanation: typeof draft.refinedExplanation === 'string' ? draft.refinedExplanation.slice(0, 12000) : '',
+            masteryResult: typeof draft.masteryResult === 'string' ? draft.masteryResult.slice(0, 12000) : null,
+            masteryScore: Number.isInteger(draft.masteryScore) && draft.masteryScore >= 0 && draft.masteryScore <= 10 ? draft.masteryScore : null,
+            savedAt: typeof draft.savedAt === 'string' && !Number.isNaN(Date.parse(draft.savedAt)) ? draft.savedAt : null,
+        };
+    } catch {
+        return null;
+    }
+};
+
+const clearFeynmanDraft = () => {
+    try {
+        window.sessionStorage.removeItem(FEYNMAN_DRAFT_KEY);
+    } catch {
+        // Private browsing may block storage; the current form remains usable.
+    }
+};
+
 const FeynmanSandbox = () => {
     const { toast } = useToast();
     const { practiceLogs, logPractice } = useStudy();
-    const [stage, setStage] = useState(1);
-    const [topic, setTopic] = useState('');
-    const [difficulty, setDifficulty] = useState('intermediate');
-    const [explanation, setExplanation] = useState('');
-    const [critique, setCritique] = useState(null);
-    const [refinedExplanation, setRefinedExplanation] = useState('');
-    const [masteryResult, setMasteryResult] = useState(null);
-    const [masteryScore, setMasteryScore] = useState(null);
+    const [draftAtLoad] = useState(() => readFeynmanDraft());
+    const [stage, setStage] = useState(() => draftAtLoad?.stage ?? 1);
+    const [topic, setTopic] = useState(() => draftAtLoad?.topic ?? '');
+    const [difficulty, setDifficulty] = useState(() => draftAtLoad?.difficulty ?? 'intermediate');
+    const [explanation, setExplanation] = useState(() => draftAtLoad?.explanation ?? '');
+    const [critique, setCritique] = useState(() => draftAtLoad?.critique ?? null);
+    const [refinedExplanation, setRefinedExplanation] = useState(() => draftAtLoad?.refinedExplanation ?? '');
+    const [masteryResult, setMasteryResult] = useState(() => draftAtLoad?.masteryResult ?? null);
+    const [masteryScore, setMasteryScore] = useState(() => draftAtLoad?.masteryScore ?? null);
     const [isLoading, setIsLoading] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [hasLocalDraft, setHasLocalDraft] = useState(() => Boolean(draftAtLoad && (draftAtLoad.topic || draftAtLoad.explanation || draftAtLoad.refinedExplanation)));
+    const [draftSavedAt, setDraftSavedAt] = useState(() => draftAtLoad?.savedAt ?? null);
     const feedbackRef = useRef(null);
+
+    useEffect(() => {
+        const hasContent = Boolean(topic.trim() || explanation.trim() || refinedExplanation.trim() || critique || masteryResult);
+        if (!hasContent) {
+            clearFeynmanDraft();
+            setHasLocalDraft(false);
+            setDraftSavedAt(null);
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            const draft = {
+                version: 1,
+                stage,
+                topic: topic.slice(0, 180),
+                difficulty,
+                explanation: explanation.slice(0, 12000),
+                critique: critique ? {
+                    original: String(critique.original || '').slice(0, 12000),
+                    text: String(critique.text || '').slice(0, 12000),
+                } : null,
+                refinedExplanation: refinedExplanation.slice(0, 12000),
+                masteryResult: masteryResult ? String(masteryResult).slice(0, 12000) : null,
+                masteryScore,
+                savedAt: new Date().toISOString(),
+            };
+            try {
+                window.sessionStorage.setItem(FEYNMAN_DRAFT_KEY, JSON.stringify(draft));
+                setHasLocalDraft(true);
+                setDraftSavedAt(draft.savedAt);
+            } catch {
+                // The form stays usable if session storage is unavailable.
+            }
+        }, 350);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [topic, difficulty, explanation, refinedExplanation, stage, critique, masteryResult, masteryScore]);
 
     const wordCount = useMemo(
         () => explanation.trim().split(/\s+/).filter(Boolean).length,
@@ -87,7 +161,7 @@ const FeynmanSandbox = () => {
 
     const handleStage2Submit = async () => {
         if (!topic.trim()) return toast.error('Please give your concept a name before explaining it.');
-        if (explanation.trim().split(/\s+/).length < 30) return toast.error('Your explanation needs at least 30 words. Go deeper.');
+        if (wordCount < 30) return toast.error('Your explanation needs at least 30 words. Go deeper.');
 
         setIsLoading(true);
         try {
@@ -142,6 +216,9 @@ const FeynmanSandbox = () => {
                         : `Feynman mastery score: ${score}/10.`,
                     tags: ['feynman', difficulty],
                 });
+                clearFeynmanDraft();
+                setHasLocalDraft(false);
+                setDraftSavedAt(null);
                 toast.success('Feynman session saved to your Study history.');
             } catch (saveError) {
                 console.error('Unable to save Feynman session:', saveError?.code || 'unknown');
@@ -155,6 +232,10 @@ const FeynmanSandbox = () => {
     };
 
     const handleReset = () => {
+        if (hasLocalDraft && !window.confirm('Start a new topic and discard your saved Feynman draft from this tab?')) return;
+        clearFeynmanDraft();
+        setHasLocalDraft(false);
+        setDraftSavedAt(null);
         setStage(1);
         setTopic('');
         setExplanation('');
@@ -198,6 +279,16 @@ const FeynmanSandbox = () => {
                     )}
                 </div>
             </div>
+
+            {hasLocalDraft && (
+                <div className={feynStyles.draftStatus} role="status" aria-live="polite">
+                    <div>
+                        <strong>Draft saved in this tab</strong>
+                        <p>{draftSavedAt ? `Last saved ${new Date(draftSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Your topic and explanation can be restored if you reload this tab.'} · Not yet saved to your Study account.</p>
+                    </div>
+                    <button type="button" onClick={handleReset}>Discard draft</button>
+                </div>
+            )}
 
             {/* Stage Progress Bar */}
             <div className={feynStyles.stageBar}>

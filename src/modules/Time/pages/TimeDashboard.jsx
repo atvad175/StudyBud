@@ -1,11 +1,72 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Brain, Zap, BarChart2, TrendingUp, Clock, CheckCircle, Battery } from 'lucide-react';
+import { Brain, Zap, BarChart2, TrendingUp, Clock, CheckCircle, Battery, CalendarClock, CheckCircle2 } from 'lucide-react';
 import styles from '../TimeShared.module.css';
 import { useTime } from '../../../context/useTime';
+import { useToast } from '../../../context/useToast';
+
+const getTaskDueValue = (task) => {
+    const raw = task?.due_date || task?.due_at || task?.deadline;
+    if (!raw) return null;
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const [year, month, day] = raw.split('-').map(Number);
+        return new Date(year, month - 1, day, 23, 59, 59, 999);
+    }
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getTaskDeadlineLabel = (task, now = new Date()) => {
+    const due = getTaskDueValue(task);
+    if (!due) return 'No deadline set';
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const dueDay = new Date(due);
+    dueDay.setHours(0, 0, 0, 0);
+    const days = Math.round((dueDay.getTime() - today.getTime()) / 86400000);
+    if (days < 0) return 'Overdue by ' + Math.abs(days) + ' day' + (Math.abs(days) === 1 ? '' : 's');
+    if (days === 0) return 'Due today';
+    if (days === 1) return 'Due tomorrow';
+    return 'Due in ' + days + ' days';
+};
+
+const getTaskPriorityScore = (task, now = new Date()) => {
+    const due = getTaskDueValue(task);
+    let score = 0;
+    if (due) {
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+        const dueDay = new Date(due);
+        dueDay.setHours(0, 0, 0, 0);
+        const days = Math.round((dueDay.getTime() - today.getTime()) / 86400000);
+        score += days < 0 ? 100 : days === 0 ? 80 : days === 1 ? 65 : days <= 3 ? 45 : days <= 7 ? 25 : 5;
+    }
+    const priority = String(task?.priority || task?.importance || '').toLowerCase();
+    if (priority === 'urgent') score += 40;
+    else if (priority === 'high') score += 25;
+    else if (priority === 'medium') score += 10;
+    if (task?.difficulty === 'Hard') score += 6;
+    if (task?.emotional_friction === 'High') score += 2;
+    return score;
+};
 
 const TimeDashboard = () => {
-    const { tasks } = useTime();
+    const { tasks, updateTask } = useTime();
+    const { toast } = useToast();
+    const [savingTaskId, setSavingTaskId] = useState(null);
+
+    const markTaskDone = async (task) => {
+        if (savingTaskId !== null) return;
+        setSavingTaskId(task.id);
+        try {
+            await updateTask(task.id, { status: 'Executed' });
+            toast.success('Completed: ' + task.title);
+        } catch (error) {
+            toast.error(error?.message || 'Task could not be updated. Please try again.');
+        } finally {
+            setSavingTaskId(null);
+        }
+    };
 
     // Stats
     const planned = tasks.filter(t => t.status === 'Planned');
@@ -24,12 +85,15 @@ const TimeDashboard = () => {
     const frictionPercent = Math.min((currentFrictionLoad / referenceLoad) * 100, 100);
     const isHighPlannedFriction = frictionPercent > 80;
 
-    // --- Feature 5: Morning Briefing ---
-    // Recommend top 3 tasks based on "High Energy" match if available, or just top priority
+    // Rank with deadlines first, then explicitly stored priority and task difficulty.
     const higherDemandTasks = planned.filter(task =>
         task.energy_block === 'High' || task.difficulty === 'Hard'
     );
-    const topTasks = (higherDemandTasks.length ? higherDemandTasks : planned).slice(0, 3);
+    const recommendedPool = higherDemandTasks.length ? higherDemandTasks : planned;
+    const topTasks = [...recommendedPool]
+        .sort((a, b) => getTaskPriorityScore(b) - getTaskPriorityScore(a)
+            || (Number(b.time_estimate) || 0) - (Number(a.time_estimate) || 0))
+        .slice(0, 3);
 
     return (
         <div className={`${styles.container} ${styles.aliveBackground}`}>
@@ -109,17 +173,36 @@ const TimeDashboard = () => {
                     </p>
                     {topTasks.length > 0 ? (
                         <div style={{ display: 'grid', gap: '0.65rem', maxWidth: 760 }}>
-                            {topTasks.map((task, index) => (
-                                <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', padding: '0.8rem 0.95rem', borderRadius: '12px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-                                        <span style={{ display: 'inline-flex', width: 28, height: 28, flex: '0 0 28px', alignItems: 'center', justifyContent: 'center', borderRadius: '9px', background: 'rgba(255,255,255,0.12)', fontSize: '0.8rem', fontWeight: 750 }}>{index + 1}</span>
-                                        <span style={{ color: '#fff', fontWeight: 650, overflowWrap: 'anywhere' }}>{task.title}</span>
+                            {topTasks.map((task, index) => {
+                                const deadlineLabel = getTaskDeadlineLabel(task);
+                                const isOverdue = deadlineLabel.startsWith('Overdue');
+                                return (
+                                    <div key={task.id} className={styles.nextTaskRow}>
+                                        <div className={styles.nextTaskInfo}>
+                                            <span className={styles.nextTaskNumber}>{index + 1}</span>
+                                            <div className={styles.nextTaskCopy}>
+                                                <strong>{task.title}</strong>
+                                                <span>{task.time_estimate ? task.time_estimate + ' min' : 'Time not set'} · {task.difficulty || 'Difficulty not set'}</span>
+                                                <small className={isOverdue ? styles.overdueTask : styles.taskDeadline}><CalendarClock size={13} aria-hidden="true" /> {deadlineLabel}</small>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={styles.markTaskDone}
+                                            onClick={() => markTaskDone(task)}
+                                            disabled={savingTaskId !== null}
+                                            aria-label={'Mark ' + task.title + ' as done'}
+                                        >
+                                            <CheckCircle2 size={15} aria-hidden="true" />
+                                            {savingTaskId === task.id ? 'Saving…' : 'Done'}
+                                        </button>
                                     </div>
-                                    <span style={{ color: '#d8d4f5', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{task.time_estimate ? `${task.time_estimate} min` : 'Time not set'}</span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
-                    ) : null}
+                    ) : (
+                        <p className={styles.taskQueueEmpty}>No planned tasks in your queue. Add one to get a prioritized next step here.</p>
+                    )}
                     <NavLink to="tasks" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginTop: '1.2rem', padding: '0.7rem 0.95rem', borderRadius: '10px', background: '#f0edff', color: '#403783', textDecoration: 'none', fontWeight: 750, fontSize: '0.85rem' }}>
                         {topTasks.length ? 'Review task plan' : 'Create a task'} <TrendingUp size={15} />
                     </NavLink>
