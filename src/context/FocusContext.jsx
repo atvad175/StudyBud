@@ -51,6 +51,7 @@ export const FocusProvider = ({ children }) => {
     const [currentUserId, setCurrentUserId] = useState(null);
 
     const timerRef = useRef(null);
+    const activeOwnerUserIdRef = useRef(restoredRuntime?.ownerUserId ?? null);
     const deadlineRef = useRef(restoredRuntime?.deadlineAt ?? null);
     const stopwatchStartedAtRef = useRef(restoredRuntime?.stopwatchStartedAt ?? null);
     const stopwatchElapsedBaseRef = useRef(
@@ -86,6 +87,7 @@ export const FocusProvider = ({ children }) => {
                 if (error) throw error;
                 if (active) {
                     setCurrentUserId(user.id);
+                    if (!activeOwnerUserIdRef.current) activeOwnerUserIdRef.current = user.id;
                     setSessions(data || []);
                 }
             } catch (error) {
@@ -209,7 +211,7 @@ export const FocusProvider = ({ children }) => {
         mode: actualMode,
         reason,
         created_at: new Date().toISOString(),
-        owner_user_id: currentUserId,
+        owner_user_id: activeOwnerUserIdRef.current ?? currentUserId,
     }), [category, currentUserId, duration, mode]);
 
     const finishTimerSession = useCallback(async () => {
@@ -274,6 +276,12 @@ export const FocusProvider = ({ children }) => {
         };
     }, [finishTimerSession, isActive, isPaused, mode, timeLeft]);
 
+    useEffect(() => {
+        if (isActive && !activeOwnerUserIdRef.current && currentUserId) {
+            activeOwnerUserIdRef.current = currentUserId;
+        }
+    }, [currentUserId, isActive]);
+
     // Keep a recoverable copy of an in-progress session across reloads in this tab.
     useEffect(() => {
         if (!isActive) {
@@ -289,11 +297,12 @@ export const FocusProvider = ({ children }) => {
             duration,
             timeLeft,
             category,
+            ownerUserId: activeOwnerUserIdRef.current,
             deadlineAt: deadlineRef.current,
             stopwatchStartedAt: stopwatchStartedAtRef.current,
             stopwatchElapsedBase: stopwatchElapsedBaseRef.current,
         });
-    }, [category, duration, isActive, isPaused, mode, timeLeft]);
+    }, [category, currentUserId, duration, isActive, isPaused, mode, timeLeft]);
 
     const startSession = useCallback(() => {
         if (isActive) return false;
@@ -303,6 +312,7 @@ export const FocusProvider = ({ children }) => {
         }
 
         const startingTime = Date.now();
+        activeOwnerUserIdRef.current = currentUserId;
         completionStartedRef.current = false;
         setSaveError('');
         setCompleted(false);
@@ -328,12 +338,13 @@ export const FocusProvider = ({ children }) => {
             duration,
             timeLeft: mode === 'TIMER' ? duration : 0,
             category,
+            ownerUserId: activeOwnerUserIdRef.current,
             deadlineAt: deadlineRef.current,
             stopwatchStartedAt: stopwatchStartedAtRef.current,
             stopwatchElapsedBase: 0,
         });
         return true;
-    }, [category, duration, isActive, mode, pendingSession]);
+    }, [category, currentUserId, duration, isActive, mode, pendingSession]);
 
     const pauseSession = useCallback(() => {
         if (!isActive || isPaused) return;
