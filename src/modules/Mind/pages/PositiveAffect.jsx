@@ -5,7 +5,7 @@ import { useMind } from '../../../context/useMind';
 import { useToast } from '../../../context/useToast';
 
 const GrowthEngine = () => {
-    const { addWin, wins = [] } = useMind();
+    const { addWin, wins = [], loadError = '' } = useMind();
     const { toast } = useToast();
     const [savingType, setSavingType] = useState(null);
     const [activeTab, setActiveTab] = useState('wins'); // wins, gratitude, journal
@@ -81,6 +81,13 @@ const GrowthEngine = () => {
                     <span>{wins.length} Successes Logged</span>
                 </div>
             </header>
+
+            {loadError && (
+                <div role="alert" style={{ margin: '0 0 1.25rem', padding: '0.9rem 1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    {loadError}
+                    <button type="button" onClick={() => window.location.reload()} style={{ display: 'block', marginTop: '0.55rem', border: '1px solid #c99a7f', borderRadius: '7px', padding: '0.45rem 0.7rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry</button>
+                </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '2rem', height: 'calc(100vh - 200px)' }}>
                 {/* Sidebar Navigation */}

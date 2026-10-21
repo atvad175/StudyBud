@@ -2,6 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { TimeContext } from './TimeContextCore.js';
 import { supabase } from '../supabaseClient';
 
+const DEFAULT_TIME_SETTINGS = { chronotype: 'Bear', peakStart: 10, peakEnd: 14 };
+const VALID_CHRONOTYPES = ['Bear', 'Wolf', 'Lion', 'Dolphin'];
+
+const getTimeSettingsKey = () => {
+    try {
+        const userId = localStorage.getItem('studybud_active_user_id');
+        return userId ? 'studybud_time_settings_' + userId : null;
+    } catch {
+        return null;
+    }
+};
+
+const readInitialTimeSettings = () => {
+    try {
+        const key = getTimeSettingsKey();
+        const stored = key ? localStorage.getItem(key) : null;
+        if (!stored) return { ...DEFAULT_TIME_SETTINGS };
+        const parsed = JSON.parse(stored);
+        const chronotype = VALID_CHRONOTYPES.includes(parsed?.chronotype)
+            ? parsed.chronotype : DEFAULT_TIME_SETTINGS.chronotype;
+        const peakStart = Number(parsed?.peakStart);
+        const peakEnd = Number(parsed?.peakEnd);
+        const validHours = Number.isInteger(peakStart) && peakStart >= 0 && peakStart <= 23
+            && Number.isInteger(peakEnd) && peakEnd >= 1 && peakEnd <= 24
+            && peakStart < peakEnd;
+        return {
+            chronotype,
+            peakStart: validHours ? peakStart : DEFAULT_TIME_SETTINGS.peakStart,
+            peakEnd: validHours ? peakEnd : DEFAULT_TIME_SETTINGS.peakEnd,
+        };
+    } catch {
+        return { ...DEFAULT_TIME_SETTINGS };
+    }
+};
+
 export const TimeProvider = ({ children }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -148,13 +183,33 @@ export const TimeProvider = ({ children }) => {
     };
 
     // --- Feature 1: Settings (Chronotype) ---
-    const [settings, setSettings] = useState({
-        chronotype: 'Bear', // Bear, Wolf, Lion, Dolphin
-        peakStart: 10, // 10 AM
-        peakEnd: 14,   // 2 PM
-    });
+    // Keep the existing preference across reloads, separated by signed-in account.
+    const [settings, setSettings] = useState(readInitialTimeSettings);
 
-    const updateSettings = (newSettings) => setSettings(prev => ({ ...prev, ...newSettings }));
+    const updateSettings = (newSettings = {}) => {
+        const next = { ...settings, ...newSettings };
+        if (!VALID_CHRONOTYPES.includes(next.chronotype)) next.chronotype = settings.chronotype;
+
+        const peakStart = Number(next.peakStart);
+        const peakEnd = Number(next.peakEnd);
+        if (Number.isInteger(peakStart) && peakStart >= 0 && peakStart <= 23
+            && Number.isInteger(peakEnd) && peakEnd >= 1 && peakEnd <= 24
+            && peakStart < peakEnd) {
+            next.peakStart = peakStart;
+            next.peakEnd = peakEnd;
+        } else {
+            next.peakStart = settings.peakStart;
+            next.peakEnd = settings.peakEnd;
+        }
+
+        setSettings(next);
+        try {
+            const key = getTimeSettingsKey();
+            if (key) localStorage.setItem(key, JSON.stringify(next));
+        } catch {
+            // Task management remains usable in browsers that block local storage.
+        }
+    };
 
     // --- Feature 2: Task Batching ---
     const batchTasks = async (taskIds, batchTitle) => {

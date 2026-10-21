@@ -302,12 +302,15 @@ export const StudyProvider = ({ children }) => {
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError || !user) throw new Error('Sign in to update assignments.');
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('study_assignments')
                 .update(safeUpdates)
                 .eq('id', id)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!data) throw new Error('The assignment was not updated. Refresh and try again.');
         } catch (error) {
             if (previous) setAssignments(prev => prev.map(item => item.id === id ? previous : item));
             console.error('Error updating assignment:', error);

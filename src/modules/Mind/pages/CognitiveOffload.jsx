@@ -7,7 +7,7 @@ import { useToast } from '../../../context/useToast';
 const BUCKETS = ['Worry', 'Conflict', 'Conversation', 'Regret'];
 
 const CognitiveOffload = () => {
-    const { offloadItems = [], addOffloadItem, deleteOffloadItem } = useMind();
+    const { offloadItems = [], addOffloadItem, deleteOffloadItem, loadError = '' } = useMind();
     const { toast } = useToast();
     const [newItem, setNewItem] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +55,13 @@ const CognitiveOffload = () => {
                     </p>
                 </div>
             </header>
+
+            {loadError && (
+                <div role="alert" style={{ margin: '0 0 1.25rem', padding: '0.9rem 1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    {loadError}
+                    <button type="button" onClick={() => window.location.reload()} style={{ display: 'block', marginTop: '0.55rem', border: '1px solid #c99a7f', borderRadius: '7px', padding: '0.45rem 0.7rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry</button>
+                </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '3rem' }}>
                 {/* Input Zone */}
