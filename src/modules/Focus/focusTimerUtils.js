@@ -129,6 +129,7 @@ export const readPendingFocusSession = () => {
         mode: draft.mode,
         reason: draft.reason,
         created_at: draft.created_at,
+        configured_duration: asNonNegativeSeconds(draft.configured_duration),
         owner_user_id: typeof draft.owner_user_id === 'string' ? draft.owner_user_id : null,
     };
 };
