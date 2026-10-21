@@ -109,6 +109,7 @@ export const FocusProvider = ({ children }) => {
 
         savingRef.current = true;
         setIsSavingSession(true);
+        let retryDraft = draft;
         setPendingSession(draft);
         writeStoredJson(PENDING_FOCUS_SESSION_KEY, draft);
 
@@ -126,6 +127,7 @@ export const FocusProvider = ({ children }) => {
                 ...draft,
                 owner_user_id: user.id,
             };
+            retryDraft = ownedDraft;
             setPendingSession(ownedDraft);
             writeStoredJson(PENDING_FOCUS_SESSION_KEY, ownedDraft);
 
@@ -167,8 +169,8 @@ export const FocusProvider = ({ children }) => {
             return true;
         } catch (error) {
             console.error('Unable to save focus session:', error);
-            setPendingSession(draft);
-            writeStoredJson(PENDING_FOCUS_SESSION_KEY, draft);
+            setPendingSession(retryDraft);
+            writeStoredJson(PENDING_FOCUS_SESSION_KEY, retryDraft);
 
             if (error?.message === 'SIGN_IN_REQUIRED') {
                 setSaveError('Your focus session is kept in this tab, but saving requires you to sign in. Sign in to retry, or explicitly discard this session.');
@@ -294,6 +296,7 @@ export const FocusProvider = ({ children }) => {
     }, [category, duration, isActive, isPaused, mode, timeLeft]);
 
     const startSession = useCallback(() => {
+        if (isActive) return false;
         if (pendingSession || savingRef.current) {
             setSaveError('Save or explicitly discard the previous session before starting another one.');
             return false;
@@ -330,7 +333,7 @@ export const FocusProvider = ({ children }) => {
             stopwatchElapsedBase: 0,
         });
         return true;
-    }, [category, duration, mode, pendingSession]);
+    }, [category, duration, isActive, mode, pendingSession]);
 
     const pauseSession = useCallback(() => {
         if (!isActive || isPaused) return;
@@ -404,7 +407,9 @@ export const FocusProvider = ({ children }) => {
         if (actualDuration < MIN_SAVED_DURATION) return true;
 
         const draft = createDraft(actualDuration, 'stopped');
-        return persistSessionDraft(draft);
+        const saved = await persistSessionDraft(draft);
+        if (!saved) setTimeLeft(actualDuration);
+        return saved;
     }, [completed, createDraft, duration, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
 
     const updateDuration = useCallback((minutes) => {
