@@ -180,11 +180,227 @@
 }
 
 .startBtn span {
-    display: none;
-    /* Icon centric design for the big circle */
+    display: block;
+    max-width: 76px;
+    font-size: 0.65rem;
+    line-height: 1.15;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .startBtn:hover {
     transform: scale(1.1);
     background-color: var(--color-gold-hover);
+}
+
+.timerEyebrow {
+    display: block;
+    color: var(--color-gold);
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.14em;
+    margin-bottom: 0.7rem;
+}
+
+.durationSummary {
+    margin: 0.85rem 0 0;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+
+.controlLabel {
+    display: block;
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.durationPresets {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0.15rem 0 0.5rem;
+}
+
+.presetButton {
+    min-width: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 0.7rem 0.35rem;
+    background: #fff;
+    color: var(--color-soft-black);
+    font-size: 0.84rem;
+    font-weight: 650;
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+
+.presetButton:hover:not(:disabled) {
+    border-color: var(--color-gold);
+}
+
+.activePreset {
+    border-color: var(--color-gold);
+    background: rgba(221, 168, 93, 0.14);
+    color: #80551f;
+}
+
+.presetButton:focus-visible,
+.modeBtn:focus-visible,
+.categorySelect:focus-visible,
+.startBtn:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 3px;
+}
+
+.presetButton:disabled,
+.modeBtn:disabled,
+.categorySelect:disabled,
+.slider:disabled,
+.startBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.sessionNotice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: min(600px, 100%);
+    box-sizing: border-box;
+    padding: 1rem 1.15rem;
+    margin: 0 auto 1rem;
+    border: 1px solid rgba(221, 168, 93, 0.32);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--color-soft-black);
+    box-shadow: var(--shadow-soft);
+}
+
+.sessionNotice strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.sessionNotice p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.noticeActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.noticePrimary,
+.noticeSecondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 40px;
+    border-radius: 999px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.noticePrimary {
+    border: 1px solid var(--color-soft-black);
+    background: var(--color-soft-black);
+    color: white;
+}
+
+.noticeSecondary {
+    border: 1px solid var(--color-border);
+    background: white;
+    color: var(--color-text-secondary);
+}
+
+.noticePrimary:focus-visible,
+.noticeSecondary:focus-visible {
+    outline: 3px solid var(--color-gold);
+    outline-offset: 3px;
+}
+
+.noticePrimary:disabled,
+.noticeSecondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.startNotice {
+    color: #80551f;
+    text-align: center;
+    line-height: 1.5;
+    max-width: 30rem;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.timerFootnote {
+    max-width: 40rem;
+    margin: 1.25rem auto 0;
+    padding: 0 1rem;
+    color: var(--color-text-secondary);
+    font-size: 0.83rem;
+    line-height: 1.6;
+    text-align: center;
+}
+
+@media (max-width: 560px) {
+    .mainCard {
+        padding: 1.5rem 1rem;
+        gap: 1.15rem;
+    }
+
+    .timeValue {
+        font-size: clamp(3.5rem, 18vw, 5rem);
+    }
+
+    .durationPresets {
+        gap: 0.35rem;
+    }
+
+    .presetButton {
+        padding: 0.65rem 0.2rem;
+        font-size: 0.76rem;
+    }
+
+    .sessionNotice {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .noticeActions {
+        justify-content: flex-start;
+    }
+
+    .startBtn {
+        width: 88px;
+        height: 88px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .presetButton,
+    .categorySelect,
+    .startBtn,
+    .slider::-webkit-slider-thumb {
+        transition: none;
+    }
+
+    .startBtn:hover,
+    .slider::-webkit-slider-thumb:hover {
+        transform: none;
+    }
 }
