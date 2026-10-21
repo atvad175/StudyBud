@@ -19,7 +19,7 @@ const MIN_SAVED_DURATION = 10;
 const loadActiveRuntime = () =>
     hydrateActiveFocusSession(readStoredJson(ACTIVE_FOCUS_SESSION_KEY), Date.now());
 
-const FocusProvider = ({ children }) => {
+export const FocusProvider = ({ children }) => {
     const [restoredRuntime] = useState(loadActiveRuntime);
     const [initialPendingSession] = useState(readPendingFocusSession);
     const [isActive, setIsActive] = useState(() => Boolean(restoredRuntime?.isActive));
@@ -471,5 +471,3 @@ const FocusProvider = ({ children }) => {
         </FocusContext.Provider>
     );
 };
-
-export const FocusProviderComponent = FocusProvider;
