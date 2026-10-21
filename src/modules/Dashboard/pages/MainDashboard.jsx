@@ -22,6 +22,7 @@ const MainDashboard = () => {
     const { assignments = [], reviews = [], loading: studyLoading = false } = useStudy();
     const { tasks = [], loading: timeLoading = false } = useTime();
     const { atoms = [], getTodayLog, loading: habitsLoading = false } = useHabits();
+    const [currentTime] = useState(() => new Date());
 
     const focusToday = summarizeFocusSessions(focusSessions);
     const todayLogs = typeof getTodayLog === 'function' ? getTodayLog() : {};
@@ -30,7 +31,7 @@ const MainDashboard = () => {
     const plannedTasks = tasks.filter(task => task?.status === 'Planned');
     const dueReviewCount = reviews.filter(review => {
         const reviewDate = review?.next_review_date ? new Date(review.next_review_date) : null;
-        return reviewDate && !Number.isNaN(reviewDate.getTime()) && reviewDate.getTime() <= Date.now();
+        return reviewDate && !Number.isNaN(reviewDate.getTime()) && reviewDate.getTime() <= currentTime.getTime();
     }).length;
     const overviewLoading = focusLoading || studyLoading || timeLoading || habitsLoading;
 

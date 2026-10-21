@@ -148,7 +148,11 @@ export const FocusProvider = ({ children }) => {
 
             let savedSession = existing;
             if (!savedSession) {
-                const { version, reason, configured_duration, owner_user_id, ...record } = ownedDraft;
+                const record = { ...ownedDraft };
+                delete record.version;
+                delete record.reason;
+                delete record.configured_duration;
+                delete record.owner_user_id;
                 const { data, error } = await supabase
                     .from('focus_sessions')
                     .insert([{ ...record, user_id: user.id }])
