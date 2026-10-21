@@ -6,8 +6,23 @@ import { summarizeFocusSessions } from '../focusStats';
 import styles from './FocusDashboard.module.css';
 
 const FocusDashboard = () => {
-    const { sessions, loading, loadError } = useFocus();
+    const {
+        sessions,
+        loading,
+        loadError,
+        pendingSession,
+        isSavingSession,
+        retryPendingSessionSave,
+        discardPendingSession,
+    } = useFocus();
     const stats = summarizeFocusSessions(sessions);
+
+    const handleDiscardPendingSession = () => {
+        const confirmed = window.confirm(
+            'Discard this unsaved focus session? It cannot be added to your saved history later.'
+        );
+        if (confirmed) discardPendingSession();
+    };
 
     return (
         <div className={styles.container}>
@@ -22,6 +37,35 @@ const FocusDashboard = () => {
                     <span>Start Session</span>
                 </NavLink>
             </header>
+
+            {pendingSession && (
+                <section className={styles.pendingSessionBanner} role="alert" aria-live="polite">
+                    <div>
+                        <strong>One focus session still needs saving.</strong>
+                        <p>
+                            {pendingSession.category} · {Math.round(pendingSession.duration_seconds / 60)} min recorded.
+                            Your draft is kept in this tab. Save it before starting another session.
+                        </p>
+                        {loadError && <p>{loadError}</p>}
+                    </div>
+                    <div className={styles.pendingSessionActions}>
+                        <button
+                            type="button"
+                            onClick={() => { void retryPendingSessionSave(); }}
+                            disabled={isSavingSession}
+                        >
+                            {isSavingSession ? 'Saving…' : 'Retry save'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDiscardPendingSession}
+                            disabled={isSavingSession}
+                        >
+                            Discard
+                        </button>
+                    </div>
+                </section>
+            )}
 
             <section aria-labelledby="focus-history-heading" className={styles.historySection}>
                 <h2 id="focus-history-heading" className={styles.sectionTitle}>Your focus history</h2>
