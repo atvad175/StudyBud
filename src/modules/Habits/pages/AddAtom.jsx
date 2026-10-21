@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../../context/useToast';
 import { useHabits } from '../../../context/useHabits';
 import { ArrowLeft, Check, Clock } from 'lucide-react';
 import styles from './AddAtom.module.css';
@@ -33,6 +34,8 @@ const DURATION_OPTIONS = [
 const AddAtom = () => {
     const navigate = useNavigate();
     const { addAtom } = useHabits();
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         time: '',
@@ -45,13 +48,21 @@ const AddAtom = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.title.trim()) return;
+        if (!formData.title.trim() || isSaving) return;
         const durationStr = formData.duration ? formData.duration + ' min' : '';
         const combinedTime = [formData.time, durationStr].filter(Boolean).join(' · ');
-        addAtom({ ...formData, time: combinedTime });
-        navigate('/habits/track');
+        setIsSaving(true);
+        try {
+            await addAtom({ ...formData, time: combinedTime });
+            toast.success('Habit saved.');
+            navigate('/habits/track');
+        } catch (error) {
+            toast.error(error?.message || 'The habit could not be saved. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const selectStyle = {

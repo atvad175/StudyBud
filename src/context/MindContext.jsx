@@ -58,6 +58,32 @@ export const MindProvider = ({ children }) => {
         }
     };
 
+    const deleteOffloadItem = async (itemId) => {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to delete this item.');
+
+        const previous = offloadItems.find(item => String(item.id) === String(itemId));
+        if (!previous) throw new Error('This item is no longer available. Refresh and try again.');
+        setOffloadItems(current => current.filter(item => String(item.id) !== String(itemId)));
+
+        try {
+            const { data, error } = await supabase
+                .from('mind_offload_items')
+                .delete()
+                .eq('id', itemId)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!data) throw new Error('The item was not deleted. Refresh and try again.');
+        } catch (error) {
+            setOffloadItems(current => current.some(item => String(item.id) === String(previous.id))
+                ? current : [previous, ...current]);
+            console.error('Error deleting offload item:', error?.code || 'unknown');
+            throw error;
+        }
+    };
+
     const addWin = async (win) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to save this win.');
@@ -93,17 +119,31 @@ export const MindProvider = ({ children }) => {
         const fetchData = async () => {
             setLoading(true);
             try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw authError;
+                if (!user) {
+                    setLogs([]);
+                    setOffloadItems([]);
+                    setWins([]);
+                    return;
+                }
+
                 const results = await Promise.all([
-                    supabase.from('mind_logs').select('*').order('created_at', { ascending: false }).limit(20),
-                    supabase.from('mind_offload_items').select('*').order('created_at', { ascending: false }),
-                    supabase.from('mind_wins').select('*').order('created_at', { ascending: false })
+                    supabase.from('mind_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+                    supabase.from('mind_offload_items').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
+                    supabase.from('mind_wins').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100)
                 ]);
 
-                if (results[0].data) setLogs(results[0].data);
-                if (results[1].data) setOffloadItems(results[1].data);
-                if (results[2].data) setWins(results[2].data);
-            } catch (e) {
-                console.error("Error fetching mind data:", e);
+                const failed = results.find(result => result.error);
+                if (failed?.error) throw failed.error;
+                setLogs(results[0].data || []);
+                setOffloadItems(results[1].data || []);
+                setWins(results[2].data || []);
+            } catch (error) {
+                console.error('Error fetching Mind data:', error?.code || 'unknown');
+                setLogs([]);
+                setOffloadItems([]);
+                setWins([]);
             } finally {
                 setLoading(false);
             }
@@ -119,6 +159,7 @@ export const MindProvider = ({ children }) => {
             wins,
             addLog,
             addOffloadItem,
+            deleteOffloadItem,
             addWin,
             loading
         }}>

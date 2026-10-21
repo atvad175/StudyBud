@@ -64,35 +64,61 @@ export const TimeProvider = ({ children }) => {
     };
 
     const updateTask = async (id, updates) => {
-        const previous = tasks.find(task => task.id === id);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to update tasks.');
+
+        const previous = tasks.find(task => String(task.id) === String(id));
+        if (!previous || String(previous.user_id) !== String(user.id)) {
+            throw new Error('That task is not available in this account. Refresh and try again.');
+        }
         const safeUpdates = { ...updates };
         delete safeUpdates.id;
         delete safeUpdates.user_id;
-        setTasks(prev => prev.map(task => task.id === id ? { ...task, ...safeUpdates } : task));
+        setTasks(prev => prev.map(task => String(task.id) === String(id) ? { ...task, ...safeUpdates } : task));
 
         try {
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('tasks')
                 .update(safeUpdates)
-                .eq('id', id);
+                .eq('id', id)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
 
             if (error) throw error;
+            if (!data) throw new Error('The task was not updated. Refresh and try again.');
+            return true;
         } catch (error) {
-            if (previous) setTasks(prev => prev.map(task => task.id === id ? previous : task));
-            console.error('Error updating task:', error);
+            setTasks(prev => prev.map(task => String(task.id) === String(id) ? previous : task));
+            console.error('Error updating task:', error?.code || 'unknown');
             throw error;
         }
     };
 
     const deleteTask = async (id) => {
-        const previous = tasks.find(task => task.id === id);
-        setTasks(prev => prev.filter(task => task.id !== id));
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to delete tasks.');
+
+        const previous = tasks.find(task => String(task.id) === String(id));
+        if (!previous || String(previous.user_id) !== String(user.id)) {
+            throw new Error('That task is not available in this account. Refresh and try again.');
+        }
+        setTasks(prev => prev.filter(task => String(task.id) !== String(id)));
         try {
-            const { error } = await supabase.from('tasks').delete().eq('id', id);
+            const { data, error } = await supabase
+                .from('tasks')
+                .delete()
+                .eq('id', id)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!data) throw new Error('The task was not deleted. Refresh and try again.');
+            return true;
         } catch (error) {
-            if (previous) setTasks(prev => [previous, ...prev]);
-            console.error('Error deleting task:', error);
+            setTasks(prev => prev.some(task => String(task.id) === String(id)) ? prev : [previous, ...prev]);
+            console.error('Error deleting task:', error?.code || 'unknown');
+            throw error;
         }
     };
 
@@ -131,25 +157,35 @@ export const TimeProvider = ({ children }) => {
     const updateSettings = (newSettings) => setSettings(prev => ({ ...prev, ...newSettings }));
 
     // --- Feature 2: Task Batching ---
-    const batchTasks = (taskIds, batchTitle) => {
-        // In a real app, this might create a parent task or link them.
-        // For now, we'll create a new "Batch" task and mark others as executed/archived or just delete them.
-        // Let's go with: Create new Aggregate Task, Delete old ones.
+    const batchTasks = async (taskIds, batchTitle) => {
+        const uniqueIds = [...new Set((taskIds || []).map(String))];
+        const tasksToBatch = tasks.filter(task => uniqueIds.includes(String(task.id)));
+        if (tasksToBatch.length < 2) throw new Error('Select at least two tasks to create a batch.');
 
-        const tasksToBatch = tasks.filter(t => taskIds.includes(t.id));
-        const totalTime = tasksToBatch.reduce((acc, t) => acc + t.time_estimate, 0);
-
+        const totalTime = tasksToBatch.reduce((sum, task) => sum + (Number(task.time_estimate) || 0), 0);
         const batchTask = {
-            title: batchTitle || `Batch: ${tasksToBatch.length} tasks`,
-            cognitive_type: 'Organize', // Batching is usually organizational/admin
+            title: (batchTitle || ('Batch: ' + tasksToBatch.length + ' tasks')).slice(0, 180),
+            cognitive_type: 'Organize',
             difficulty: 'Medium',
-            time_estimate: totalTime,
+            time_estimate: Math.max(5, totalTime),
             emotional_friction: 'Low',
-            description: tasksToBatch.map(t => `- ${t.title}`).join('\n')
+            description: tasksToBatch.map(task => '- ' + task.title).join('\n'),
         };
 
-        createTask(batchTask);
-        taskIds.forEach(id => deleteTask(id));
+        // Save the replacement before touching any of the original tasks.
+        const savedBatch = await createTask(batchTask);
+        const deletionFailures = [];
+        for (const task of tasksToBatch) {
+            try {
+                await deleteTask(task.id);
+            } catch {
+                deletionFailures.push(task.title);
+            }
+        }
+        if (deletionFailures.length) {
+            throw new Error('The batch was saved, but some original tasks remain: ' + deletionFailures.join(', ') + '. You can remove them from the queue after checking the new batch.');
+        }
+        return savedBatch;
     };
 
     return (

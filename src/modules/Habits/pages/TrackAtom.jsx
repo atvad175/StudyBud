@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useToast } from '../../../context/useToast';
+import { getLocalDateKey } from '../../../utils/localDateKey';
 import { useHabits } from '../../../context/useHabits';
 import styles from './TrackAtom.module.css';
 import { Check, Trash2 } from 'lucide-react';
@@ -74,12 +76,14 @@ const EfficiencyGraph = ({ data }) => {
 };
 
 const TrackAtom = () => {
-    const { atoms, updateLog, removeAtom, logs: contextLogs } = useHabits();
-    const todayKey = new Date().toISOString().split('T')[0];
+    const { atoms, updateLog, removeAtom, logs: contextLogs, loading } = useHabits();
+    const { toast } = useToast();
+    const todayKey = getLocalDateKey();
     const logs = contextLogs[todayKey] || {};
     const [quote] = useState(() => MOTIVATIONS[new Date().getDate() % MOTIVATIONS.length]);
     const [editingAtomId, setEditingAtomId] = useState(null);
     const [editForm, setEditForm] = useState({ time: '', duration: '', mood: '' });
+    const [savingAtomId, setSavingAtomId] = useState(null);
 
     // Compute weekly data dynamically
     const weeklyData = React.useMemo(() => {
@@ -89,7 +93,7 @@ const TrackAtom = () => {
         for(let i=6; i>=0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = getLocalDateKey(d);
             const logsForDay = contextLogs[dateStr] || {};
             const completedCount = Object.values(logsForDay).filter(l => l.status === 'completed' || l.completed).length;
             const percent = Math.round((completedCount / numAtoms) * 100);
@@ -103,16 +107,46 @@ const TrackAtom = () => {
 
     const averageRate = Math.round(weeklyData.reduce((acc, curr) => acc + curr.value, 0) / 7);
 
-    const handleToggle = (atomId) => {
+    const handleToggle = async (atomId) => {
+        if (savingAtomId !== null) return;
         const log = logs[atomId] || {};
         const isComplete = log.status === 'completed' || log.completed;
         const newStatus = isComplete ? 'pending' : 'completed';
-
-        updateLog(atomId, { status: newStatus, completed: !isComplete });
+        setSavingAtomId(atomId);
+        try {
+            await updateLog(atomId, { status: newStatus, completed: !isComplete });
+            toast.success(newStatus === 'completed' ? 'Habit marked complete.' : 'Habit marked pending.');
+        } catch (error) {
+            toast.error(error?.message || 'Habit progress could not be saved. Please try again.');
+        } finally {
+            setSavingAtomId(null);
+        }
     };
 
-    const handleMoodChange = (atomId, mood) => {
-        updateLog(atomId, { mood });
+    const handleMoodChange = async (atomId, mood) => {
+        if (savingAtomId !== null) return;
+        setSavingAtomId(atomId);
+        try {
+            await updateLog(atomId, { mood });
+        } catch (error) {
+            toast.error(error?.message || 'Your mood could not be saved. Please try again.');
+        } finally {
+            setSavingAtomId(null);
+        }
+    };
+
+    const handleRemove = async (atomId) => {
+        if (savingAtomId !== null) return;
+        if (!window.confirm('Remove this habit and its saved tracking history?')) return;
+        setSavingAtomId(atomId);
+        try {
+            await removeAtom(atomId);
+            toast.success('Habit removed.');
+        } catch (error) {
+            toast.error(error?.message || 'The habit could not be removed. Please try again.');
+        } finally {
+            setSavingAtomId(null);
+        }
     };
 
     const startEditing = (atom, log) => {
@@ -133,19 +167,29 @@ const TrackAtom = () => {
         });
     };
 
-    const saveEdit = (atomId) => {
-        updateLog(atomId, {
-            time: editForm.time,
-            duration: editForm.duration,
-            mood: editForm.mood
-        });
-        setEditingAtomId(null);
+    const saveEdit = async (atomId) => {
+        if (savingAtomId !== null) return;
+        setSavingAtomId(atomId);
+        try {
+            await updateLog(atomId, {
+                time: editForm.time,
+                duration: editForm.duration,
+                mood: editForm.mood
+            });
+            setEditingAtomId(null);
+            toast.success('Habit details saved.');
+        } catch (error) {
+            toast.error(error?.message || 'Habit details could not be saved. Please try again.');
+        } finally {
+            setSavingAtomId(null);
+        }
     };
 
     const completedCount = logs ? Object.values(logs).filter(l => l.status === 'completed' || l.completed).length : 0;
     const progressPercent = atoms && atoms.length > 0 ? Math.round((completedCount / atoms.length) * 100) : 0;
 
-    if (!atoms) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading Atoms...</div>;
+    if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading your habits…</div>;
+    if (!atoms.length) return <div className="page-container" style={{ padding: '2rem', textAlign: 'center' }}><h1>No habits yet</h1><p>Create your first habit to start tracking progress.</p><a href="/habits/add">Create a habit</a></div>;
 
 
     return (
@@ -216,14 +260,16 @@ const TrackAtom = () => {
                             return (
                                 <div key={atom.id} style={{ position: 'relative' }}>
                                     <button
-                                        onClick={() => handleToggle(atom.id)}
+                                        onClick={() => { void handleToggle(atom.id); }}
+                                        disabled={savingAtomId !== null}
                                         className={`${styles.squircleBtn} ${isComplete ? styles.squircleComplete : ''}`}
                                     >
                                         <span className={styles.squircleTitle}>{(atom.title || '').substring(0, 4)}</span>
                                         {isComplete && <div className={styles.checkBadge}><Check size={12} color="white" /></div>}
                                     </button>
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); removeAtom(atom.id); }}
+                                        onClick={(e) => { e.stopPropagation(); void handleRemove(atom.id); }}
+                                        disabled={savingAtomId !== null}
                                         style={{ position: 'absolute', top: -8, right: -8, background: '#f44336', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
                                     >
                                         <Trash2 size={12} />
@@ -305,7 +351,7 @@ const TrackAtom = () => {
                                             />
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <button onClick={() => saveEdit(atom.id)} className={styles.saveBtn}>Save</button>
+                                            <button onClick={() => { void saveEdit(atom.id); }} disabled={savingAtomId !== null} className={styles.saveBtn}>Save</button>
                                         </div>
                                     </>
                                 ) : (
@@ -316,7 +362,8 @@ const TrackAtom = () => {
                                                 return (
                                                     <button
                                                         key={m.value}
-                                                        onClick={() => handleMoodChange(atom.id, m.value)}
+                                                        onClick={() => { void handleMoodChange(atom.id, m.value); }}
+                                                        disabled={savingAtomId !== null}
                                                         title={m.label}
                                                         style={{
                                                             padding: '3px 6px',

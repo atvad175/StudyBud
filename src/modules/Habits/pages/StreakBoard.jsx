@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Flame, Trophy, Percent } from 'lucide-react';
 import { useHabits } from '../../../context/useHabits';
+import { getLocalDateKey } from '../../../utils/localDateKey';
 
 const getColor = (count) => {
     if (count === 0) return '#EDE8DF';
@@ -53,7 +54,7 @@ const StreakBoard = () => {
         for (let i = 0; i < 91; i++) {
             const currentObj = new Date(startDate);
             currentObj.setDate(startDate.getDate() + i);
-            const dateStr = currentObj.toISOString().split('T')[0];
+            const dateStr = getLocalDateKey(currentObj);
             
             // Avoid plotting future dates if we want them blank, but we need cells to exist.
             const isFuture = currentObj > today;
@@ -85,7 +86,7 @@ const StreakBoard = () => {
         let actualCurrentStreak = 0;
         let d = new Date(today);
         while (true) {
-            const dStr = d.toISOString().split('T')[0];
+            const dStr = getLocalDateKey(d);
             if ((dateMap[dStr] || 0) > 0) {
                 actualCurrentStreak++;
                 d.setDate(d.getDate() - 1);
@@ -93,7 +94,7 @@ const StreakBoard = () => {
                 // if today is 0, check yesterday before breaking
                 if (d.toDateString() === today.toDateString()) {
                     d.setDate(d.getDate() - 1);
-                    const yStr = d.toISOString().split('T')[0];
+                    const yStr = getLocalDateKey(d);
                     if ((dateMap[yStr] || 0) > 0) {
                         actualCurrentStreak++;
                         d.setDate(d.getDate() - 1);

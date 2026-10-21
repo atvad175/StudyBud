@@ -11,6 +11,7 @@ const FRICTIONS = ['Low', 'Medium', 'High'];
 const TaskIntelligence = () => {
     const { tasks, createTask, deleteTask } = useTime();
     const { toast } = useToast();
+    const [deletingTaskId, setDeletingTaskId] = useState(null);
     const [form, setForm] = useState({
         title: '',
         cognitive_type: 'Understand',
@@ -20,6 +21,21 @@ const TaskIntelligence = () => {
     });
 
     const plannedTasks = tasks.filter(t => t.status === 'Planned');
+
+    const handleDeleteTask = async (task) => {
+        if (deletingTaskId !== null) return;
+        if (!window.confirm('Delete "' + task.title + '"? This cannot be undone.')) return;
+        setDeletingTaskId(task.id);
+        try {
+            await deleteTask(task.id);
+            toast.success('Task deleted.');
+        } catch (error) {
+            toast.error(error?.message || 'The task could not be deleted. Please try again.');
+        } finally {
+            setDeletingTaskId(null);
+        }
+    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -143,7 +159,7 @@ const TaskIntelligence = () => {
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                     <h3 style={{ fontSize: '1.1rem', fontWeight: '600', lineHeight: '1.4' }}>{task.title}</h3>
-                                    <button onClick={() => deleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
+                                    <button onClick={() => { void handleDeleteTask(task); }} disabled={deletingTaskId !== null} aria-label={'Delete ' + task.title} title="Delete task" style={{ background: 'none', border: 'none', color: '#ccc', cursor: deletingTaskId !== null ? 'wait' : 'pointer', padding: '4px', opacity: deletingTaskId !== null ? 0.5 : 1 }}><Trash2 size={16} /></button>
                                 </div>
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

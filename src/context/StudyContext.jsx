@@ -300,10 +300,13 @@ export const StudyProvider = ({ children }) => {
         setAssignments(prev => prev.map(item => item.id === id ? { ...item, ...safeUpdates } : item));
 
         try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to update assignments.');
             const { error } = await supabase
                 .from('study_assignments')
                 .update(safeUpdates)
-                .eq('id', id);
+                .eq('id', id)
+                .eq('user_id', user.id);
             if (error) throw error;
         } catch (error) {
             if (previous) setAssignments(prev => prev.map(item => item.id === id ? previous : item));
@@ -360,12 +363,22 @@ export const StudyProvider = ({ children }) => {
             setLoading(true);
             setLoadError('');
             try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw authError;
+
+                const emptyPrivateResult = Promise.resolve({ data: [], error: null });
                 const results = await Promise.all([
-                    supabase.from('study_techniques').select('*'),
-                    supabase.from('study_subjects').select('*'),
-                    supabase.from('study_assignments').select('*').order('created_at', { ascending: false }),
-                    supabase.from('study_practice_logs').select('*').order('created_at', { ascending: false }).limit(50),
-                    supabase.from('study_reviews').select('*').order('next_review_date', { ascending: true })
+                    supabase.from('study_techniques').select('*').limit(200),
+                    supabase.from('study_subjects').select('*').limit(200),
+                    user
+                        ? supabase.from('study_assignments').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200)
+                        : emptyPrivateResult,
+                    user
+                        ? supabase.from('study_practice_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
+                        : emptyPrivateResult,
+                    user
+                        ? supabase.from('study_reviews').select('*').eq('user_id', user.id).order('next_review_date', { ascending: true }).limit(200)
+                        : emptyPrivateResult,
                 ]);
 
                 const privateQueryFailed = results.slice(2).some(result => Boolean(result.error));
@@ -373,6 +386,7 @@ export const StudyProvider = ({ children }) => {
 
                 if (publicQueryFailed) {
                     console.warn('Some public study-library content could not be loaded.');
+                    setLoadError('The Study library could not be fully loaded. Refresh to try again.');
                 }
                 if (privateQueryFailed) {
                     console.warn('Some saved study records could not be loaded.');
@@ -380,18 +394,21 @@ export const StudyProvider = ({ children }) => {
                 }
 
                 if (results[0].data) setTechniques(results[0].data);
-                
-                // Merge public DB metadata into the fallback subject list using the
-                // latest state value. This avoids a stale effect closure and a fetch loop.
                 const dbSubjects = results[1].data || [];
                 setSubjects(currentSubjects => currentSubjects.map(fallback => {
                     const dbMatch = dbSubjects.find(db => db.id === fallback.id || db.name === fallback.name);
                     return dbMatch ? { ...fallback, ...dbMatch } : fallback;
                 }));
 
-                if (results[2].data) setAssignments(results[2].data);
-                if (results[3].data) setPracticeLogs(results[3].data);
-                if (results[4].data) setReviews(results[4].data);
+                if (!user) {
+                    setAssignments([]);
+                    setPracticeLogs([]);
+                    setReviews([]);
+                } else {
+                    if (results[2].data) setAssignments(results[2].data);
+                    if (results[3].data) setPracticeLogs(results[3].data);
+                    if (results[4].data) setReviews(results[4].data);
+                }
             } catch (error) {
                 console.error('Error fetching Study data:', error?.code || 'unknown');
                 setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
