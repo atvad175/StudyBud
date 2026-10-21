@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useMind } from '../../../context/useMind';
 
 const MoodTimeline = () => {
-  const { logs } = useMind();
+  const { logs, loadError = '' } = useMind();
   const [filter, setFilter] = useState('All');
   const entries = useMemo(() => {
     const aggregated = (logs || []).map(log => {
@@ -91,6 +91,13 @@ const MoodTimeline = () => {
             <h1 style={{ fontSize: '3.5rem', fontFamily: 'var(--font-serif)', marginTop: '0.5rem', color: 'var(--color-soft-black)' }}>Mood Timeline</h1>
             <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)' }}>A consolidated timeline of your emotional state and reflections.</p>
         </header>
+
+        {loadError && (
+            <div role="alert" style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                {loadError}
+                <button type="button" onClick={() => window.location.reload()} style={{ display: 'block', marginTop: '0.6rem', border: '1px solid #c99a7f', borderRadius: '7px', padding: '0.5rem 0.75rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry loading history</button>
+            </div>
+        )}
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '3rem', flexWrap: 'wrap' }}>

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTime } from '../../../context/useTime';
+import { useToast } from '../../../context/useToast';
 import styles from './EnergyMatching.module.css';
 import { PlayCircle, User, ArrowRight, Zap, Battery, BatteryMedium, BatteryLow } from 'lucide-react';
 
@@ -50,6 +51,8 @@ const EnergyGraph = ({ chronotype }) => {
 
 const EnergyMatching = () => {
     const { tasks, updateTask, settings, updateSettings } = useTime();
+    const { toast } = useToast();
+    const [savingTaskId, setSavingTaskId] = useState(null);
 
     const plannedTasks = tasks.filter(t => t.status === 'Planned');
     const highEnergyTasks = plannedTasks.filter(t => t.energy_block === 'High');
@@ -57,7 +60,18 @@ const EnergyMatching = () => {
     const lowEnergyTasks = plannedTasks.filter(t => t.energy_block === 'Low');
     const unmatchedTasks = plannedTasks.filter(t => !t.energy_block);
 
-    const moveTask = (id, block) => updateTask(id, { energy_block: block });
+    const moveTask = async (id, block) => {
+        if (savingTaskId !== null) return;
+        setSavingTaskId(id);
+        try {
+            await updateTask(id, { energy_block: block });
+            toast.success('Task moved to ' + block.toLowerCase() + ' energy.');
+        } catch (error) {
+            toast.error(error?.message || 'Energy placement could not be saved. Please try again.');
+        } finally {
+            setSavingTaskId(null);
+        }
+    };
 
     const TaskCard = ({ task, block }) => (
         <div className={styles.taskCard}>
@@ -71,9 +85,9 @@ const EnergyMatching = () => {
             </div>
 
             <div className={styles.actions}>
-                {block !== 'High' && <button className={styles.moveBtn} onClick={() => moveTask(task.id, 'High')} title="Move to High Energy">H</button>}
-                {block !== 'Medium' && <button className={styles.moveBtn} onClick={() => moveTask(task.id, 'Medium')} title="Move to Medium Energy">M</button>}
-                {block !== 'Low' && <button className={styles.moveBtn} onClick={() => moveTask(task.id, 'Low')} title="Move to Low Energy">L</button>}
+                {block !== 'High' && <button className={styles.moveBtn} onClick={() => { void moveTask(task.id, 'High'); }} disabled={savingTaskId !== null} title="Move to High Energy">H</button>}
+                {block !== 'Medium' && <button className={styles.moveBtn} onClick={() => { void moveTask(task.id, 'Medium'); }} disabled={savingTaskId !== null} title="Move to Medium Energy">M</button>}
+                {block !== 'Low' && <button className={styles.moveBtn} onClick={() => { void moveTask(task.id, 'Low'); }} disabled={savingTaskId !== null} title="Move to Low Energy">L</button>}
 
                 {block === 'High' && (
                     <NavLink to="/focus/timer" style={{ marginLeft: 'auto', color: 'var(--color-gold)' }}>

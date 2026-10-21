@@ -20,7 +20,7 @@ const getGreeting = () => {
 };
 
 const MindDashboard = () => {
-    const { logs = [] } = useMind();
+    const { logs = [], loadError = '' } = useMind();
     const [greeting] = useState(getGreeting);
 
     const activityByDay = useMemo(() => {
@@ -81,6 +81,14 @@ const MindDashboard = () => {
                     </div>
                 </div>
             </header>
+
+            {loadError && (
+                <div role="alert" style={{ margin: '0 0 1.5rem', padding: '1rem 1.1rem', border: '1px solid #e2b9a1', borderRadius: '14px', background: '#fff4ec', color: '#754a35' }}>
+                    <strong>Saved Mind entries could not be loaded.</strong>
+                    <p style={{ margin: '0.35rem 0 0.8rem', lineHeight: 1.5, fontSize: '0.88rem' }}>{loadError}</p>
+                    <button type="button" onClick={() => window.location.reload()} style={{ border: '1px solid #c99a7f', borderRadius: '8px', padding: '0.55rem 0.75rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry</button>
+                </div>
+            )}
 
             <section
                 className={styles.chartContainer}
