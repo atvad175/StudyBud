@@ -68,6 +68,7 @@ export const hydrateActiveFocusSession = (saved, now = Date.now()) => {
             ? Number(saved.stopwatchStartedAt)
             : null,
         stopwatchElapsedBase: asNonNegativeSeconds(saved.stopwatchElapsedBase),
+        ownerUserId: typeof saved.ownerUserId === 'string' ? saved.ownerUserId : null,
     };
 };
 
