@@ -35,10 +35,12 @@ test('rehydrates a running timer from its deadline after reload', () => {
         timeLeft: 900,
         deadlineAt: 60_000,
         category: 'School Exam',
+        ownerUserId: 'user-123',
     }, 35_000);
 
     assert.equal(hydrated.timeLeft, 25);
     assert.equal(hydrated.category, 'School Exam');
+    assert.equal(hydrated.ownerUserId, 'user-123');
     assert.equal(hydrated.isPaused, false);
 });
 
