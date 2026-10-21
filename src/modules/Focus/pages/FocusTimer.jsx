@@ -39,6 +39,7 @@ const FocusTimer = () => {
         setMode,
         duration,
         updateDuration,
+        timeLeft,
         category,
         setCategory,
         startSession,
