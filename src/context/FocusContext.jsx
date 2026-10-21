@@ -27,16 +27,15 @@ export const FocusProvider = ({ children }) => {
     const [mode, setModeState] = useState(() =>
         restoredRuntime?.mode ?? initialPendingSession?.mode ?? 'TIMER'
     );
-    const [duration, setDuration] = useState(() =>
-        restoredRuntime?.duration ??
-        initialPendingSession?.configured_duration ??
-        DEFAULT_DURATION
-    );
-    const [timeLeft, setTimeLeft] = useState(() =>
-        initialPendingSession
-            ? initialPendingSession.duration_seconds
-            : restoredRuntime?.timeLeft ?? DEFAULT_DURATION
-    );
+    const [duration, setDuration] = useState(() => {
+        if (restoredRuntime?.duration > 0) return restoredRuntime.duration;
+        if (initialPendingSession?.configured_duration > 0) return initialPendingSession.configured_duration;
+        return DEFAULT_DURATION;
+    });
+    const [timeLeft, setTimeLeft] = useState(() => {
+        if (!initialPendingSession) return restoredRuntime?.timeLeft ?? DEFAULT_DURATION;
+        return initialPendingSession.reason === 'completed' ? 0 : initialPendingSession.duration_seconds;
+    });
     const [category, setCategoryState] = useState(() =>
         restoredRuntime?.category ?? initialPendingSession?.category ?? 'Deep Work'
     );
@@ -154,6 +153,7 @@ export const FocusProvider = ({ children }) => {
                     .select()
                     .single();
                 if (error) throw error;
+                if (!data) throw new Error('The database did not confirm that the session was saved.');
                 savedSession = data;
             }
 
@@ -228,7 +228,7 @@ export const FocusProvider = ({ children }) => {
         setCompleted(true);
 
         const draft = createDraft(duration, 'completed', 'TIMER');
-        await persistSessionDraft(draft);
+        return persistSessionDraft(draft);
     }, [createDraft, duration, persistSessionDraft]);
 
     // The deadline is the source of truth for timers, so tab throttling and sleep
@@ -385,6 +385,7 @@ export const FocusProvider = ({ children }) => {
             const remaining = isPaused
                 ? timeLeft
                 : remainingSeconds(deadlineRef.current, Date.now());
+            if (remaining === 0) return finishTimerSession();
             actualDuration = Math.max(0, duration - remaining);
         } else {
             actualDuration = stopwatchElapsedSeconds(
@@ -410,7 +411,7 @@ export const FocusProvider = ({ children }) => {
         const saved = await persistSessionDraft(draft);
         if (!saved) setTimeLeft(actualDuration);
         return saved;
-    }, [completed, createDraft, duration, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
+    }, [completed, createDraft, duration, finishTimerSession, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
 
     const updateDuration = useCallback((minutes) => {
         if (isActive || pendingSession || savingRef.current) return;
