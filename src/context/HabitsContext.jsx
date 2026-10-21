@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HabitsContext } from './HabitsContextCore.js';
 import { supabase } from '../supabaseClient';
+import { getLocalDateKey } from '../utils/localDateKey';
 
 export const HabitsProvider = ({ children }) => {
     const [atoms, setAtoms] = useState([]);
@@ -36,10 +37,22 @@ export const HabitsProvider = ({ children }) => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (authError) throw authError;
+                if (!user) {
+                    if (active) {
+                        setAtoms([]);
+                        setLogs({});
+                    }
+                    return;
+                }
+
                 const { data: atomsData, error: atomsError } = await supabase
                     .from('atoms')
                     .select('*')
-                    .order('created_at', { ascending: true });
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: true })
+                    .limit(300);
 
                 if (atomsError) throw atomsError;
                 if (!active) return;
@@ -57,6 +70,7 @@ export const HabitsProvider = ({ children }) => {
                 const { data: logsData, error: logsError } = await supabase
                     .from('logs')
                     .select('*')
+                    .eq('user_id', user.id)
                     .order('date_logged', { ascending: false })
                     .limit(400);
 
@@ -112,16 +126,17 @@ export const HabitsProvider = ({ children }) => {
         } catch (error) {
             setAtoms(prev => prev.filter(item => item.id !== tempId));
             console.error('Error adding atom:', error);
+            throw error;
         }
     };
 
     const getTodayLog = () => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateKey();
         return logs[today] || {};
     };
 
     const updateLog = async (atomId, data) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateKey();
         const previousLog = logs[today]?.[atomId];
 
         try {
@@ -149,6 +164,7 @@ export const HabitsProvider = ({ children }) => {
                 }, { onConflict: 'atom_id, date_logged' });
 
             if (error) throw error;
+            return true;
         } catch (error) {
             setLogs(prev => {
                 const dateLogs = { ...(prev[today] || {}) };
@@ -157,6 +173,7 @@ export const HabitsProvider = ({ children }) => {
                 return { ...prev, [today]: dateLogs };
             });
             console.error('Error updating habit log:', error);
+            throw error;
         }
     };
 
@@ -171,18 +188,23 @@ export const HabitsProvider = ({ children }) => {
     };
 
     const removeAtom = async (atomId) => {
-        const previous = atoms.find(atom => atom.id === atomId);
-        setAtoms(prev => prev.filter(atom => atom.id !== atomId));
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to remove habits.');
+
+        const previous = atoms.find(atom => String(atom.id) === String(atomId));
+        setAtoms(prev => prev.filter(atom => String(atom.id) !== String(atomId)));
 
         try {
             const { error } = await supabase
                 .from('atoms')
                 .delete()
-                .eq('id', atomId);
+                .eq('id', atomId)
+                .eq('user_id', user.id);
             if (error) throw error;
         } catch (error) {
-            if (previous) setAtoms(prev => [...prev, previous]);
+            if (previous) setAtoms(prev => [...prev.filter(atom => String(atom.id) !== String(atomId)), previous]);
             console.error('Error deleting atom:', error);
+            throw error;
         }
     };
 

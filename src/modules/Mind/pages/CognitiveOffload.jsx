@@ -11,6 +11,21 @@ const CognitiveOffload = () => {
     const { toast } = useToast();
     const [newItem, setNewItem] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [deletingItemId, setDeletingItemId] = useState(null);
+
+    const handleDelete = async (itemId) => {
+        if (!deleteOffloadItem || deletingItemId !== null) return;
+        if (!window.confirm('Delete this saved thought? This cannot be undone.')) return;
+        setDeletingItemId(itemId);
+        try {
+            await deleteOffloadItem(itemId);
+            toast.success('Thought deleted.');
+        } catch (error) {
+            toast.error(error?.message || 'The thought could not be deleted. Please try again.');
+        } finally {
+            setDeletingItemId(null);
+        }
+    };
 
     const handleOffload = async (e) => {
         e.preventDefault();
@@ -80,7 +95,10 @@ const CognitiveOffload = () => {
                                     {item.content}
                                 </div>
                                 <button 
-                                    onClick={() => deleteOffloadItem && deleteOffloadItem(item.id)} 
+                                    onClick={() => { void handleDelete(item.id); }}
+                                    disabled={deletingItemId !== null}
+                                    aria-label="Delete saved thought"
+                                    title={deletingItemId === item.id ? 'Deleting…' : 'Delete saved thought'} 
                                     style={{ background: 'none', border: 'none', color: '#ff7675', cursor: 'pointer', padding: '8px', opacity: 0.6, transition: 'opacity 0.2s' }}
                                     onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                                     onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
