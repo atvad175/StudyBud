@@ -156,7 +156,7 @@ const FocusOverlay = () => {
                                         {activePlaylist.title}
                                     </div>
                                     <div style={{ fontSize: '0.7rem', color: '#666', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1DB954' }} />
+                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C9883A' }} />
                                         Spotify player
                                     </div>
                                 </div>
