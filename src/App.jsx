@@ -79,6 +79,49 @@ const App = () => {
       const userId = user.id;
       const previousAccountId = localStorage.getItem('studybud_active_user_id');
 
+      // Move legacy tab/device-local drafts into owner-scoped keys before any
+      // private page reads them. If ownership is uncertain, archive rather than
+      // displaying one student's notes to another student's account.
+      const isolateLegacyStorage = (storage, legacyKey, scopedKeyForUser, backupKeyForOwner, label) => {
+        try {
+          const legacyValue = storage.getItem(legacyKey);
+          if (!legacyValue) return;
+
+          if (previousAccountId === userId) {
+            const scopedKey = scopedKeyForUser(userId);
+            if (!storage.getItem(scopedKey)) storage.setItem(scopedKey, legacyValue);
+          } else {
+            const owner = previousAccountId || 'unassigned';
+            const backupKey = backupKeyForOwner(owner);
+            if (!storage.getItem(backupKey)) storage.setItem(backupKey, legacyValue);
+          }
+
+          storage.removeItem(legacyKey);
+        } catch (error) {
+          // Storage may be disabled. Private pages must then avoid unscoped keys.
+          console.warn('Unable to isolate legacy ' + label + ':', error?.name || 'unknown');
+        }
+      };
+
+      isolateLegacyStorage(
+        localStorage,
+        'studybud_meditations',
+        owner => `studybud_meditations_${owner}`,
+        owner => `studybud_meditations_backup_${owner}`,
+        'meditation history'
+      );
+      try {
+        isolateLegacyStorage(
+          window.sessionStorage,
+          'studybud_feynman_draft_v1',
+          owner => `studybud_feynman_draft_v1_${owner}`,
+          owner => `studybud_feynman_draft_backup_${owner}`,
+          'Feynman draft'
+        );
+      } catch {
+        // A restricted sessionStorage environment must not stop account setup.
+      }
+
       // Avatars are still device-local (not stored in the account profile table).
       // Never carry one over to a different account on a shared browser.
       if (previousAccountId !== userId) {
