@@ -19,7 +19,6 @@ export const MusicProvider = ({ children }) => {
     return (
         <MusicContext.Provider value={{
             activePlaylist,
-            isSelected: Boolean(activePlaylist),
             togglePlay,
             stopMusic,
         }}>
