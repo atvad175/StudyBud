@@ -122,3 +122,12 @@ If only the feeling is clear ("the Study section feels dead", "signup feels clun
 Draft PR: https://github.com/atvad175/StudyBud/pull/1
 
 This PR is not a production release. Do not merge it until CI is green and its Supabase migrations have been tested safely.
+
+
+## Stabilization batch — 2026-10-22
+
+- [x] Make Habits and Time load failures visible instead of indistinguishable from an empty account.
+- [x] Add a retryable saved-data error notice to feature routes.
+- [x] Prepare an RLS restoration migration and automated SQL guardrail tests.
+- [ ] CI, preview-browser smoke tests and two-account RLS tests must pass before production promotion.
+- [ ] Reconcile database-only migration history with checked-in `supabase/migrations` files.
