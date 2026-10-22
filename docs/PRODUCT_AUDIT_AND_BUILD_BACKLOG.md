@@ -111,3 +111,18 @@ A feature is complete only when:
 - Time dashboard: due-date/priority-aware top-task ordering, clear deadline labels, a one-click mark-done action with save feedback, and a useful empty queue state.
 
 **Verification still required after deployment:** run the full test suite and exercise these flows in a signed-in browser against real saved records, including account switching, storage-disabled browsers, failed task updates, and CSV opening in spreadsheet software. Focus analytics intentionally reflects only the latest 50 sessions loaded by the current context, not lifetime data.
+
+
+## Batch 6 — Restore trustworthy feature data (2026-10-22)
+
+**Implemented on the stabilization branch; not yet applied to production:**
+- Added `supabase/migrations/20261022170000_restore_feature_rls.sql`. It re-enables RLS on private Habits, Study, Mind, and Time tables, adds owner-only policies to the task table, and keeps shared study reference tables read-only for browser clients.
+- The migration deliberately does not reassign or delete legacy `tasks` rows whose `user_id` is null. Database inspection found nine such rows; the app's task query already filters by the signed-in owner's ID, so these rows must be reviewed separately rather than guessed into an account.
+- Added four automated migration guardrail tests. They validate the SQL file's intended policy shape, but are not a substitute for testing real queries as two different users.
+- Time and Habits now keep a load-error state instead of silently rendering failed queries as normal empty screens. The authenticated layout surfaces those errors on the relevant routes and provides a retry action.
+
+**Required before release:**
+- Run the complete GitHub Actions lint/build/test workflow on this branch.
+- Apply the migration only after reviewing the preview environment; verify each private table with two distinct user sessions and verify shared subject/technique reads remain available.
+- Check current Supabase migration history against the repository. The connected database reports `core_feature_schema_repair` and `flashcard_storage` migrations that do not have matching SQL files in the current Git tree; restore those migration sources so a fresh environment can be reproduced.
+- Test signed-in CRUD flows for habits/logs, tasks, assignments, flashcards, Focus sessions, Bud history, and Mind entries after the policy change. Confirm unowned legacy tasks remain untouched.
