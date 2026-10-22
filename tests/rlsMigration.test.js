@@ -17,6 +17,12 @@ test('private feature tables have row-level security re-enabled', () => {
         'mind_offload_items',
         'mind_wins',
         'tasks',
+        'user_onboarding',
+        'chat_history',
+        'profiles',
+        'focus_sessions',
+        'flashcard_decks',
+        'flashcards',
     ];
 
     for (const table of privateTables) {
