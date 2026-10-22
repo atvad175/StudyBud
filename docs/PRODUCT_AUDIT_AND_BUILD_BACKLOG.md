@@ -126,3 +126,16 @@ A feature is complete only when:
 - Apply the migration only after reviewing the preview environment; verify each private table with two distinct user sessions and verify shared subject/technique reads remain available.
 - Check current Supabase migration history against the repository. The connected database reports `core_feature_schema_repair` and `flashcard_storage` migrations that do not have matching SQL files in the current Git tree; restore those migration sources so a fresh environment can be reproduced.
 - Test signed-in CRUD flows for habits/logs, tasks, assignments, flashcards, Focus sessions, Bud history, and Mind entries after the policy change. Confirm unowned legacy tasks remain untouched.
+
+
+## Batch 7 — Remove false states and calculate real progress (2026-10-22)
+
+**Implemented on the stabilization branch:**
+- Replaced the Habits dashboard's mock 0/1-day streak with a real consecutive-day calculation over saved habit logs. If today has no completed habit yet, the streak is allowed to continue from yesterday; an actual gap resets it.
+- Added five unit tests for streak behaviour and malformed/empty history.
+- Removed fake participant counts and invented names/activity from Study Rooms. The timer/intention now clearly identify their local-only status rather than implying that live rooms or account-history persistence exist.
+- Removed the duplicate Spotify iframe from the Beats page. The persistent Focus Hub now owns the single embedded player; the UI distinguishes playlist selection from actual playback and stops a selected playlist by unloading the embed. Spotify's own player is responsible for its audio playback controls.
+- Added a save-in-progress guard to Task Intelligence to prevent duplicate tasks from repeated submission.
+- Renamed the CI step from the old AI-only name to **Run Node regression tests** to reflect that `npm test` now runs the full test suite.
+
+**Verification:** GitHub Actions passed on the latest code head before this documentation-only update: the Node regression suite, API syntax check, focused lint, full ESLint, production build, and browser-bundle secret check succeeded. Signed-in browser tests and database migration validation remain outstanding. These changes are not promoted to production.
