@@ -13,6 +13,7 @@ const TaskIntelligence = () => {
     const { tasks, createTask, deleteTask } = useTime();
     const { toast } = useToast();
     const [deletingTaskId, setDeletingTaskId] = useState(null);
+    const [isCreatingTask, setIsCreatingTask] = useState(false);
     const [form, setForm] = useState({
         title: '',
         cognitive_type: 'Understand',
@@ -42,14 +43,17 @@ const TaskIntelligence = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.title.trim()) return;
+        if (!form.title.trim() || isCreatingTask) return;
 
+        setIsCreatingTask(true);
         try {
             await createTask({ ...form, due_date: form.due_date || null });
             setForm(current => ({ ...current, title: '', due_date: '' }));
             toast.success('Task saved.');
         } catch (error) {
             toast.error(error?.message || 'Task could not be saved. Please try again.');
+        } finally {
+            setIsCreatingTask(false);
         }
     };
 
@@ -161,8 +165,8 @@ const TaskIntelligence = () => {
                             </div>
                         </div>
 
-                        <button type="submit" style={btnStyle}>
-                            <Plus size={20} /> Add to Queue
+                        <button type="submit" disabled={isCreatingTask} style={{ ...btnStyle, opacity: isCreatingTask ? 0.7 : 1, cursor: isCreatingTask ? 'wait' : 'pointer' }}>
+                            <Plus size={20} /> {isCreatingTask ? 'Adding…' : 'Add to Queue'}
                         </button>
                     </form>
                 </div>
