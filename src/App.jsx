@@ -287,7 +287,7 @@ const App = () => {
 
   return (
     <AIProvider key={session?.user?.id || 'signed-out'}>
-      <MusicProvider>
+      <MusicProvider key={session?.user?.id || 'signed-out'}>
         <HabitsProvider>
           <FocusProvider>
             <TimeProvider>
