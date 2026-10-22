@@ -50,9 +50,18 @@ const MeditationSanctuary = () => {
     const [activeSession, setActiveSession] = useState(null);
     const [timer, setTimer] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
-    const [meditationLogs, setMeditationLogs] = useState(() => {
+    const [meditationStorageKey] = useState(() => {
         try {
-            const saved = localStorage.getItem('studybud_meditations');
+            const ownerId = localStorage.getItem('studybud_active_user_id');
+            return ownerId ? `studybud_meditations_${ownerId}` : null;
+        } catch {
+            return null;
+        }
+    });
+    const [meditationLogs, setMeditationLogs] = useState(() => {
+        if (!meditationStorageKey) return [];
+        try {
+            const saved = localStorage.getItem(meditationStorageKey);
             const parsed = saved ? JSON.parse(saved) : [];
             return Array.isArray(parsed) ? parsed.filter(entry =>
                 entry && typeof entry.session === 'string' &&
@@ -102,9 +111,10 @@ const MeditationSanctuary = () => {
         const updatedLogs = [newLog, ...meditationLogs].slice(0, 100);
         setMeditationLogs(updatedLogs);
 
-        let localHistorySaved = true;
+        let localHistorySaved = Boolean(meditationStorageKey);
         try {
-            localStorage.setItem('studybud_meditations', JSON.stringify(updatedLogs));
+            if (!meditationStorageKey) throw new Error('No account-scoped browser storage is available.');
+            localStorage.setItem(meditationStorageKey, JSON.stringify(updatedLogs));
         } catch {
             localHistorySaved = false;
         }
