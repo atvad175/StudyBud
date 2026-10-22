@@ -1,4 +1,4 @@
-import { getLocalDateKey } from '../../utils/localDateKey';
+import { getLocalDateKey } from '../../utils/localDateKey.js';
 
 const hasCompletedHabit = (dateLogs) =>
     Boolean(dateLogs && typeof dateLogs === 'object' && Object.values(dateLogs).some(
