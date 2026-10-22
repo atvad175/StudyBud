@@ -7,6 +7,7 @@ import { Plus, Trash2, Layers, AlertCircle, Box, Archive } from 'lucide-react';
 const COGNITIVE_TYPES = ['Memorize', 'Understand', 'Create', 'Solve', 'Review', 'Write', 'Practice'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FRICTIONS = ['Low', 'Medium', 'High'];
+const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 
 const TaskIntelligence = () => {
     const { tasks, createTask, deleteTask } = useTime();
@@ -17,7 +18,9 @@ const TaskIntelligence = () => {
         cognitive_type: 'Understand',
         difficulty: 'Medium',
         time_estimate: 30,
-        emotional_friction: 'Medium'
+        emotional_friction: 'Medium',
+        due_date: '',
+        priority: 'Medium'
     });
 
     const plannedTasks = tasks.filter(t => t.status === 'Planned');
@@ -42,8 +45,8 @@ const TaskIntelligence = () => {
         if (!form.title.trim()) return;
 
         try {
-            await createTask(form);
-            setForm(current => ({ ...current, title: '' }));
+            await createTask({ ...form, due_date: form.due_date || null });
+            setForm(current => ({ ...current, title: '', due_date: '' }));
             toast.success('Task saved.');
         } catch (error) {
             toast.error(error?.message || 'Task could not be saved. Please try again.');
@@ -122,6 +125,28 @@ const TaskIntelligence = () => {
                             </div>
                         </div>
 
+                        <div style={rowStyle}>
+                            <div style={{ flex: 1 }}>
+                                <label style={labelStyle}>Due Date (Optional)</label>
+                                <input
+                                    type="date"
+                                    value={form.due_date}
+                                    onChange={e => setForm({ ...form, due_date: e.target.value })}
+                                    style={inputStyle}
+                                />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={labelStyle}>Priority</label>
+                                <select
+                                    value={form.priority}
+                                    onChange={e => setForm({ ...form, priority: e.target.value })}
+                                    style={inputStyle}
+                                >
+                                    {PRIORITIES.map(priority => <option key={priority} value={priority}>{priority}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
                         <div>
                             <label style={labelStyle}>Time Estimate (Minutes)</label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -165,6 +190,8 @@ const TaskIntelligence = () => {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                     <span style={tagStyle}>{task.cognitive_type}</span>
                                     <span style={{ ...tagStyle, background: 'rgba(0,0,0,0.03)', fontWeight: '600' }}>{task.time_estimate}m</span>
+                                    {task.priority && <span style={{ ...tagStyle, background: 'rgba(0,0,0,0.03)' }}>{task.priority} priority</span>}
+                                    {task.due_date && <span style={{ ...tagStyle, background: 'rgba(0,0,0,0.03)' }}>Due {task.due_date}</span>}
                                 </div>
 
                                 <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f5f5f5', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#999' }}>
