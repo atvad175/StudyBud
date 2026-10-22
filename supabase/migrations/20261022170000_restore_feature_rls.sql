@@ -19,6 +19,12 @@ alter table public.mind_logs enable row level security;
 alter table public.mind_offload_items enable row level security;
 alter table public.mind_wins enable row level security;
 alter table public.tasks enable row level security;
+alter table public.user_onboarding enable row level security;
+alter table public.chat_history enable row level security;
+alter table public.profiles enable row level security;
+alter table public.focus_sessions enable row level security;
+alter table public.flashcard_decks enable row level security;
+alter table public.flashcards enable row level security;
 
 -- Subject and technique catalogues are shared reference data. They are readable
 -- by students, but no browser client should be able to edit them.
