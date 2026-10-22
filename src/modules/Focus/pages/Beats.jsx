@@ -172,17 +172,9 @@ const Beats = () => {
                                 </div>
 
                                 {isActive ? (
-                                    <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24 }}>
-                                        {[1, 2, 3, 2, 1].map((h, i) => (
-                                            <div key={i} style={{
-                                                width: 4,
-                                                borderRadius: 2,
-                                                backgroundColor: playlist.accentColor,
-                                                animation: `beatBar ${0.5 + i * 0.15}s ease-in-out infinite alternate`,
-                                                height: `${h * 6}px`,
-                                            }} />
-                                        ))}
-                                    </div>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: playlist.accentColor }}>
+                                        <Play size={16} aria-hidden="true" /> Selected
+                                    </span>
                                 ) : (
                                     <ChevronRight size={18} color="var(--color-text-secondary)" style={{ opacity: isHov ? 1 : 0, transition: 'opacity 0.2s' }} />
                                 )}
@@ -245,7 +237,7 @@ const Beats = () => {
                                         alignItems: 'center',
                                         gap: 4,
                                     }}>
-                                        <span style={{ fontSize: '1rem' }}>🎵</span> Playing on Spotify
+                                        <span style={{ fontSize: '1rem' }}>🎵</span> Playlist selected
                                     </span>
                                 )}
                             </div>
@@ -291,7 +283,7 @@ const Beats = () => {
                             <div style={{ fontWeight: 700, color: '#fff', fontSize: '1rem' }}>{activePlaylist.title}</div>
                             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
                                 <Headphones size={11} style={{ display: 'inline', marginRight: 4 }} />
-                                Streaming via Spotify
+                                Spotify playlist embed
                             </div>
                         </div>
                     </div>
