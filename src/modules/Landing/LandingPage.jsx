@@ -1,47 +1,66 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Brain, Users, Flame, Activity } from 'lucide-react';
+import { ArrowRight, Brain, Flame, Activity, BookOpenCheck, Timer, Target } from 'lucide-react';
 import LandingLayout from './LandingLayout';
 
 const LandingPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const observerOptions = {
-            threshold: 0.15,
-            rootMargin: '0px 0px -50px 0px',
-        };
+        const sections = document.querySelectorAll('.reveal-section');
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            sections.forEach((section) => {
+                section.classList.add('visible');
+                section.querySelectorAll('.stagger-item').forEach((item) => item.classList.add('visible'));
+            });
+            return undefined;
+        }
+
+        const timers = new Set();
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    const staggerChildren = entry.target.querySelectorAll('.stagger-item');
-                    staggerChildren.forEach((child, idx) => {
-                        setTimeout(() => child.classList.add('visible'), idx * 100);
-                    });
-                }
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('visible');
+                entry.target.querySelectorAll('.stagger-item').forEach((child, index) => {
+                    const timer = window.setTimeout(() => {
+                        child.classList.add('visible');
+                        timers.delete(timer);
+                    }, index * 75);
+                    timers.add(timer);
+                });
+                observer.unobserve(entry.target);
             });
-        }, observerOptions);
+        }, { threshold: 0.12, rootMargin: '0px 0px -35px 0px' });
 
-        document.querySelectorAll('.reveal-section').forEach((el) => observer.observe(el));
-
-        return () => observer.disconnect();
+        sections.forEach((section) => observer.observe(section));
+        return () => {
+            observer.disconnect();
+            timers.forEach((timer) => window.clearTimeout(timer));
+            timers.clear();
+        };
     }, []);
 
     return (
         <LandingLayout>
             <section className="landing-hero">
+                <div className="hero-badge fade-in-up" style={{ animationDelay: '0.05s' }}>
+                    <span className="pulse-dot" aria-hidden="true" />
+                    BUILT FOR SERIOUS STUDY, NOT BUSYWORK
+                </div>
+
                 <h1 className="hero-title fade-in-up" style={{ animationDelay: '0.15s' }}>
-                    Build discipline. <br />
-                    <span>Excel in your studies.</span> <br />
-                    <span className="text-gradient" style={{ fontStyle: 'italic' }}>
-                        Design your dream life.
-                    </span>
+                    Know what to study.
+                    <br />
+                    <span>Know how to improve.</span>
                 </h1>
 
-                <p className="hero-subtitle fade-in-up" style={{ animationDelay: '0.35s', maxWidth: '900px', margin: '0 auto', lineHeight: '1.6', fontSize: '1.1rem' }}>
-                    Study, focus, and build better routines in one place. StudyBud brings together subject-specific study strategies, flashcards, exam practice, focus tools, and small habits—so you know what to work on next and can see your progress over time.
+                <p className="hero-subtitle fade-in-up" style={{ animationDelay: '0.3s', maxWidth: '48rem', margin: '0 auto', lineHeight: '1.7' }}>
+                    StudyBud brings your subjects, revision, focus sessions, tasks and habits into one place. Choose your curriculum, practise active recall, and turn a crowded to-do list into a clear next step.
+                </p>
+                <p className="hero-board-note fade-in-up" style={{ animationDelay: '0.38s' }}>
+                    Personalise your setup for ICSE, ISC, IGCSE, CBSE or IB. You stay in control of your plan.
                 </p>
 
                 <div
@@ -65,10 +84,10 @@ const LandingPage = () => {
                     </button>
                     <button
                         type="button"
-                        onClick={() => document.getElementById('bento')?.scrollIntoView({ behavior: 'smooth' })}
+                        onClick={() => document.getElementById('bento')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}
                         className="btn-secondary large-btn"
                     >
-                        See what is inside
+                        Explore the toolkit
                     </button>
                 </div>
 
@@ -149,7 +168,7 @@ const LandingPage = () => {
                             color: '#fff',
                         }}
                     >
-                        Everything in one calm dashboard
+                        A clearer way to do the work
                     </h2>
                     <p
                         style={{
@@ -160,8 +179,8 @@ const LandingPage = () => {
                             lineHeight: 1.65,
                         }}
                     >
-                        Each part of StudyBud works together: your habits, your focus timer, your schedule, your
-                        mood, and your subjects — so you spend less time juggling apps and more time learning.
+                        Start with one useful action: plan a session, test what you remember, or break a task
+                        into smaller steps. Your progress and preferences stay connected as you use the workspace.
                     </p>
                 </div>
 
@@ -169,10 +188,11 @@ const LandingPage = () => {
                     <div className="bento-box bento-large stagger-item">
                         <div className="bento-content">
                             <Brain color="#C9883A" size={40} style={{ marginBottom: '1.25rem' }} />
-                            <h3 className="bento-title">AI Life & Skill Coach (Gemini)</h3>
+                            <h3 className="bento-title">Buddy, your study companion</h3>
                             <p className="bento-desc">
-                                Chat with an AI that coaches you on discipline, habits, and skill mastery. It asks
-                                the right questions so you cultivate a growth mindset and overcome your limits.
+                                Use Buddy to clarify a topic, plan a realistic next step, and reflect on what
+                                got done. AI suggestions are guidance to review—not a substitute for your teacher
+                                or official syllabus.
                             </p>
                         </div>
                         <div className="bento-visual">
@@ -194,23 +214,16 @@ const LandingPage = () => {
                     <div className="bento-box bento-medium stagger-item">
                         <div className="bento-content">
                             <Flame color="#FF5F56" size={32} style={{ marginBottom: '1rem' }} />
-                            <h3 className="bento-title">Tiny habits, clear streaks</h3>
+                            <h3 className="bento-title">Small habits, real consistency</h3>
                             <p className="bento-desc">
-                                Pick one small habit. Mark it done. Watch your streak grow. Small steps beat big
-                                plans you never start.
+                                Choose a habit that fits your day, record it when complete, and build a routine
+                                you can sustain. No need to make every day perfect.
                             </p>
                         </div>
                         <div className="bento-visual">
                             <div className="streak-mock">
-                                <div
-                                    style={{
-                                        fontSize: '2.75rem',
-                                        fontWeight: 700,
-                                        color: '#FF5F56',
-                                        fontFamily: 'Outfit, sans-serif',
-                                    }}
-                                >
-                                    42<span style={{ fontSize: '1rem' }}> days</span>
+                                <div className="streak-preview-label">
+                                    A habit, repeated
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px', marginTop: '10px' }}>
                                     {[1, 1, 1, 1, 1, 1, 0.5].map((val, i) => (
@@ -233,10 +246,10 @@ const LandingPage = () => {
                     <div className="bento-box bento-panoramic stagger-item">
                         <div className="bento-content" style={{ maxWidth: '520px' }}>
                             <Activity color="#5B8DEE" size={32} style={{ marginBottom: '1rem' }} />
-                            <h3 className="bento-title">Time and energy that fit you</h3>
+                            <h3 className="bento-title">A plan that fits your day</h3>
                             <p className="bento-desc">
-                                Note when you focus best. Plan harder work for those hours. StudyBud helps you
-                                match tasks to your real energy — not a perfect schedule you cannot keep.
+                                Map tasks to the time you actually have. Use a focus timer for the next block,
+                                then adjust the plan when school, activities or deadlines change.
                             </p>
                         </div>
                         <div
@@ -269,8 +282,9 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            <section className="reveal-section" style={{ padding: '2rem 1.5rem 4rem', maxWidth: '900px', margin: '0 auto' }}>
+            <section className="reveal-section board-section" style={{ padding: '2rem 1.5rem 4rem', maxWidth: '1100px', margin: '0 auto' }}>
                 <div className="landing-glass-panel stagger-item">
+                    <p className="board-section__eyebrow">MADE TO ADAPT TO YOUR CURRICULUM</p>
                     <h2
                         style={{
                             fontFamily: "'Cormorant Garamond', serif",
@@ -279,16 +293,16 @@ const LandingPage = () => {
                             color: '#fff',
                         }}
                     >
-                        Who is StudyBud for?
+                        Your curriculum. Your approach.
                     </h2>
                     <p style={{ marginBottom: '1rem', color: 'rgba(255,255,255,0.85)', lineHeight: 1.7 }}>
-                        StudyBud is for students and lifelong learners who want a calmer way to plan their work,
-                        practise what they learn, and build routines that last. Start with one task, use the tools
-                        that help, and grow your system as you go.
+                        Whether you follow ICSE, ISC, IGCSE, CBSE or IB, choose your board and grade during setup
+                        so StudyBud can use that context in your study workspace. Subject names and assessment
+                        requirements vary, so always follow your current syllabus and your teacher’s guidance.
                     </p>
                     <p style={{ margin: 0, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7 }}>
-                        Create an account to save your profile and study progress across sessions. StudyBud
-                        currently uses email-and-password sign-in; Google and Microsoft sign-in are not available yet.
+                        StudyBud brings together revision techniques, practice tools, focus sessions and habits.
+                        Create an account to save your own setup and progress across sessions.
                     </p>
                 </div>
             </section>
@@ -304,7 +318,7 @@ const LandingPage = () => {
                             lineHeight: 1.12,
                         }}
                     >
-                        Ready to design your dream life?
+                        Make your next study session count.
                     </h2>
                     <p
                         style={{
@@ -315,7 +329,7 @@ const LandingPage = () => {
                             lineHeight: 1.65,
                         }}
                     >
-                        Set up your profile in a few short steps. No credit card. Free while we are in beta.
+                        Choose your board, pick the subjects you are working on, and build a plan you can use today.
                     </p>
                     <button
                         type="button"
@@ -323,10 +337,10 @@ const LandingPage = () => {
                         className="btn-primary large-btn pulse-glow"
                         style={{ fontSize: '1.15rem', padding: '1.1rem 2.75rem' }}
                     >
-                        Create your free account
+                        Build my study space
                     </button>
                     <p style={{ marginTop: '1.75rem', fontSize: '0.95rem', color: 'rgba(255,255,255,0.65)' }}>
-                        Use your email to join the community — no complex setup required.
+                        Start with a short setup. You can adjust your preferences later.
                     </p>
                 </div>
             </section>

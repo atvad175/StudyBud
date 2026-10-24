@@ -362,3 +362,67 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+
+.subjectHint {
+    margin: 0 0 0.9rem;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.onboardingRoot :global(button:focus-visible),
+.onboardingRoot :global(input:focus-visible),
+.onboardingRoot :global(select:focus-visible),
+.onboardingRoot :global(textarea:focus-visible) {
+    outline: 3px solid rgba(183, 119, 45, 0.56);
+    outline-offset: 3px;
+}
+
+.onboardingRoot :global(.nav-btn-next:disabled) {
+    opacity: 0.56;
+}
+
+@media (max-width: 560px) {
+    .topBar {
+        padding: 1rem 1.1rem;
+    }
+
+    .main {
+        padding: 1.25rem 1rem 2rem;
+        justify-content: flex-start;
+    }
+
+    .inner {
+        max-width: 100%;
+    }
+
+    .progressSeg {
+        width: 22px;
+    }
+
+    .onboardingRoot :global(.hitech-input) {
+        padding: 0.95rem 1rem;
+        font-size: 1rem;
+    }
+
+    .navRow {
+        margin-top: 2rem;
+        gap: 0.6rem;
+    }
+
+    .onboardingRoot :global(.nav-btn-next) {
+        padding: 0.9rem 1.3rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .onboardingRoot *,
+    .onboardingRoot *::before,
+    .onboardingRoot *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
