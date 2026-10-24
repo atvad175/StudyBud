@@ -1,53 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
-
 /* Shared shell for landing + About / Features / Community */
 
 /* Dark shell only inside .landing-root — rest of app keeps cream body from index.css */
 .landing-root {
-    --landing-ink: #f5f1ea;
-    --landing-muted: rgba(245, 241, 234, 0.76);
-    --landing-accent: #e2a45b;
     min-height: 100vh;
-    background:
-        radial-gradient(ellipse at 50% 0%, rgba(139, 91, 43, 0.13), transparent 42rem),
-        #080807;
-    color: var(--landing-ink);
-    font-family: 'DM Sans', var(--font-sans, sans-serif);
-    overflow-x: clip;
+    background-color: #050505;
+    color: #f5f1ea;
+    font-family: var(--font-sans, 'Inter'), sans-serif;
+    overflow-x: hidden;
     position: relative;
-}
-
-.landing-root h1,
-.landing-root h2,
-.landing-root h3,
-.landing-root .landing-nav__logo {
-    font-family: 'Manrope', var(--font-serif, sans-serif);
-    letter-spacing: -0.045em;
-}
-
-.hero-board-note {
-    margin: 1rem auto 0;
-    color: rgba(245, 241, 234, 0.66);
-    font-size: 0.9rem;
-    letter-spacing: 0.01em;
-}
-
-.streak-preview-label {
-    color: #f0a6a0;
-    font-family: 'Manrope', sans-serif;
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    font-weight: 750;
-    letter-spacing: -0.045em;
-    line-height: 1.2;
-}
-
-.board-section__eyebrow {
-    margin-bottom: 0.8rem;
-    color: #e4ae6d !important;
-    font-size: 0.76rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
 }
 
 .landing-main {
@@ -837,76 +797,4 @@
     font-size: 0.9rem;
     position: relative;
     z-index: 10;
-}
-
-
-/* Robust reveal states: content remains readable without animation support. */
-.reveal-section.visible .stagger-item {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-
-.landing-root .btn-primary:focus-visible,
-.landing-root .btn-secondary:focus-visible,
-.landing-root .nav-link:focus-visible,
-.landing-root .landing-nav button:focus-visible {
-    outline: 3px solid rgba(226, 164, 91, 0.9);
-    outline-offset: 4px;
-}
-
-@media (max-width: 620px) {
-    .hero-badge {
-        margin-bottom: 1.35rem;
-        padding: 0.52rem 0.9rem;
-        font-size: 0.72rem;
-        letter-spacing: 0.04em;
-    }
-
-    .landing-hero {
-        padding-right: 1rem;
-        padding-left: 1rem;
-    }
-
-    .hero-title {
-        letter-spacing: -0.055em;
-    }
-
-    .hero-subtitle {
-        font-size: 1rem;
-    }
-
-    .hero-mockup {
-        padding: 1.25rem;
-        margin-top: 2.25rem;
-    }
-
-    .bento-box {
-        padding: 1.5rem;
-        border-radius: 23px;
-    }
-
-    .bento-panoramic {
-        min-height: 300px;
-    }
-
-    .board-section .landing-glass-panel {
-        padding: 1.4rem;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .landing-root *,
-    .landing-root *::before,
-    .landing-root *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
-    }
-
-    .landing-root .stagger-item,
-    .landing-root .fade-in-up {
-        opacity: 1 !important;
-        transform: none !important;
-    }
 }
