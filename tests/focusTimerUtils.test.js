@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    accountScopedFocusStorageKey,
     hydrateActiveFocusSession,
     remainingSeconds,
     stopwatchElapsedSeconds,
@@ -78,4 +79,18 @@ test('does not restore malformed session data or unsupported modes', () => {
     assert.equal(hydrateActiveFocusSession(null, 1000), null);
     assert.equal(hydrateActiveFocusSession({ version: 1, isActive: false, mode: 'TIMER' }, 1000), null);
     assert.equal(hydrateActiveFocusSession({ version: 1, isActive: true, mode: 'ALIEN' }, 1000), null);
+});
+
+
+test('focus recovery storage keys are unique per account and disabled without an owner', () => {
+    assert.equal(
+        accountScopedFocusStorageKey('studybud_active_focus_session_v1', 'student-a'),
+        'studybud_active_focus_session_v1_student-a'
+    );
+    assert.notEqual(
+        accountScopedFocusStorageKey('studybud_pending_focus_session_v1', 'student-a'),
+        accountScopedFocusStorageKey('studybud_pending_focus_session_v1', 'student-b')
+    );
+    assert.equal(accountScopedFocusStorageKey('studybud_active_focus_session_v1', null), null);
+    assert.equal(accountScopedFocusStorageKey('', 'student-a'), null);
 });
