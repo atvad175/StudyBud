@@ -45,13 +45,14 @@ const friendlyAuthError = (error) => {
 const LoginPage = () => {
     const { toast } = useToast();
     const location = useLocation();
-    const [mode, setMode] = useState(location.state?.mode || 'login');
+    const [mode, setMode] = useState(location.state?.mode === 'signup' ? 'signup' : 'login');
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState('');
+    const [formSuccess, setFormSuccess] = useState('');
 
     const switchMode = () => {
         if (isLoading) return;
@@ -60,6 +61,23 @@ const LoginPage = () => {
         setPassword('');
         setIsPasswordVisible(false);
         setFormError('');
+        setFormSuccess('');
+    };
+
+    const startPasswordReset = () => {
+        if (isLoading) return;
+        setMode('reset');
+        setPassword('');
+        setFormError('');
+        setFormSuccess('');
+    };
+
+    const returnToSignIn = () => {
+        if (isLoading) return;
+        setMode('login');
+        setPassword('');
+        setFormError('');
+        setFormSuccess('');
     };
 
     const handleSubmit = async (event) => {
@@ -67,8 +85,10 @@ const LoginPage = () => {
         if (isLoading) return;
 
         const normalizedEmail = email.trim();
-        if (!normalizedEmail || !password.trim()) {
-            setFormError('Enter your email address and password to continue.');
+        if (!normalizedEmail || (mode !== 'reset' && !password.trim())) {
+            setFormError(mode === 'reset'
+                ? 'Enter the email address associated with your account.'
+                : 'Enter your email address and password to continue.');
             return;
         }
         if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
@@ -86,9 +106,19 @@ const LoginPage = () => {
 
         setIsLoading(true);
         setFormError('');
+        setFormSuccess('');
         let navigatingAway = false;
 
         try {
+            if (mode === 'reset') {
+                const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+                    redirectTo: `${window.location.origin}/login`,
+                });
+                if (error) throw error;
+                setFormSuccess('If an account uses this email address, password reset instructions will be sent shortly.');
+                return;
+            }
+
             if (mode === 'login') {
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: normalizedEmail,
@@ -284,18 +314,20 @@ const LoginPage = () => {
 
                 <div className={styles.formPanel}>
                     <div className={styles.formTopline}>
-                        <span className={styles.formEyebrow}>{mode === 'login' ? 'YOUR SPACE IS READY' : 'LET’S GET YOU STARTED'}</span>
+                        <span className={styles.formEyebrow}>{mode === 'login' ? 'YOUR SPACE IS READY' : mode === 'signup' ? 'LET’S GET YOU STARTED' : 'ACCOUNT RECOVERY'}</span>
                         <span className={styles.secureLabel}><span /> Secure account</span>
                     </div>
 
                     <header className={styles.headingBlock}>
                         <h1 className={styles.heading}>
-                            {mode === 'login' ? 'Welcome back.' : 'Create your account.'}
+                            {mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Create your account.' : 'Reset your password.'}
                         </h1>
                         <p className={styles.subheading}>
                             {mode === 'login'
                                 ? 'Pick up where you left off.'
-                                : 'A few details, then we’ll set up your study space.'}
+                                : mode === 'signup'
+                                    ? 'A few details, then we’ll set up your study space.'
+                                    : 'Enter your email and we’ll send recovery instructions if an account matches it.'}
                         </p>
                     </header>
 
@@ -342,44 +374,51 @@ const LoginPage = () => {
                             />
                         </div>
 
-                        <div className={styles.inputGroup}>
-                            <div className={styles.labelRow}>
-                                <label className={styles.label} htmlFor="studybud-password">Password</label>
-                                <span className={styles.passwordHint}>{mode === 'signup' ? '8+ characters' : 'Your account password'}</span>
+                        {mode !== 'reset' && (
+                            <div className={styles.inputGroup}>
+                                <div className={styles.labelRow}>
+                                    <label className={styles.label} htmlFor="studybud-password">Password</label>
+                                    <span className={styles.passwordHint}>{mode === 'signup' ? '8+ characters' : 'Your account password'}</span>
+                                </div>
+                                <div className={styles.passwordField}>
+                                    <input
+                                        id="studybud-password"
+                                        type={isPasswordVisible ? 'text' : 'password'}
+                                        placeholder={mode === 'signup' ? 'Create a password' : 'Enter your password'}
+                                        value={password}
+                                        onChange={event => {
+                                            setPassword(event.target.value);
+                                            if (formError) setFormError('');
+                                        }}
+                                        className={styles.input}
+                                        autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                                        minLength={mode === 'signup' ? 8 : undefined}
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.passwordToggle}
+                                        onClick={() => setIsPasswordVisible(value => !value)}
+                                        aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+                                        aria-pressed={isPasswordVisible}
+                                        disabled={isLoading}
+                                    >
+                                        {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
-                            <div className={styles.passwordField}>
-                                <input
-                                    id="studybud-password"
-                                    type={isPasswordVisible ? 'text' : 'password'}
-                                    placeholder={mode === 'signup' ? 'Create a password' : 'Enter your password'}
-                                    value={password}
-                                    onChange={event => {
-                                        setPassword(event.target.value);
-                                        if (formError) setFormError('');
-                                    }}
-                                    className={styles.input}
-                                    autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                                    minLength={mode === 'signup' ? 8 : undefined}
-                                    required
-                                    disabled={isLoading}
-                                />
-                                <button
-                                    type="button"
-                                    className={styles.passwordToggle}
-                                    onClick={() => setIsPasswordVisible(value => !value)}
-                                    aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
-                                    aria-pressed={isPasswordVisible}
-                                    disabled={isLoading}
-                                >
-                                    {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
+                        )}
 
                         {formError && (
                             <div className={styles.formError} role="alert" aria-live="polite">
                                 <span className={styles.errorMark}>!</span>
                                 <span>{formError}</span>
+                            </div>
+                        )}
+                        {formSuccess && (
+                            <div className={styles.formSuccess} role="status" aria-live="polite">
+                                {formSuccess}
                             </div>
                         )}
 
@@ -391,11 +430,11 @@ const LoginPage = () => {
                             {isLoading ? (
                                 <>
                                     <span className={styles.spinner} aria-hidden="true" />
-                                    <span>{mode === 'login' ? 'Signing you in…' : 'Creating your account…'}</span>
+                                    <span>{mode === 'login' ? 'Signing you in…' : mode === 'signup' ? 'Creating your account…' : 'Sending instructions…'}</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>{mode === 'login' ? 'Sign in to StudyBud' : 'Create my account'}</span>
+                                    <span>{mode === 'login' ? 'Sign in to StudyBud' : mode === 'signup' ? 'Create my account' : 'Send reset instructions'}</span>
                                     <ArrowRight size={18} aria-hidden="true" />
                                 </>
                             )}
@@ -408,16 +447,35 @@ const LoginPage = () => {
                         )}
                     </form>
 
+                    {mode === 'login' && (
+                        <div className={styles.recoveryRow}>
+                            <button type="button" onClick={startPasswordReset} className={styles.toggleLink} disabled={isLoading}>
+                                Forgot password?
+                            </button>
+                        </div>
+                    )}
+
                     <div className={styles.modeSwitch}>
-                        <span>{mode === 'login' ? 'New to StudyBud?' : 'Already have an account?'}</span>
-                        <button
-                            type="button"
-                            onClick={switchMode}
-                            className={styles.toggleLink}
-                            disabled={isLoading}
-                        >
-                            {mode === 'login' ? 'Create account' : 'Sign in instead'}
-                        </button>
+                        {mode === 'reset' ? (
+                            <>
+                                <span>Remembered it?</span>
+                                <button type="button" onClick={returnToSignIn} className={styles.toggleLink} disabled={isLoading}>
+                                    Back to sign in
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <span>{mode === 'login' ? 'New to StudyBud?' : 'Already have an account?'}</span>
+                                <button
+                                    type="button"
+                                    onClick={switchMode}
+                                    className={styles.toggleLink}
+                                    disabled={isLoading}
+                                >
+                                    {mode === 'login' ? 'Create account' : 'Sign in instead'}
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     <p className={styles.legalText}>

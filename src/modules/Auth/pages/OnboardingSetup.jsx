@@ -7,10 +7,42 @@ import { useToast } from '../../../context/useToast';
 import styles from './OnboardingSetup.module.css';
 
 const SUBJECTS = [
-    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'History',
-    'English', 'Economics', 'Computer Science', 'Geography',
-    'Business', 'Art & Design', 'Music', 'Languages', 'Psychology',
+    'English', 'Mathematics', 'Science', 'Social Studies', 'Languages',
+    'Computer Science', 'Economics', 'Business Studies', 'Art & Design',
+    'Music', 'Physical Education', 'Psychology', 'Other elective',
 ];
+
+const BOARD_SUBJECTS = {
+    ICSE: [
+        'English Language', 'English Literature', 'Second Language', 'Mathematics',
+        'Physics', 'Chemistry', 'Biology', 'History & Civics', 'Geography',
+        'Computer Applications', 'Commercial Studies', 'Economic Applications',
+        'Art / Other Elective',
+    ],
+    ISC: [
+        'English', 'Second Language', 'Mathematics', 'Physics', 'Chemistry',
+        'Biology', 'Computer Science', 'Economics', 'Commerce', 'Accounts',
+        'History', 'Geography', 'Political Science', 'Psychology', 'Art / Other Elective',
+    ],
+    IGCSE: [
+        'English First Language', 'English as a Second Language', 'Mathematics',
+        'Additional Mathematics', 'Biology', 'Chemistry', 'Physics',
+        'Combined / Coordinated Sciences', 'Computer Science', 'ICT',
+        'Geography', 'History', 'Economics', 'Business Studies',
+        'Global Perspectives', 'Foreign Language', 'Art & Design',
+    ],
+    CBSE: [
+        'English', 'Hindi / Language', 'Mathematics', 'Science', 'Social Science',
+        'Computer Applications / IT', 'Economics', 'Business Studies',
+        'Art Education', 'Physical Education', 'Other elective',
+    ],
+    IB: [
+        'Language & Literature', 'Language Acquisition', 'Individuals & Societies',
+        'Sciences', 'Mathematics', 'The Arts', 'Design Technology',
+        'Computer Science', 'Global Politics', 'Economics', 'Other elective',
+    ],
+    Other: SUBJECTS,
+};
 
 const PROFESSIONS = [
     'Engineering', 'Medicine & Healthcare', 'Law', 'Finance & Banking',
@@ -33,12 +65,12 @@ const ATOM_OPTIONS = [
 ];
 
 const LEARNING_STYLES = [
-    { id: 'visual', label: 'Visual', desc: 'Diagrams and charts' },
-    { id: 'reading', label: 'Reading / writing', desc: 'Notes and summaries' },
-    { id: 'auditory', label: 'Listen and discuss', desc: 'Talk ideas through' },
-    { id: 'hands-on', label: 'Hands-on practice', desc: 'Learn by doing' },
-    { id: 'social', label: 'Study with others', desc: 'Groups and discussions' },
-    { id: 'solo', label: 'Solo deep work', desc: 'Quiet, independent focus' },
+    { id: 'diagrams', label: 'Diagrams & examples', desc: 'Visualise a concept' },
+    { id: 'summaries', label: 'Summaries & notes', desc: 'Condense the key ideas' },
+    { id: 'recall', label: 'Self-testing', desc: 'Recall before checking notes' },
+    { id: 'practice', label: 'Worked practice', desc: 'Solve problems step by step' },
+    { id: 'discussion', label: 'Discussion', desc: 'Explain ideas to someone' },
+    { id: 'quiet', label: 'Quiet study blocks', desc: 'Work independently' },
 ];
 
 const STRUGGLES = [
@@ -73,7 +105,9 @@ const OnboardingSetup = () => {
     const [isSaving, setIsSaving] = useState(false);
 
     const isSchoolStudent = role === 'School student';
-    const topicList = role === 'Working professional' ? PROFESSIONS : SUBJECTS;
+    const topicList = role === 'Working professional'
+        ? PROFESSIONS
+        : (isSchoolStudent && board ? (BOARD_SUBJECTS[board] || SUBJECTS) : SUBJECTS);
 
     const toggleValue = (value, setter) => {
         setter(current => current.includes(value)
@@ -223,7 +257,7 @@ const OnboardingSetup = () => {
             </header>
 
             <main className={styles.main}>
-                <div className={styles.inner}>
+                <div className={styles.inner} aria-live="polite">
                     {step === 1 && (
                         <section className="fade-in-up">
                             <p className="step-subtitle">STEP 1 OF 4 · YOUR PROFILE</p>
@@ -280,7 +314,17 @@ const OnboardingSetup = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '1rem', marginTop: '1.75rem' }}>
                                     <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                         <span>Board / curriculum</span>
-                                        <select value={board} onChange={event => setBoard(event.target.value)} className="hitech-input" required>
+                                        <select
+                                            value={board}
+                                            onChange={event => {
+                                                const nextBoard = event.target.value;
+                                                setBoard(nextBoard);
+                                                const nextOptions = BOARD_SUBJECTS[nextBoard] || SUBJECTS;
+                                                setFavTopics(current => current.filter(topic => nextOptions.includes(topic)));
+                                            }}
+                                            className="hitech-input"
+                                            required
+                                        >
                                             <option value="">Choose a board</option>
                                             {BOARDS.map(option => <option key={option} value={option}>{option}</option>)}
                                         </select>
@@ -296,7 +340,8 @@ const OnboardingSetup = () => {
                             )}
 
                             <div style={{ marginTop: '1.75rem' }}>
-                                <p style={{ marginBottom: '0.75rem' }}>Choose your subjects or areas</p>
+                                <p style={{ marginBottom: '0.35rem', fontWeight: 650 }}>Choose subjects on your current syllabus</p>
+                                <p className={styles.subjectHint}>Suggestions are a starting point; subject names and options vary by grade, school and syllabus.</p>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                                     {topicList.map(topic => (
                                         <button
@@ -343,7 +388,7 @@ const OnboardingSetup = () => {
                             </div>
 
                             <div style={{ marginTop: '1.5rem' }}>
-                                <p style={{ marginBottom: '0.75rem' }}>How do you prefer to learn?</p>
+                                <p style={{ marginBottom: '0.75rem', fontWeight: 650 }}>Which study formats do you find useful?</p>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '0.75rem' }}>
                                     {LEARNING_STYLES.map(option => (
                                         <button
