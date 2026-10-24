@@ -14,11 +14,11 @@ test('private feature providers are remounted when the signed-in account changes
     assert.notEqual(identityBoundary, -1);
 
     const privateProviders = [
-        '<HabitsProvider>',
-        '<FocusProvider>',
-        '<TimeProvider>',
-        '<MindProvider>',
-        '<StudyProvider>',
+        '<HabitsProvider key={session?.user?.id || \'signed-out\'}>',
+        '<FocusProvider key={session?.user?.id || \'signed-out\'}>',
+        '<TimeProvider key={session?.user?.id || \'signed-out\'}>',
+        '<MindProvider key={session?.user?.id || \'signed-out\'}>',
+        '<StudyProvider key={session?.user?.id || \'signed-out\'}>',
         '<ToastProvider>',
     ];
 
