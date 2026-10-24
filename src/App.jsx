@@ -329,16 +329,16 @@ const App = () => {
   }
 
   return (
-    <AIProvider key={session?.user?.id || 'signed-out'}>
-      <MusicProvider key={session?.user?.id || 'signed-out'}>
-        <HabitsProvider>
-          <FocusProvider>
-            <TimeProvider>
-              <MindProvider>
-                <StudyProvider>
-                  <ToastProvider>
-                  <BrowserRouter>
-                    <Routes>
+    <BrowserRouter>
+      <AIProvider key={session?.user?.id || 'signed-out'}>
+        <MusicProvider key={session?.user?.id || 'signed-out'}>
+          <HabitsProvider key={session?.user?.id || 'signed-out'}>
+            <FocusProvider key={session?.user?.id || 'signed-out'}>
+              <TimeProvider key={session?.user?.id || 'signed-out'}>
+                <MindProvider key={session?.user?.id || 'signed-out'}>
+                  <StudyProvider key={session?.user?.id || 'signed-out'}>
+                    <ToastProvider>
+                      <Routes>
                       {/* Public Landing */}
                       <Route path="/landing" element={<LandingPage />} />
                       <Route path="/about" element={<AboutPage />} />
@@ -403,16 +403,16 @@ const App = () => {
                           <Route path="flashcards" element={<Flashcards />} />
                         </Route>
                       </Route>
-                    </Routes>
-                  </BrowserRouter>
-                  </ToastProvider>
-                </StudyProvider>
-              </MindProvider>
-            </TimeProvider>
-          </FocusProvider>
-        </HabitsProvider>
-      </MusicProvider>
-    </AIProvider>
+                      </Routes>
+                    </ToastProvider>
+                  </StudyProvider>
+                </MindProvider>
+              </TimeProvider>
+            </FocusProvider>
+          </HabitsProvider>
+        </MusicProvider>
+      </AIProvider>
+    </BrowserRouter>
   );
 };
 
