@@ -3,21 +3,21 @@ import { NavLink } from 'react-router-dom';
 import { Plus, Target, BookOpen, Trophy, Flame, CheckCircle, TrendingUp } from 'lucide-react';
 import { useHabits } from '../../../context/useHabits';
 import styles from './HabitsMenu.module.css';
+import { getCurrentHabitStreak } from '../habitStats.js';
 
 const HabitsMenu = () => {
-    const { atoms, getTodayLog, getTotalWins } = useHabits();
+    const { atoms, logs, getTodayLog, getTotalWins } = useHabits();
 
     const stats = useMemo(() => {
         const totalAtoms = atoms.length;
         const todayLog = getTodayLog();
         const completedToday = Object.values(todayLog).filter(l => l.status === 'completed' || l.completed).length;
 
-        // Mocking streak for dashboard
-        const streak = completedToday > 0 ? 1 : 0;
+        const streak = getCurrentHabitStreak(logs);
         const totalWins = getTotalWins();
 
         return { totalAtoms, completedToday, streak, totalWins };
-    }, [atoms, getTodayLog, getTotalWins]);
+    }, [atoms, logs, getTodayLog, getTotalWins]);
 
     return (
         <div className={styles.container}>

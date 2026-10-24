@@ -140,7 +140,12 @@ export const MindProvider = ({ children }) => {
                 if (failed?.error) throw failed.error;
                 setLogs(results[0].data || []);
                 setOffloadItems(results[1].data || []);
-                setWins(results[2].data || []);
+                // Positive Affect renders entry.date; the database stores created_at.
+                // Normalise restored wins to the same shape as newly saved wins.
+                setWins((results[2].data || []).map(win => ({
+                    ...win,
+                    date: win.date || win.created_at,
+                })));
             } catch (error) {
                 console.error('Error fetching Mind data:', error?.code || 'unknown');
                 setLoadError('Saved Mind data could not be loaded. Your entries have not been deleted; refresh to try again.');

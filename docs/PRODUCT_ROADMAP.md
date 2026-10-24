@@ -122,3 +122,22 @@ If only the feeling is clear ("the Study section feels dead", "signup feels clun
 Draft PR: https://github.com/atvad175/StudyBud/pull/1
 
 This PR is not a production release. Do not merge it until CI is green and its Supabase migrations have been tested safely.
+
+
+## Stabilization batch — 2026-10-22
+
+- [x] Make Habits and Time load failures visible instead of indistinguishable from an empty account.
+- [x] Add a retryable saved-data error notice to feature routes.
+- [x] Prepare an RLS restoration migration and automated SQL guardrail tests.
+- [ ] CI, preview-browser smoke tests and two-account RLS tests must pass before production promotion.
+- [ ] Reconcile database-only migration history with checked-in `supabase/migrations` files.
+
+
+## Stabilization batch — user-visible truth and saved progress (2026-10-22)
+
+- [x] Replace the mock habit streak with a consecutive-day calculation based on saved logs and test its gap/today behaviour.
+- [x] Remove fake participant counts/activity from Study Rooms and state that rooms are local-only until real multiplayer sync exists.
+- [x] Use one Spotify iframe, stop playback by unloading the embed, and avoid claiming the app knows Spotify is playing or paused.
+- [x] Prevent duplicate task creation on repeated submits.
+- [ ] After code checks pass, verify the two database migrations on a separate project and test CRUD/owner isolation using two signed-in users.
+- [ ] Exercise signup/login/onboarding; Habits create/complete/delete; Time task create/edit/complete/delete; Study assignment/flashcard/exam save; Mind save/delete; and Focus timer/save/retry on desktop and mobile preview.

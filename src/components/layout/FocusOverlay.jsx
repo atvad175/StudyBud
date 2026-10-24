@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Play, Pause, X, Music, Timer, ChevronUp, ChevronDown, Minimize2, Maximize2, Headphones } from 'lucide-react';
+import { Play, Pause, X, Music, Timer, Minimize2, Headphones } from 'lucide-react';
 import { useFocus } from '../../context/useFocus';
 import { useMusic } from '../../context/useMusic';
 
 const FocusOverlay = () => {
     const { isActive, timeLeft, formatTime, isPaused, resumeSession, pauseSession, stopSession, category } = useFocus();
-    const { activePlaylist, isPlaying, togglePlay, stopMusic } = useMusic();
+    const { activePlaylist, stopMusic } = useMusic();
     const [isMinimized, setIsMinimized] = useState(false);
     const isVisible = isActive || Boolean(activePlaylist);
 
@@ -47,13 +47,13 @@ const FocusOverlay = () => {
                         </div>
                     ) : (
                         <div style={{ color: '#C9883A' }}>
-                            <Music size={24} style={{ animation: isPlaying ? 'rotate 4s linear infinite' : 'none' }} />
+                            <Music size={24} />
                         </div>
                     )}
                     {/* Activity dot */}
                     <div style={{
                         position: 'absolute', top: '15px', right: '15px', width: '8px', height: '8px',
-                        borderRadius: '50%', background: isPlaying || (isActive && !isPaused) ? '#4CAF50' : '#FF9800',
+                        borderRadius: '50%', background: isActive && !isPaused ? '#4CAF50' : '#FF9800',
                         border: '2px solid white'
                     }} />
                 </div>
@@ -77,7 +77,7 @@ const FocusOverlay = () => {
                                     Focus Hub
                                 </div>
                                 <div style={{ fontSize: '0.65rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>
-                                    {isActive ? 'Session Active' : 'Music Playing'}
+                                    {isActive ? 'Session Active' : 'Playlist Selected'}
                                 </div>
                             </div>
                         </div>
@@ -156,15 +156,18 @@ const FocusOverlay = () => {
                                         {activePlaylist.title}
                                     </div>
                                     <div style={{ fontSize: '0.7rem', color: '#666', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isPlaying ? '#1DB954' : '#ccc' }} />
-                                        Spotify Stream
+                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C9883A' }} />
+                                        Spotify player
                                     </div>
                                 </div>
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); togglePlay(activePlaylist); }}
+                                <button
+                                    type="button"
+                                    aria-label="Stop selected playlist"
+                                    title="Stop selected playlist"
+                                    onClick={(e) => { e.stopPropagation(); stopMusic(); }}
                                     style={{ background: 'white', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#C9883A', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
                                 >
-                                    {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                                    <X size={18} />
                                 </button>
                             </div>
                             

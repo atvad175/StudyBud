@@ -27,7 +27,7 @@ jobs:
       - name: Check serverless API syntax
         run: node --check api/ai.js
 
-      - name: Test AI provider fallback behavior
+      - name: Run Node regression tests
         run: npm test
 
       - name: Lint new AI and onboarding code
