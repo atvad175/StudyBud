@@ -19,7 +19,7 @@ const formatDate = (value) => {
 
 const StudyDashboard = () => {
     const {
-        techniques = [], assignments = [], practiceLogs = [], reviews = [],
+        assignments = [], practiceLogs = [], reviews = [],
         loading = false, loadError = ''
     } = useStudy();
 
@@ -33,11 +33,11 @@ const StudyDashboard = () => {
             ? item.steps.filter(step => step?.done || step?.completed).length : 0), 0),
         [assignments]
     );
-    const dueReviews = useMemo(() => reviews.filter(review => {
+    const dueReviews = reviews.filter(review => {
         if (!review?.next_review_date) return false;
         const date = new Date(review.next_review_date);
         return !Number.isNaN(date.getTime()) && date <= now;
-    }), [reviews, now.toDateString()]);
+    });
     const latestPractice = useMemo(() => [...practiceLogs]
         .sort((a, b) => new Date(b?.created_at || 0).getTime() - new Date(a?.created_at || 0).getTime())
         .slice(0, 3), [practiceLogs]);
