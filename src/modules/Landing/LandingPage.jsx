@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Brain, Flame, Activity, BookOpenCheck, Timer, Target } from 'lucide-react';
+import { ArrowRight, Brain, Flame, Activity } from 'lucide-react';
 import LandingLayout from './LandingLayout';
 
 const LandingPage = () => {

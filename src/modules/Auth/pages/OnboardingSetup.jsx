@@ -65,12 +65,12 @@ const ATOM_OPTIONS = [
 ];
 
 const LEARNING_STYLES = [
-    { id: 'visual', label: 'Visual', desc: 'Diagrams and charts' },
-    { id: 'reading', label: 'Reading / writing', desc: 'Notes and summaries' },
-    { id: 'auditory', label: 'Listen and discuss', desc: 'Talk ideas through' },
-    { id: 'hands-on', label: 'Hands-on practice', desc: 'Learn by doing' },
-    { id: 'social', label: 'Study with others', desc: 'Groups and discussions' },
-    { id: 'solo', label: 'Solo deep work', desc: 'Quiet, independent focus' },
+    { id: 'diagrams', label: 'Diagrams & examples', desc: 'Visualise a concept' },
+    { id: 'summaries', label: 'Summaries & notes', desc: 'Condense the key ideas' },
+    { id: 'recall', label: 'Self-testing', desc: 'Recall before checking notes' },
+    { id: 'practice', label: 'Worked practice', desc: 'Solve problems step by step' },
+    { id: 'discussion', label: 'Discussion', desc: 'Explain ideas to someone' },
+    { id: 'quiet', label: 'Quiet study blocks', desc: 'Work independently' },
 ];
 
 const STRUGGLES = [
