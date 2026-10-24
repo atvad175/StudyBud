@@ -95,10 +95,6 @@ const LoginPage = () => {
             setFormError('Enter a valid email address.');
             return;
         }
-        if (!/^\\S+@\\S+\\.\\S+$/.test(normalizedEmail)) {
-            setFormError('Enter a valid email address.');
-            return;
-        }
         if (mode === 'signup' && !fullName.trim()) {
             setFormError('Enter your name so we know what to call you.');
             return;
