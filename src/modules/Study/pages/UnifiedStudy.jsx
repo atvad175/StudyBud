@@ -11,9 +11,12 @@ import {
     Layers,
     ClipboardList,
     CalendarClock,
+    TrendingUp,
+    CheckCircle2,
 } from 'lucide-react';
 import styles from '../StudyShared.module.css';
 import { useStudy } from '../../../context/useStudy';
+import { getStudyAnalytics } from '../studyPlannerUtils';
 
 const QUICK_ACTIONS = [
     {
@@ -33,6 +36,15 @@ const QUICK_ACTIONS = [
         path: '/study/exams',
         icon: Target,
         tone: 'green',
+    },
+    {
+        id: 'planner',
+        title: 'Plan today’s study',
+        description: 'Turn deadlines, due reviews and weak topics into a realistic schedule.',
+        label: 'Build my plan',
+        path: '/study/plan',
+        icon: CalendarClock,
+        tone: 'gold',
     },
     {
         id: 'assignments',
@@ -135,6 +147,8 @@ const UnifiedStudy = () => {
             return Number.isFinite(timestamp) && timestamp <= Date.now();
         })
         .sort((a, b) => new Date(a.next_review_date) - new Date(b.next_review_date)), [reviews]);
+
+    const analytics = useMemo(() => getStudyAnalytics(practiceLogs), [practiceLogs]);
 
     const dueReviewCount = dueReviewItems.length;
     const openAssignments = useMemo(() => assignments
@@ -267,6 +281,118 @@ const UnifiedStudy = () => {
                     <span className={styles.hubStatIcon}><CalendarClock size={17} aria-hidden="true" /></span>
                     <span className={styles.hubStatValue}>{loading ? '—' : dueReviewCount}</span>
                     <span className={styles.hubStatLabel}>{formatCount(dueReviewCount, 'review due', 'reviews due')}</span>
+                </div>
+            </section>
+
+            <section className={styles.hubInsights} aria-label="Study performance overview">
+                <div className={styles.hubInsightsHeading}>
+                    <div>
+                        <span className={styles.hubEyebrow}>PROGRESS THAT MEANS SOMETHING</span>
+                        <h2>Your learning signals</h2>
+                        <p className={styles.hubSectionDescription}>A clear view of recent practice, not just how many times you opened a tool.</p>
+                    </div>
+                    <button type="button" className={styles.hubInsightsLink} onClick={() => navigate('/study/plan')}>
+                        Turn insights into a plan <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                </div>
+
+                <div className={styles.hubInsightMetrics}>
+                    <article className={styles.hubInsightMetric}>
+                        <span>Average assessment</span>
+                        <strong>{loading ? '—' : analytics.averageScore === null ? '—' : analytics.averageScore + '%'}</strong>
+                        <small>{analytics.assessmentCount ? 'Across scored practice and Feynman sessions' : 'Complete a quiz or Feynman session to start'}</small>
+                    </article>
+                    <article className={styles.hubInsightMetric}>
+                        <span>Scored sessions</span>
+                        <strong>{loading ? '—' : analytics.assessmentCount}</strong>
+                        <small>Saved results with a usable score</small>
+                    </article>
+                    <article className={styles.hubInsightMetric}>
+                        <span>This week</span>
+                        <strong>{loading ? '—' : analytics.activityLastSevenDays}</strong>
+                        <small>Study records saved in the last seven days</small>
+                    </article>
+                    <article className={styles.hubInsightMetric}>
+                        <span>Latest result</span>
+                        <strong>{loading ? '—' : analytics.latestAssessment ? analytics.latestAssessment.score + '%' : '—'}</strong>
+                        <small>
+                            {analytics.scoreChange === null
+                                ? 'One result starts your trend'
+                                : `${analytics.scoreChange > 0 ? '+' : ''}${analytics.scoreChange} points vs. previous result`}
+                        </small>
+                    </article>
+                </div>
+
+                <div className={styles.hubInsightColumns}>
+                    <article className={styles.hubInsightPanel}>
+                        <div className={styles.hubInsightPanelHead}>
+                            <div>
+                                <h3>Subjects to strengthen</h3>
+                                <p>Based on your saved scored attempts.</p>
+                            </div>
+                            <TrendingUp size={18} aria-hidden="true" />
+                        </div>
+                        {analytics.subjectPerformance.length > 0 ? (
+                            <div className={styles.hubSubjectPerformance}>
+                                {analytics.subjectPerformance.slice(0, 4).map(subject => (
+                                    <div className={styles.hubPerformanceRow} key={subject.subject}>
+                                        <div className={styles.hubPerformanceLabel}>
+                                            <span>{subject.subject}</span>
+                                            <strong>{subject.averageScore}%</strong>
+                                        </div>
+                                        <div className={styles.hubPerformanceTrack} role="progressbar" aria-valuenow={subject.averageScore} aria-valuemin={0} aria-valuemax={100} aria-label={subject.subject + ' average score'}>
+                                            <span style={{ width: subject.averageScore + '%' }} />
+                                        </div>
+                                        <small>{subject.attempts} scored session{subject.attempts === 1 ? '' : 's'}</small>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={styles.hubInsightEmpty}>
+                                <p>Your subject insights appear after you save a practice exam or Feynman assessment.</p>
+                                <button type="button" onClick={() => navigate('/study/exams')}>Start a quiz <ArrowRight size={14} /></button>
+                            </div>
+                        )}
+                        {analytics.weakestSubject && (
+                            <button
+                                type="button"
+                                className={styles.hubWeakSubjectAction}
+                                onClick={() => {
+                                    localStorage.setItem('studybud_selected_subject', analytics.weakestSubject.subject);
+                                    navigate('/study/exams');
+                                }}
+                            >
+                                Practise {analytics.weakestSubject.subject} next <ArrowRight size={14} aria-hidden="true" />
+                            </button>
+                        )}
+                    </article>
+
+                    <article className={styles.hubInsightPanel}>
+                        <div className={styles.hubInsightPanelHead}>
+                            <div>
+                                <h3>Recent assessments</h3>
+                                <p>Keep the result and next step together.</p>
+                            </div>
+                            <CheckCircle2 size={18} aria-hidden="true" />
+                        </div>
+                        {analytics.recentAssessments.length > 0 ? (
+                            <div className={styles.hubRecentAssessments}>
+                                {analytics.recentAssessments.slice(0, 4).map(attempt => (
+                                    <div className={styles.hubRecentAssessment} key={String(attempt.id) + attempt.subject}>
+                                        <div>
+                                            <strong>{attempt.subject}</strong>
+                                            <span>{attempt.kind}{attempt.date ? ' · ' + new Date(attempt.date).toLocaleDateString() : ''}</span>
+                                        </div>
+                                        <b>{attempt.score}%</b>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={styles.hubInsightEmpty}>
+                                <p>No scored sessions yet. Your first saved practice result becomes the baseline.</p>
+                            </div>
+                        )}
+                    </article>
                 </div>
             </section>
 
