@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, BookOpen, Clock, ChevronLeft, Check, X } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import { getFlashcardNextReviewDate } from '../studyPlannerUtils.js';
 import { useToast } from '../../../context/useToast';
 
 const Flashcards = () => {
@@ -295,26 +296,25 @@ const Flashcards = () => {
         }
     };
 
-    const handleRateCard = async (isEasy) => {
+    const handleRateCard = async rating => {
         const currentCard = studyQueue[currentStudyIndex];
         if (!currentCard || isSaving) return;
 
-        const nextReview = new Date();
-        if (isEasy) nextReview.setDate(nextReview.getDate() + 3);
-        else nextReview.setHours(nextReview.getHours() + 1);
-
-        const nextReviewDate = nextReview.toISOString();
+        const nextReviewDate = getFlashcardNextReviewDate(rating);
         setIsSaving(true);
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError || !user) throw new Error('Sign in to save your review progress.');
 
-            const { error } = await supabase
+            const { data: savedCard, error } = await supabase
                 .from('flashcards')
                 .update({ next_review_date: nextReviewDate })
                 .eq('id', currentCard.id)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!savedCard) throw new Error('Your review rating was not saved. Refresh and try again.');
 
             setData(previous => ({
                 ...previous,
@@ -330,7 +330,7 @@ const Flashcards = () => {
                 setIsFlipped(false);
             } else {
                 setViewMode('DECK_VIEW');
-                toast.success('Review complete. Your next review times are saved.');
+                toast.success('Review complete. Your four-level ratings and next review times are saved.');
             }
         } catch (error) {
             toast.error(error?.message || 'Your review progress could not be saved. Please try again.');
