@@ -14,7 +14,7 @@ const EXAM_TYPES = [
 ];
 
 const ExamsPrep = () => {
-    const { practiceLogs, logPractice } = useStudy();
+    const { practiceLogs, logPractice, scheduleReview } = useStudy();
     const { toast } = useToast();
     const [mode, setMode] = useState('dashboard'); // dashboard, config, exam, review
     const [activeExam, setActiveExam] = useState(null);
@@ -115,13 +115,34 @@ const ExamsPrep = () => {
             tags: ['practice-exam', 'ai-generated', activeExam.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')],
         };
 
-        void logPractice(record)
-            .then(() => toast.success('Practice result saved to your Study history.'))
-            .catch((error) => {
-                console.error('Unable to save practice result:', error);
+        void (async () => {
+            try {
+                await logPractice(record);
+                toast.success('Practice result saved to your Study history.');
+            } catch (error) {
+                console.error('Unable to save practice result:', error?.code || 'unknown');
                 toast.error('Your exam is complete, but its result could not be saved. Please check your connection.');
-            });
-    }, [activeExam, aiTopic, examQuestions, logPractice, toast, userAnswers]);
+                return;
+            }
+
+            // Put the topic back into the learner's review queue based on the result.
+            const intervalDays = percentage < 60 ? 1 : percentage < 80 ? 3 : 7;
+            const nextReview = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000);
+            try {
+                await scheduleReview({
+                    content: 'Practice exam review — ' + topicTitle,
+                    subject: topicTitle,
+                    next_review_date: nextReview.toISOString(),
+                    interval_days: intervalDays,
+                    review_count: 0,
+                });
+                toast.info('A follow-up review is scheduled in ' + intervalDays + ' day' + (intervalDays === 1 ? '' : 's') + '.');
+            } catch (error) {
+                console.error('Unable to schedule the follow-up review:', error?.code || 'unknown');
+                toast.error('The result was saved, but the follow-up review could not be scheduled.');
+            }
+        })();
+    }, [activeExam, aiTopic, examQuestions, logPractice, scheduleReview, toast, userAnswers]);
 
     // Timer expiry uses the same guarded submit path as the manual button.
     useEffect(() => {
