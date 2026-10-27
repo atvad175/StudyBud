@@ -47,7 +47,7 @@ const StudyPlanner = () => {
     const [budgetMinutes, setBudgetMinutes] = useState(90);
     const [busyId, setBusyId] = useState('');
     const [isSavingPlan, setIsSavingPlan] = useState(false);
-    const now = new Date();
+    const [now] = useState(() => new Date());
 
     const plan = useMemo(() => buildDailyStudyPlan({
         assignments,
@@ -55,7 +55,7 @@ const StudyPlanner = () => {
         practiceLogs,
         now,
         budgetMinutes,
-    }), [assignments, reviews, practiceLogs, budgetMinutes]);
+    }), [assignments, reviews, practiceLogs, budgetMinutes, now]);
 
     const dueReviews = reviews.filter(review => {
         const timestamp = review?.next_review_date ? new Date(review.next_review_date).getTime() : NaN;
