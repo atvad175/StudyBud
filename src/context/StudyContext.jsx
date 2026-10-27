@@ -362,12 +362,14 @@ export const StudyProvider = ({ children }) => {
 
     // Load Data
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
             setLoading(true);
             setLoadError('');
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw authError;
+                if (!active) return;
 
                 const emptyPrivateResult = Promise.resolve({ data: [], error: null });
                 const results = await Promise.all([
@@ -384,6 +386,7 @@ export const StudyProvider = ({ children }) => {
                         : emptyPrivateResult,
                 ]);
 
+                if (!active) return;
                 const privateQueryFailed = results.slice(2).some(result => Boolean(result.error));
                 const publicQueryFailed = results.slice(0, 2).some(result => Boolean(result.error));
 
@@ -414,12 +417,13 @@ export const StudyProvider = ({ children }) => {
                 }
             } catch (error) {
                 console.error('Error fetching Study data:', error?.code || 'unknown');
-                setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
+                if (active) setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-        fetchData();
+        void fetchData();
+        return () => { active = false; };
     }, []);
 
     return (
