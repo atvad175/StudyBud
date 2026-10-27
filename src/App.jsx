@@ -288,11 +288,11 @@ const App = () => {
   return (
     <AIProvider key={session?.user?.id || 'signed-out'}>
       <MusicProvider>
-        <HabitsProvider>
-          <FocusProvider>
-            <TimeProvider>
-              <MindProvider>
-                <StudyProvider>
+        <HabitsProvider key={session?.user?.id || 'signed-out'}>
+          <FocusProvider key={session?.user?.id || 'signed-out'}>
+            <TimeProvider key={session?.user?.id || 'signed-out'}>
+              <MindProvider key={session?.user?.id || 'signed-out'}>
+                <StudyProvider key={session?.user?.id || 'signed-out'}>
                   <ToastProvider>
                   <BrowserRouter>
                     <Routes>
