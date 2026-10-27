@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, BookOpen, Clock, ChevronLeft, Check, X } from 'lucide-react';
+import { Layers, Plus, BookOpen, Clock, ChevronLeft, X } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import { getFlashcardNextReviewDate } from '../studyPlannerUtils.js';
 import { useToast } from '../../../context/useToast';
@@ -627,22 +627,25 @@ const Flashcards = () => {
                         </div>
                     </div>
 
-                    {/* Rating Actions */}
-                    <div style={{ display: 'flex', gap: '1rem', opacity: isFlipped ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: isFlipped ? 'auto' : 'none' }}>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); handleRateCard(false); }}
-                            disabled={isSaving}
-                            style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', border: '1px solid #ffcdd2', backgroundColor: '#ffebee', color: '#c62828', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                        >
-                            Hard <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>(Review soon)</span>
-                        </button>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); handleRateCard(true); }}
-                            disabled={isSaving}
-                            style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', border: '1px solid #c8e6c9', backgroundColor: '#e8f5e9', color: '#2e7d32', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                        >
-                            <Check size={20} /> Easy <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>(in 3 days)</span>
-                        </button>
+                    {/* Four recall ratings map to distinct, persisted review intervals. */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.65rem', opacity: isFlipped ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: isFlipped ? 'auto' : 'none' }}>
+                        {[
+                            { id: 'again', label: 'Again', delay: '10 min', color: '#b33b35', background: '#fff0ee', border: '#f1c2bd' },
+                            { id: 'hard', label: 'Hard', delay: '1 day', color: '#8a5a20', background: '#fff7e9', border: '#ebd2a6' },
+                            { id: 'good', label: 'Good', delay: '3 days', color: '#456948', background: '#edf7ed', border: '#c7e3c8' },
+                            { id: 'easy', label: 'Easy', delay: '7 days', color: '#315f86', background: '#eef6fc', border: '#c7deef' },
+                        ].map(rating => (
+                            <button
+                                key={rating.id}
+                                type="button"
+                                onClick={event => { event.stopPropagation(); void handleRateCard(rating.id); }}
+                                disabled={isSaving}
+                                style={{ minWidth: 0, padding: '0.85rem 0.45rem', borderRadius: '14px', border: '1px solid ' + rating.border, backgroundColor: rating.background, color: rating.color, fontSize: '0.95rem', fontWeight: 750, cursor: isSaving ? 'wait' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            >
+                                <span>{rating.label}</span>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 500 }}>{rating.delay}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
