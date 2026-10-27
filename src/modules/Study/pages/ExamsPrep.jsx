@@ -151,8 +151,11 @@ const ExamsPrep = () => {
     };
 
     const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
+        const input = e.target;
+        const file = input.files?.[0];
         if (!file) return;
+        // Let students select the same file again after correcting an extraction issue.
+        input.value = '';
 
         // Limit size to 1MB. Tell user to compress if it's too big since we rely on file size.
         if (file.size > 1024 * 1024) { // 1MB
@@ -163,7 +166,10 @@ const ExamsPrep = () => {
 
         try {
             const content = await extractTextFromFile(file);
-            
+            if (typeof content !== 'string' || !content.trim()) {
+                throw new Error('No readable text was found in this file. Try a text-based PDF or DOCX document.');
+            }
+
             // Limit payload size to AI to prevent Payload Too Large
             const CHAR_LIMIT = 50000;
             const finalContent = content.length > CHAR_LIMIT ? content.substring(0, CHAR_LIMIT) + '\n\n[TEXT TRUNCATED DUE TO AI LIMITS]' : content;
