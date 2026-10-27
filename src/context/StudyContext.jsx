@@ -293,15 +293,20 @@ export const StudyProvider = ({ children }) => {
     };
 
     const updateAssignment = async (id, updates) => {
-        const previous = assignments.find(item => item.id === id);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to update assignments.');
+
+        const previous = assignments.find(item => String(item.id) === String(id));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That assignment is not available in this account. Refresh and try again.');
+        }
+
         const safeUpdates = { ...updates };
         delete safeUpdates.id;
         delete safeUpdates.user_id;
-        setAssignments(prev => prev.map(item => item.id === id ? { ...item, ...safeUpdates } : item));
+        setAssignments(prev => prev.map(item => String(item.id) === String(id) ? { ...item, ...safeUpdates } : item));
 
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) throw new Error('Sign in to update assignments.');
             const { data, error } = await supabase
                 .from('study_assignments')
                 .update(safeUpdates)
@@ -312,8 +317,35 @@ export const StudyProvider = ({ children }) => {
             if (error) throw error;
             if (!data) throw new Error('The assignment was not updated. Refresh and try again.');
         } catch (error) {
-            if (previous) setAssignments(prev => prev.map(item => item.id === id ? previous : item));
-            console.error('Error updating assignment:', error);
+            setAssignments(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
+            console.error('Error updating assignment:', error?.code || 'unknown');
+            throw error;
+        }
+    };
+
+    const deleteAssignment = async (id) => {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to delete assignments.');
+
+        const previous = assignments.find(item => String(item.id) === String(id));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That assignment is not available in this account. Refresh and try again.');
+        }
+
+        setAssignments(prev => prev.filter(item => String(item.id) !== String(id)));
+        try {
+            const { data, error } = await supabase
+                .from('study_assignments')
+                .delete()
+                .eq('id', id)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!data) throw new Error('The assignment was not deleted. Refresh and try again.');
+        } catch (error) {
+            setAssignments(prev => prev.some(item => String(item.id) === String(id)) ? prev : [previous, ...prev]);
+            console.error('Error deleting assignment:', error?.code || 'unknown');
             throw error;
         }
     };
@@ -340,22 +372,80 @@ export const StudyProvider = ({ children }) => {
     };
 
     const scheduleReview = async (review) => {
+        const content = typeof review?.content === 'string' ? review.content.trim() : '';
+        const nextReviewDate = review?.next_review_date;
+        if (!content) throw new Error('Add a topic or concept before scheduling its review.');
+        if (!nextReviewDate || !Number.isFinite(new Date(nextReviewDate).getTime())) {
+            throw new Error('Choose a valid date for the next review.');
+        }
+
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to schedule a review.');
 
         const tempId = Date.now();
-        setReviews(prev => [{ ...review, user_id: user.id, id: tempId }, ...prev]);
+        const payload = {
+            content,
+            subject: typeof review.subject === 'string' ? review.subject.trim() : '',
+            next_review_date: new Date(nextReviewDate).toISOString(),
+            interval_days: Math.max(1, Number(review.interval_days) || 1),
+            review_count: Math.max(0, Number(review.review_count) || 0),
+            user_id: user.id,
+        };
+        setReviews(prev => [{ ...payload, id: tempId }, ...prev]);
         try {
             const { data, error } = await supabase
                 .from('study_reviews')
-                .insert([{ ...review, user_id: user.id }])
+                .insert([payload])
                 .select()
                 .single();
             if (error) throw error;
             setReviews(prev => prev.map(item => item.id === tempId ? data : item));
+            return data;
         } catch (error) {
             setReviews(prev => prev.filter(item => item.id !== tempId));
-            console.error('Error scheduling review:', error);
+            console.error('Error scheduling review:', error?.code || 'unknown');
+            throw error;
+        }
+    };
+
+    const completeReview = async (id, rating = 'good') => {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) throw new Error('Sign in to update your review schedule.');
+
+        const previous = reviews.find(item => String(item.id) === String(id));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That review is not available in this account. Refresh and try again.');
+        }
+
+        const { getNextReviewIntervalDays } = await import('../modules/Study/studyPlannerUtils.js');
+        const intervalDays = getNextReviewIntervalDays(rating, previous.interval_days || 1);
+        const updated = {
+            ...previous,
+            interval_days: intervalDays,
+            review_count: Math.max(0, Number(previous.review_count) || 0) + 1,
+            next_review_date: new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000).toISOString(),
+        };
+        setReviews(prev => prev.map(item => String(item.id) === String(id) ? updated : item));
+
+        try {
+            const { data, error } = await supabase
+                .from('study_reviews')
+                .update({
+                    interval_days: updated.interval_days,
+                    review_count: updated.review_count,
+                    next_review_date: updated.next_review_date,
+                })
+                .eq('id', id)
+                .eq('user_id', user.id)
+                .select()
+                .maybeSingle();
+            if (error) throw error;
+            if (!data) throw new Error('Your review was not rescheduled. Refresh and try again.');
+            setReviews(prev => prev.map(item => String(item.id) === String(id) ? data : item));
+            return data;
+        } catch (error) {
+            setReviews(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
+            console.error('Error updating review schedule:', error?.code || 'unknown');
             throw error;
         }
     };
@@ -437,8 +527,10 @@ export const StudyProvider = ({ children }) => {
             loadError,
             addAssignment,
             updateAssignment,
+            deleteAssignment,
             logPractice,
             scheduleReview,
+            completeReview,
             loading
         }}>
             {children}
