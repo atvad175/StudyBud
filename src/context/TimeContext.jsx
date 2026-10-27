@@ -42,16 +42,18 @@ export const TimeProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchTasks();
+        let active = true;
+        void fetchTasks(() => active);
+        return () => { active = false; };
     }, []);
 
-    const fetchTasks = async () => {
-        setLoading(true);
+    const fetchTasks = async (isActive = () => true) => {
+        if (isActive()) setLoading(true);
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError) throw authError;
             if (!user) {
-                setTasks([]);
+                if (isActive()) setTasks([]);
                 return;
             }
 
@@ -63,12 +65,12 @@ export const TimeProvider = ({ children }) => {
                 .limit(200);
 
             if (error) throw error;
-            setTasks(data || []);
+            if (isActive()) setTasks(data || []);
         } catch (error) {
-            console.error('Error fetching tasks:', error);
-            setTasks([]);
+            console.error('Error fetching tasks:', error?.code || 'unknown');
+            // A failed refresh is not evidence that the student's saved tasks are empty.
         } finally {
-            setLoading(false);
+            if (isActive()) setLoading(false);
         }
     };
 
