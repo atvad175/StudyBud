@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { StudyContext } from './StudyContextCore.js';
+import { getNextReviewIntervalDays } from '../modules/Study/studyPlannerUtils.js';
 
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
@@ -417,7 +418,6 @@ export const StudyProvider = ({ children }) => {
             throw new Error('That review is not available in this account. Refresh and try again.');
         }
 
-        const { getNextReviewIntervalDays } = await import('../modules/Study/studyPlannerUtils.js');
         const intervalDays = getNextReviewIntervalDays(rating, previous.interval_days || 1);
         const updated = {
             ...previous,
