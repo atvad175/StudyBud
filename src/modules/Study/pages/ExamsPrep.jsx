@@ -36,6 +36,7 @@ const ExamsPrep = () => {
     const [currentQuestion, setCurrentQuestion] = useState(1);
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
+    const [reviewFilter, setReviewFilter] = useState('all');
     const examSubmittedRef = useRef(false);
 
     useEffect(() => {
@@ -95,8 +96,10 @@ const ExamsPrep = () => {
         const percentage = Math.round((correct / total) * 100);
         const wrongAnswers = examQuestions.map((question, index) => ({
             question: question.question,
+            options: question.options,
             selectedAnswer: userAnswers[index] || null,
             correctAnswer: question.correctAnswer,
+            explanation: question.explanation || '',
             isCorrect: userAnswers[index] === question.correctAnswer,
         }));
 
@@ -125,21 +128,32 @@ const ExamsPrep = () => {
                 return;
             }
 
-            // Put the topic back into the learner's review queue based on the result.
-            const intervalDays = percentage < 60 ? 1 : percentage < 80 ? 3 : 7;
-            const nextReview = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000);
-            try {
-                await scheduleReview({
-                    content: 'Practice exam review — ' + topicTitle,
+            // Turn each missed question into a specific review item. If the student
+            // answered everything correctly, schedule a lighter topic-level revisit.
+            const missedQuestions = wrongAnswers.filter(question => !question.isCorrect);
+            const reviewItems = missedQuestions.length > 0
+                ? missedQuestions.map(question => ({
+                    content: question.question,
                     subject: topicTitle,
-                    next_review_date: nextReview.toISOString(),
-                    interval_days: intervalDays,
+                    next_review_date: new Date(Date.now() + (percentage < 60 ? 1 : 2) * 24 * 60 * 60 * 1000).toISOString(),
+                    interval_days: percentage < 60 ? 1 : 2,
                     review_count: 0,
-                });
-                toast.info('A follow-up review is scheduled in ' + intervalDays + ' day' + (intervalDays === 1 ? '' : 's') + '.');
+                }))
+                : [{
+                    content: 'Revisit and explain the key ideas: ' + topicTitle,
+                    subject: topicTitle,
+                    next_review_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    interval_days: 7,
+                    review_count: 0,
+                }];
+            try {
+                await Promise.all(reviewItems.map(item => scheduleReview(item)));
+                toast.info(missedQuestions.length
+                    ? missedQuestions.length + ' missed concept' + (missedQuestions.length === 1 ? '' : 's') + ' added to your review queue.'
+                    : 'A topic revisit has been scheduled for next week.');
             } catch (error) {
-                console.error('Unable to schedule the follow-up review:', error?.code || 'unknown');
-                toast.error('The result was saved, but the follow-up review could not be scheduled.');
+                console.error('Unable to schedule follow-up reviews:', error?.code || 'unknown');
+                toast.error('The result was saved, but one or more follow-up reviews could not be scheduled.');
             }
         })();
     }, [activeExam, aiTopic, examQuestions, logPractice, scheduleReview, toast, userAnswers]);
@@ -165,6 +179,28 @@ const ExamsPrep = () => {
         const mins = Math.floor(s / 60);
         const secs = s % 60;
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
+
+    const retryIncorrectQuestions = () => {
+        const missed = examQuestions.filter((question, index) => userAnswers[index] !== question.correctAnswer);
+        if (missed.length === 0) {
+            toast.info('You got every question right. No targeted retry is needed.');
+            return;
+        }
+
+        examSubmittedRef.current = false;
+        setExamQuestions(missed);
+        setActiveExam({
+            label: 'Targeted retry — ' + (aiTopic.trim().split(/\r?\n/)[0].slice(0, 90) || 'Missed questions'),
+            duration: Math.max(5, missed.length * 2),
+            questions: missed.length,
+        });
+        setTimer(Math.max(5, missed.length * 2) * 60);
+        setCurrentQuestion(1);
+        setUserAnswers({});
+        setScore(0);
+        setReviewFilter('all');
+        setMode('exam');
     };
 
     const handleOptionSelect = (opt) => {
@@ -416,36 +452,113 @@ const ExamsPrep = () => {
 
             {/* REVIEW MODE */}
             {mode === 'review' && (
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                    <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                        <div style={{ width: '80px', height: '80px', background: '#55efc4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem auto' }}>
-                            <CheckCircle size={40} color="white" />
-                        </div>
-                        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Exam Completed!</h1>
-                        <p style={{ fontSize: '1.2rem', color: '#666', fontWeight: 600 }}>You scored {score} out of {activeExam.questions} ( {Math.round((score/activeExam.questions)*100)}% )</p>
-                    </div>
+                <div style={{ maxWidth: '980px', margin: '0 auto' }}>
+                    {(() => {
+                        const total = examQuestions.length;
+                        const answered = Object.keys(userAnswers).length;
+                        const incorrectCount = total - score;
+                        const percentage = total ? Math.round((score / total) * 100) : 0;
+                        const filteredQuestions = examQuestions
+                            .map((question, index) => ({ ...question, index, isCorrect: userAnswers[index] === question.correctAnswer }))
+                            .filter(question => reviewFilter === 'all' || (reviewFilter === 'incorrect' ? !question.isCorrect : question.isCorrect));
 
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid var(--study-border)' }}>
-                        <h2 style={{ fontSize: '1.2rem', marginBottom: '1.5rem' }}>Review Incorrect Answers</h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {examQuestions.map((q, idx) => {
-                                const isCorrect = userAnswers[idx] === q.correctAnswer;
-                                if(isCorrect) return null;
-                                return (
-                                    <div key={idx} style={{ padding: '1rem', border: '1px solid #ffeaa7', background: '#fff9e6', borderRadius: '12px' }}>
-                                        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Q{idx+1}: {q.question}</div>
-                                        <div style={{ color: '#d63031', fontSize: '0.9rem' }}>Your answer: {userAnswers[idx] || 'Blank'}</div>
-                                        <div style={{ color: '#00b894', fontSize: '0.9rem', fontWeight: 600 }}>Correct answer: {q.correctAnswer}</div>
+                        return (
+                            <>
+                                <header style={{ textAlign: 'center', margin: '1rem 0 2rem' }}>
+                                    <div style={{ width: '76px', height: '76px', background: percentage >= 80 ? '#e9f5ec' : percentage >= 60 ? '#fff5df' : '#fff0ed', color: percentage >= 80 ? '#34734a' : percentage >= 60 ? '#94702c' : '#a84f43', borderRadius: '24px', display: 'grid', placeItems: 'center', margin: '0 auto 1rem' }}>
+                                        <CheckCircle size={38} />
                                     </div>
-                                )
-                            })}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-                            <button onClick={() => setMode('dashboard')} style={startBtn}>
-                                Return to Dashboard
-                            </button>
-                        </div>
-                    </div>
+                                    <span className={styles.breadcrumb}>Practice completed · {activeExam?.label}</span>
+                                    <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', margin: '0.45rem 0', fontFamily: 'var(--font-serif)' }}>Your review, not just your score.</h1>
+                                    <p style={{ fontSize: '1.05rem', color: '#666', margin: 0 }}>Use the explanations to understand every missed idea, then retry only what needs another pass.</p>
+                                </header>
+
+                                <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }} aria-label="Exam results">
+                                    {[
+                                        { label: 'Score', value: score + '/' + total },
+                                        { label: 'Accuracy', value: percentage + '%' },
+                                        { label: 'Answered', value: answered + '/' + total },
+                                        { label: 'To revisit', value: incorrectCount },
+                                    ].map(metric => (
+                                        <article key={metric.label} style={{ padding: '1rem', border: '1px solid var(--study-border)', borderRadius: '16px', background: '#fff' }}>
+                                            <span style={{ display: 'block', color: '#777', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.35rem' }}>{metric.label}</span>
+                                            <strong style={{ fontSize: '1.55rem', color: '#272822', fontVariantNumeric: 'tabular-nums' }}>{metric.value}</strong>
+                                        </article>
+                                    ))}
+                                </section>
+
+                                <section style={{ background: 'white', padding: 'clamp(1rem, 3vw, 2rem)', borderRadius: '22px', border: '1px solid var(--study-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                                        <div>
+                                            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Question-by-question review</h2>
+                                            <p style={{ margin: '0.35rem 0 0', color: '#777', fontSize: '0.82rem' }}>Every answer includes the correct option and an explanation when the AI supplied one.</p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }} role="group" aria-label="Filter reviewed questions">
+                                            {[
+                                                { id: 'all', label: 'All ' + total },
+                                                { id: 'incorrect', label: 'Missed ' + incorrectCount },
+                                                { id: 'correct', label: 'Correct ' + score },
+                                            ].map(filter => (
+                                                <button
+                                                    key={filter.id}
+                                                    type="button"
+                                                    aria-pressed={reviewFilter === filter.id}
+                                                    onClick={() => setReviewFilter(filter.id)}
+                                                    style={{ padding: '0.55rem 0.75rem', borderRadius: '999px', border: '1px solid ' + (reviewFilter === filter.id ? '#a28b5c' : '#e5e1d8'), background: reviewFilter === filter.id ? '#f5f0e4' : '#fff', color: '#4a463d', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                                                >
+                                                    {filter.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        {filteredQuestions.map(question => (
+                                            <article key={question.index} style={{ padding: '1.1rem', border: '1px solid ' + (question.isCorrect ? '#d5e8d8' : '#f0d9d3'), background: question.isCorrect ? '#fbfefb' : '#fffaf8', borderRadius: '15px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.7rem' }}>
+                                                    <strong style={{ color: '#292923', lineHeight: 1.55 }}>Q{question.index + 1}. {question.question}</strong>
+                                                    <span style={{ flexShrink: 0, borderRadius: '999px', padding: '0.25rem 0.55rem', background: question.isCorrect ? '#e8f4e9' : '#f9e9e5', color: question.isCorrect ? '#356b42' : '#a24b40', fontSize: '0.7rem', fontWeight: 800 }}>
+                                                        {question.isCorrect ? 'Correct' : 'Review'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'grid', gap: '0.45rem', fontSize: '0.87rem' }}>
+                                                    <div style={{ color: question.isCorrect ? '#47714d' : '#a24b40' }}>Your answer: <strong>{userAnswers[question.index] || 'Not answered'}</strong></div>
+                                                    {!question.isCorrect && <div style={{ color: '#34734a' }}>Correct answer: <strong>{question.correctAnswer}</strong></div>}
+                                                </div>
+                                                {question.explanation ? (
+                                                    <div style={{ marginTop: '0.85rem', padding: '0.85rem 1rem', borderRadius: '11px', background: '#f5f3ed', color: '#514d43', fontSize: '0.84rem', lineHeight: 1.65 }}>
+                                                        <strong style={{ display: 'block', marginBottom: '0.2rem', color: '#51462e' }}>Why this is correct</strong>
+                                                        {question.explanation}
+                                                    </div>
+                                                ) : (
+                                                    <p style={{ margin: '0.75rem 0 0', color: '#89857d', fontSize: '0.78rem' }}>No explanation was provided for this question. Check it against your course material.</p>
+                                                )}
+                                            </article>
+                                        ))}
+                                        {filteredQuestions.length === 0 && (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: '#777' }}>
+                                                {reviewFilter === 'incorrect' ? 'No missed questions in this attempt.' : 'No questions in this filter.'}
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+
+                                <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.75rem', margin: '1.5rem 0 3rem' }}>
+                                    {incorrectCount > 0 && (
+                                        <button type="button" onClick={retryIncorrectQuestions} style={{ ...startBtn, marginTop: 0 }}>
+                                            Retry {incorrectCount} missed question{incorrectCount === 1 ? '' : 's'}
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={() => { setMode('dashboard'); setReviewFilter('all'); }} style={{ ...navBtn, padding: '0.85rem 1.25rem' }}>
+                                        Return to Exam Prep
+                                    </button>
+                                    <button type="button" onClick={() => { setRequestedExamLabel('New practice exam'); setMode('config'); }} style={{ ...navBtn, padding: '0.85rem 1.25rem' }}>
+                                        Build another exam
+                                    </button>
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
             )}
         </div>
