@@ -1,243 +1,324 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Save, AlertCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Activity, ArrowRight, CalendarDays, CheckCircle2, Clock3, Save, Sparkles, Target, TrendingUp } from 'lucide-react';
 import { useTime } from '../../../context/useTime';
 import { useMind } from '../../../context/useMind';
+import { useFocus } from '../../../context/useFocus';
+import { useStudy } from '../../../context/useStudy';
 import { useToast } from '../../../context/useToast';
+import { getStudyAnalytics } from '../../Study/studyPlannerUtils';
+import styles from './WeeklyReview.module.css';
+
+const isCompletedTask = task => ['executed', 'reflected', 'completed'].includes(String(task?.status || '').toLowerCase());
+
+const getLocalDayKey = date => [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+].join('-');
 
 const WeeklyReview = () => {
-  const { tasks } = useTime();
-  const { addLog } = useMind();
-  const { toast } = useToast();
+    const { tasks = [], loading: tasksLoading = false } = useTime();
+    const { addLog, logs = [] } = useMind();
+    const { sessions = [], loading: focusLoading = false } = useFocus();
+    const { practiceLogs = [], loading: studyLoading = false } = useStudy();
+    const { toast } = useToast();
 
-  const [tasksCompleted, setTasksCompleted] = useState(0);
-  const [tasksTotal, setTasksTotal] = useState(0);
-  const [score, setScore] = useState(0);
+    const [wentWell, setWentWell] = useState('');
+    const [drainedEnergy, setDrainedEnergy] = useState('');
+    const [doDifferently, setDoDifferently] = useState('');
+    const [nextIntention, setNextIntention] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
-  const [wentWell, setWentWell] = useState('');
-  const [drainedEnergy, setDrainedEnergy] = useState('');
-  const [doDifferently, setDoDifferently] = useState('');
-  const [nextIntention, setNextIntention] = useState('');
-  
-  const [isSunday, setIsSunday] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+    const now = useMemo(() => new Date(), []);
+    const weekStart = useMemo(() => {
+        const start = new Date(now);
+        const day = start.getDay();
+        start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }, [now]);
+    const weekEnd = useMemo(() => {
+        const end = new Date(weekStart);
+        end.setDate(end.getDate() + 7);
+        return end;
+    }, [weekStart]);
 
-  useEffect(() => {
-    // Check if Sunday
-    const today = new Date();
-    setIsSunday(today.getDay() === 0);
+    const isCurrentWeekRecord = value => {
+        const date = value ? new Date(value) : null;
+        return date && Number.isFinite(date.getTime()) && date >= weekStart && date < weekEnd;
+    };
 
-    // Calculate start of week (Monday)
-    const startOfWeek = new Date();
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-    startOfWeek.setDate(diff);
-    startOfWeek.setHours(0,0,0,0);
+    const weeklyTasks = useMemo(() => tasks.filter(task => isCurrentWeekRecord(task.created_at)), [tasks, weekStart, weekEnd]);
+    const weeklyFocusSessions = useMemo(() => sessions.filter(session => isCurrentWeekRecord(session.created_at)), [sessions, weekStart, weekEnd]);
+    const weeklyPracticeLogs = useMemo(() => practiceLogs.filter(log => isCurrentWeekRecord(log.created_at)), [practiceLogs, weekStart, weekEnd]);
 
-    // Fetch tasks from context
-    let comp = 0;
-    let tot = 0;
-    tasks.forEach(task => {
-      const taskDate = new Date(task.created_at);
-      if (taskDate >= startOfWeek) {
-        tot++;
-        if (task.status === 'Reflected' || task.status === 'Executed') comp++;
-      }
-    });
+    const taskMetrics = useMemo(() => {
+        const completed = weeklyTasks.filter(isCompletedTask).length;
+        const planned = weeklyTasks.length;
+        const open = Math.max(0, planned - completed);
+        return {
+            total: planned,
+            completed,
+            open,
+            completionRate: planned > 0 ? Math.round((completed / planned) * 100) : null,
+            overdue: weeklyTasks.filter(task => {
+                if (isCompletedTask(task)) return false;
+                const deadline = task?.due_date || task?.due_at || task?.deadline;
+                const date = deadline ? new Date(deadline) : null;
+                return date && Number.isFinite(date.getTime()) && date < now;
+            }).length,
+        };
+    }, [weeklyTasks, now]);
 
-    if (tot === 0) tot = 1; 
-    setTasksCompleted(comp);
-    setTasksTotal(tot);
+    const focusMetrics = useMemo(() => {
+        const seconds = weeklyFocusSessions.reduce((total, session) => {
+            const duration = Number(session?.duration_seconds);
+            return total + (Number.isFinite(duration) && duration > 0 ? duration : 0);
+        }, 0);
+        return {
+            sessions: weeklyFocusSessions.length,
+            minutes: Math.round(seconds / 60),
+            hours: Math.floor(seconds / 3600),
+        };
+    }, [weeklyFocusSessions]);
 
-    // Fetch Moods from reflected tasks
-    let moodSum = 0;
-    let moodCount = 0;
-    tasks.filter(t => t.status === 'Reflected' && new Date(t.created_at) >= startOfWeek).forEach(t => {
-         let val = 5;
-         if (t.mood === 'Happy') val = 5;
-         else if (t.mood === 'Mid') val = 3;
-         else if (t.mood === 'Low') val = 1;
-         
-         moodSum += val;
-         moodCount++;
-    });
+    const studyAnalytics = useMemo(() => getStudyAnalytics(weeklyPracticeLogs, now), [weeklyPracticeLogs, now]);
+    const isLoading = tasksLoading || focusLoading || studyLoading;
 
-    const avgMood = moodCount > 0 ? (moodSum / moodCount) : 5; 
+    const dayRows = useMemo(() => Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + index);
+        const key = getLocalDayKey(date);
+        const dayTasks = weeklyTasks.filter(task => task.created_at && getLocalDayKey(new Date(task.created_at)) === key);
+        const daySessions = weeklyFocusSessions.filter(session => session.created_at && getLocalDayKey(new Date(session.created_at)) === key);
+        const minutes = Math.round(daySessions.reduce((sum, session) => {
+            const value = Number(session.duration_seconds);
+            return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+        }, 0) / 60);
+        return {
+            key,
+            label: date.toLocaleDateString(undefined, { weekday: 'short' }),
+            dateLabel: date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+            taskCount: dayTasks.length,
+            completed: dayTasks.filter(isCompletedTask).length,
+            focusMinutes: minutes,
+        };
+    }), [weekStart, weeklyTasks, weeklyFocusSessions]);
 
-    // Calculate score: (tasks_completed / tasks_total × 60) + (mood_average × 8)
-    const calculatedScore = Math.round((comp / tot) * 60 + (avgMood * 8));
-    setScore(calculatedScore);
-  }, [tasks]);
+    const maxFocusMinutes = Math.max(30, ...dayRows.map(day => day.focusMinutes));
+    const previousReviews = logs
+        .filter(log => log?.type === 'weekly' && log.content && typeof log.content === 'object')
+        .slice(0, 4);
 
-  const getScoreLabel = () => {
-    if (score < 40) return "Room to grow";
-    if (score <= 70) return "Solid week";
-    return "Strong finish";
-  };
+    const weekLabel = weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) +
+        ' – ' + new Date(weekEnd.getTime() - 1).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
-  const handleSave = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-    try {
-      await addLog({
-          type: 'weekly',
-          content: {
-              tasksCompleted,
-              tasksTotal,
-              score,
-              wentWell,
-              drainedEnergy,
-              doDifferently,
-              nextIntention
-          },
-          tags: ['weekly_review', 'planning']
-      });
+    const handleSave = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+        try {
+            await addLog({
+                type: 'weekly',
+                content: {
+                    weekStart: weekStart.toISOString(),
+                    weekEnd: weekEnd.toISOString(),
+                    metrics: {
+                        tasksCreated: taskMetrics.total,
+                        tasksCompleted: taskMetrics.completed,
+                        tasksOpen: taskMetrics.open,
+                        tasksOverdue: taskMetrics.overdue,
+                        taskCompletionRate: taskMetrics.completionRate,
+                        focusSessions: focusMetrics.sessions,
+                        focusMinutes: focusMetrics.minutes,
+                        practiceRecords: weeklyPracticeLogs.length,
+                        scoredAssessments: studyAnalytics.assessmentCount,
+                        averageAssessmentScore: studyAnalytics.averageScore,
+                    },
+                    wentWell: wentWell.trim(),
+                    drainedEnergy: drainedEnergy.trim(),
+                    doDifferently: doDifferently.trim(),
+                    nextIntention: nextIntention.trim(),
+                },
+                tags: ['weekly_review', 'planning'],
+            });
 
-      toast.success('Weekly review saved to your account.');
-      setWentWell('');
-      setDrainedEnergy('');
-      setDoDifferently('');
-      setNextIntention('');
-    } catch (error) {
-      console.error('Unable to save weekly review:', error?.code || 'unknown');
-      toast.error(error?.message || 'Your weekly review could not be saved. Your answers are still here; please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+            toast.success('Weekly review saved to your account.');
+            setWentWell('');
+            setDrainedEnergy('');
+            setDoDifferently('');
+            setNextIntention('');
+        } catch (error) {
+            console.error('Unable to save weekly review:', error?.code || 'unknown');
+            toast.error(error?.message || 'Your weekly review could not be saved. Your answers are still here; please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
-  return (
-    <div className="page-container" style={{ paddingBottom: '80px' }}>
-      
-      {isSunday && (
-        <div style={{ backgroundColor: '#fff8e1', borderLeft: '4px solid #ffb300', padding: '1rem 1.5rem', borderRadius: '8px', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', color: '#b27d00' }}>
-          <AlertCircle size={24} />
-          <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>It's Sunday — time for your weekly review.</span>
-        </div>
-      )}
+    const readyToSave = wentWell.trim() && doDifferently.trim() && nextIntention.trim();
 
-      <header style={{ marginBottom: '3rem' }}>
-        <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time / Weekly Review</span>
-        <h1 style={{ fontSize: '3.5rem', fontFamily: 'var(--font-serif)', marginTop: '0.5rem', color: 'var(--color-soft-black)' }}>Weekly Review</h1>
-      </header>
+    return (
+        <main className={styles.page}>
+            <header className={styles.hero}>
+                <div>
+                    <span className={styles.eyebrow}><Sparkles size={14} /> WEEKLY RESET</span>
+                    <h1>Review the week. Shape the next one.</h1>
+                    <p>StudyBud brings your task activity, focus sessions and study results together. Use the numbers as context, then decide what you want to change.</p>
+                    <span className={styles.weekLabel}><CalendarDays size={15} /> {weekLabel}</span>
+                </div>
+                <div className={styles.heroAside}>
+                    <span>WEEKLY REVIEW</span>
+                    <strong>{now.toLocaleDateString(undefined, { weekday: 'long' })}</strong>
+                    <small>Monday-based week · your account data</small>
+                </div>
+            </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '3rem', alignItems: 'start' }}>
-        
-        {/* Form Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: 600, fontSize: '1.2rem', color: 'var(--color-soft-black)' }}>What went well?</label>
-            <textarea
-              value={wentWell}
-              onChange={(e) => setWentWell(e.target.value)}
-              placeholder="Celebrate your wins, no matter how small..."
-              rows={4}
-              style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid var(--color-border)', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
-            />
-          </div>
+            {isLoading && <div className={styles.loadingNotice} role="status">Updating your weekly snapshot…</div>}
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: 600, fontSize: '1.2rem', color: 'var(--color-soft-black)' }}>What drained your energy?</label>
-            <textarea
-              value={drainedEnergy}
-              onChange={(e) => setDrainedEnergy(e.target.value)}
-              placeholder="Identify energy leaks and friction points..."
-              rows={4}
-              style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid var(--color-border)', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
-            />
-          </div>
+            <section className={styles.metricsGrid} aria-label="Weekly activity snapshot">
+                <article className={styles.metric}>
+                    <span className={styles.metricIcon}><CheckCircle2 size={18} /></span>
+                    <small>Tasks completed</small>
+                    <strong>{taskMetrics.completed}<em> / {taskMetrics.total}</em></strong>
+                    <span>{taskMetrics.completionRate === null ? 'No tasks created this week' : taskMetrics.completionRate + '% completion rate'}</span>
+                </article>
+                <article className={styles.metric}>
+                    <span className={styles.metricIcon}><Clock3 size={18} /></span>
+                    <small>Focus time</small>
+                    <strong>{focusMetrics.minutes}<em> min</em></strong>
+                    <span>{focusMetrics.sessions} saved focus sessions</span>
+                </article>
+                <article className={styles.metric}>
+                    <span className={styles.metricIcon}><Target size={18} /></span>
+                    <small>Scored assessments</small>
+                    <strong>{studyAnalytics.assessmentCount}</strong>
+                    <span>{studyAnalytics.averageScore === null ? 'No scored practice this week' : studyAnalytics.averageScore + '% average score'}</span>
+                </article>
+                <article className={styles.metric}>
+                    <span className={styles.metricIcon}><Activity size={18} /></span>
+                    <small>Open task load</small>
+                    <strong>{taskMetrics.open}</strong>
+                    <span>{taskMetrics.overdue} overdue from this week’s tasks</span>
+                </article>
+            </section>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: 600, fontSize: '1.2rem', color: 'var(--color-soft-black)' }}>What will you do differently?</label>
-            <textarea
-              value={doDifferently}
-              onChange={(e) => setDoDifferently(e.target.value)}
-              placeholder="Actionable adjustments for next week..."
-              rows={4}
-              style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid var(--color-border)', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
-            />
-          </div>
+            <section className={styles.activityPanel}>
+                <div className={styles.sectionHeading}>
+                    <div>
+                        <span className={styles.eyebrow}>WEEK IN MOTION</span>
+                        <h2>Where time went</h2>
+                        <p>Focus minutes and task completions by day. Empty days are shown as zero rather than estimated.</p>
+                    </div>
+                </div>
+                <div className={styles.dayChart}>
+                    {dayRows.map(day => (
+                        <article className={styles.dayColumn} key={day.key}>
+                            <div className={styles.barArea} title={day.dateLabel + ': ' + day.focusMinutes + ' focus minutes'}>
+                                <div className={styles.barFill} style={{ height: (day.focusMinutes / maxFocusMinutes) * 100 + '%' }} />
+                            </div>
+                            <strong>{day.focusMinutes}</strong>
+                            <span>{day.label}</span>
+                            <small>{day.completed}/{day.taskCount} tasks</small>
+                        </article>
+                    ))}
+                </div>
+                <div className={styles.chartLegend}>
+                    <span><i /> Focus minutes</span>
+                    <span>Task completions appear below each day</span>
+                </div>
+            </section>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: 600, fontSize: '1.2rem', color: 'var(--color-soft-black)' }}>One intention for next week</label>
-            <textarea
-              value={nextIntention}
-              onChange={(e) => setNextIntention(e.target.value)}
-              placeholder="Your guiding star for the upcoming days..."
-              rows={2}
-              style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid var(--color-border)', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
-            />
-          </div>
+            <section className={styles.reviewGrid}>
+                <div className={styles.reflectionForm}>
+                    <div className={styles.sectionHeading}>
+                        <div>
+                            <span className={styles.eyebrow}>YOUR REFLECTION</span>
+                            <h2>Make the data useful.</h2>
+                            <p>Be specific. One practical adjustment is more useful than a list of vague promises.</p>
+                        </div>
+                    </div>
 
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !wentWell.trim() || !drainedEnergy.trim() || !doDifferently.trim() || !nextIntention.trim()}
-            style={{
-              padding: '1.2rem',
-              backgroundColor: 'var(--color-soft-black)',
-              color: 'white',
-              borderRadius: '16px',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              fontSize: '1.2rem',
-              cursor: (isSaving || !wentWell.trim() || !drainedEnergy.trim() || !doDifferently.trim() || !nextIntention.trim()) ? 'not-allowed' : 'pointer',
-              opacity: (isSaving || !wentWell.trim() || !drainedEnergy.trim() || !doDifferently.trim() || !nextIntention.trim()) ? 0.5 : 1,
-              transition: 'opacity 0.2s',
-              marginTop: '1rem'
-            }}
-          >
-            <Save size={20} />
-            {isSaving ? 'Saving review…' : 'Complete Review'}
-          </button>
-        </div>
+                    <label>
+                        **What went well?**
+                        <textarea value={wentWell} onChange={event => setWentWell(event.target.value)} placeholder="Which actions, routines or study sessions actually worked?" rows={3} />
+                    </label>
+                    <label>
+                        **What drained your time or energy?**
+                        <textarea value={drainedEnergy} onChange={event => setDrainedEnergy(event.target.value)} placeholder="Where did you lose momentum? What made work harder than necessary?" rows={3} />
+                    </label>
+                    <label>
+                        **What will you change next week?**
+                        <textarea value={doDifferently} onChange={event => setDoDifferently(event.target.value)} placeholder="Choose a specific behaviour or workflow to adjust." rows={3} />
+                    </label>
+                    <label>
+                        **One intention for next week**
+                        <textarea value={nextIntention} onChange={event => setNextIntention(event.target.value)} placeholder="What is the most important outcome you want to protect time for?" rows={2} />
+                    </label>
 
-        {/* Stats Area */}
-        <div style={{ backgroundColor: 'white', borderRadius: '32px', padding: '2rem', boxShadow: 'var(--shadow-soft)', position: 'sticky', top: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Calendar size={20} /> Week at a Glance
-          </h3>
-          
-          <div style={{ marginBottom: '2.5rem' }}>
-            <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Weekly Score</div>
-            <div style={{ fontSize: '4.5rem', fontFamily: 'var(--font-serif)', color: 'var(--color-soft-black)', lineHeight: 1, marginBottom: '0.5rem' }}>
-              {score}
-            </div>
-            <div style={{ 
-              display: 'inline-block',
-              padding: '0.4rem 1rem', 
-              borderRadius: '100px', 
-              backgroundColor: score > 70 ? '#e8f5e9' : score >= 40 ? '#fff8e1' : '#ffebee', 
-              color: score > 70 ? '#2e7d32' : score >= 40 ? '#f57f17' : '#c62828',
-              fontWeight: 600,
-              fontSize: '0.9rem'
-            }}>
-              {getScoreLabel()}
-            </div>
-          </div>
+                    <button type="button" className={styles.saveButton} onClick={() => void handleSave()} disabled={isSaving || !readyToSave || isLoading}>
+                        <Save size={17} /> {isSaving ? 'Saving review…' : 'Save weekly review'}
+                    </button>
+                </div>
 
-          <div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Task Completion</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-soft-black)' }}>{tasksCompleted}</span>
-              <span style={{ color: 'var(--color-text-secondary)' }}>/ {tasksTotal === 1 && tasksCompleted === 0 ? 0 : tasksTotal}</span>
-            </div>
-            <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f1f1', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ 
-                height: '100%', 
-                backgroundColor: 'var(--color-gold)', 
-                width: `${tasksTotal > 0 && !(tasksTotal === 1 && tasksCompleted === 0) ? (tasksCompleted/tasksTotal)*100 : 0}%`,
-                borderRadius: '4px',
-                transition: 'width 1s ease-out'
-              }}></div>
-            </div>
-          </div>
-          
-        </div>
-      </div>
-    </div>
-  );
+                <aside className={styles.sideColumn}>
+                    <article className={styles.summaryCard}>
+                        <span className={styles.eyebrow}>YOUR WEEK, AT A GLANCE</span>
+                        <h3>Evidence before judgement.</h3>
+                        <p>There is no invented productivity score here. These are the records StudyBud actually has for this week.</p>
+                        <div className={styles.summaryLine}>
+                            <span>Task completion</span>
+                            <strong>{taskMetrics.completionRate === null ? '—' : taskMetrics.completionRate + '%'}</strong>
+                        </div>
+                        <div className={styles.progressTrack}>
+                            <span style={{ width: (taskMetrics.completionRate || 0) + '%' }} />
+                        </div>
+                        <div className={styles.summaryLine}>
+                            <span>Study records</span>
+                            <strong>{weeklyPracticeLogs.length}</strong>
+                        </div>
+                        <div className={styles.summaryLine}>
+                            <span>Focus sessions</span>
+                            <strong>{focusMetrics.sessions}</strong>
+                        </div>
+                        <div className={styles.summaryLine}>
+                            <span>Study average</span>
+                            <strong>{studyAnalytics.averageScore === null ? '—' : studyAnalytics.averageScore + '%'}</strong>
+                        </div>
+                    </article>
+
+                    <article className={styles.historyCard}>
+                        <button type="button" className={styles.historyToggle} onClick={() => setShowHistory(value => !value)} aria-expanded={showHistory}>
+                            <span><TrendingUp size={17} /> Previous reflections</span>
+                            <span>{previousReviews.length} saved</span>
+                        </button>
+                        {showHistory && (
+                            <div className={styles.historyList}>
+                                {previousReviews.length > 0 ? previousReviews.map(review => {
+                                    const content = review.content || {};
+                                    const metrics = content.metrics || {};
+                                    return (
+                                        <article key={review.id}>
+                                            <strong>{content.weekStart ? new Date(content.weekStart).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : new Date(review.created_at).toLocaleDateString()}</strong>
+                                            <span>{metrics.tasksCompleted ?? content.tasksCompleted ?? 0} tasks completed · {metrics.focusMinutes ?? 0} focus min</span>
+                                            <p>{content.nextIntention || 'No intention saved.'}</p>
+                                        </article>
+                                    );
+                                }) : <p className={styles.historyEmpty}>Your saved weekly reflections will appear here.</p>}
+                            </div>
+                        )}
+                    </article>
+
+                    <article className={styles.nextStepCard}>
+                        <div><Target size={18} /></div>
+                        <h3>Convert the review into action</h3>
+                        <p>Take your next intention and give it a place in your study plan.</p>
+                        <button type="button" onClick={() => window.location.assign('/study/plan')}>Open Study Planner <ArrowRight size={14} /></button>
+                    </article>
+                </aside>
+            </section>
+        </main>
+    );
 };
 
 export default WeeklyReview;
