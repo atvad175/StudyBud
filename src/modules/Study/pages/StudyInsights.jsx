@@ -25,12 +25,6 @@ const RANGE_OPTIONS = [
     { value: 'all', label: 'All time' },
 ];
 
-const startOfDay = value => {
-    const date = new Date(value);
-    date.setHours(0, 0, 0, 0);
-    return date;
-};
-
 const localDateKey = value => {
     const date = new Date(value);
     return [
