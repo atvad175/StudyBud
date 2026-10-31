@@ -17,6 +17,11 @@ const getLocalDayKey = date => [
     String(date.getDate()).padStart(2, '0'),
 ].join('-');
 
+const isDateInRange = (value, start, end) => {
+    const date = value ? new Date(value) : null;
+    return Boolean(date && Number.isFinite(date.getTime()) && date >= start && date < end);
+};
+
 const WeeklyReview = () => {
     const { tasks = [], loading: tasksLoading = false } = useTime();
     const { addLog, logs = [] } = useMind();
@@ -46,14 +51,9 @@ const WeeklyReview = () => {
         return end;
     }, [weekStart]);
 
-    const isCurrentWeekRecord = value => {
-        const date = value ? new Date(value) : null;
-        return date && Number.isFinite(date.getTime()) && date >= weekStart && date < weekEnd;
-    };
-
-    const weeklyTasks = useMemo(() => tasks.filter(task => isCurrentWeekRecord(task.created_at)), [tasks, weekStart, weekEnd]);
-    const weeklyFocusSessions = useMemo(() => sessions.filter(session => isCurrentWeekRecord(session.created_at)), [sessions, weekStart, weekEnd]);
-    const weeklyPracticeLogs = useMemo(() => practiceLogs.filter(log => isCurrentWeekRecord(log.created_at)), [practiceLogs, weekStart, weekEnd]);
+    const weeklyTasks = useMemo(() => tasks.filter(task => isDateInRange(task.created_at, weekStart, weekEnd)), [tasks, weekStart, weekEnd]);
+    const weeklyFocusSessions = useMemo(() => sessions.filter(session => isDateInRange(session.created_at, weekStart, weekEnd)), [sessions, weekStart, weekEnd]);
+    const weeklyPracticeLogs = useMemo(() => practiceLogs.filter(log => isDateInRange(log.created_at, weekStart, weekEnd)), [practiceLogs, weekStart, weekEnd]);
 
     const taskMetrics = useMemo(() => {
         const completed = weeklyTasks.filter(isCompletedTask).length;
