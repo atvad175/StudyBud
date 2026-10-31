@@ -38,6 +38,15 @@ const QUICK_ACTIONS = [
         tone: 'green',
     },
     {
+        id: 'insights',
+        title: 'Understand your progress',
+        description: 'See score trends, subject performance and repeat gaps from saved assessments.',
+        label: 'Open learning insights',
+        path: '/study/insights',
+        icon: TrendingUp,
+        tone: 'purple',
+    },
+    {
         id: 'planner',
         title: 'Plan today’s study',
         description: 'Turn deadlines, due reviews and weak topics into a realistic schedule.',
