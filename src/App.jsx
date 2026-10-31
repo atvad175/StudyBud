@@ -58,6 +58,7 @@ import AssignmentsBreakdown from './modules/Study/pages/AssignmentsBreakdown';
 import ExamsPrep from './modules/Study/pages/ExamsPrep';
 import Flashcards from './modules/Study/pages/Flashcards';
 import StudyPlanner from './modules/Study/pages/StudyPlanner';
+import StudyInsights from './modules/Study/pages/StudyInsights';
 
 
 
@@ -358,6 +359,7 @@ const App = () => {
                           <Route path="feynman" element={<FeynmanSandbox />} />
                           <Route path="assignments" element={<AssignmentsBreakdown />} />
                           <Route path="plan" element={<StudyPlanner />} />
+                          <Route path="insights" element={<StudyInsights />} />
                           <Route path="exams" element={<ExamsPrep />} />
                           <Route path="flashcards" element={<Flashcards />} />
                         </Route>
