@@ -1343,3 +1343,249 @@
 .hubPriorityAction:hover { background: #4b4134; }
 .hubPriorityAction:focus-visible { outline: 3px solid var(--color-gold); outline-offset: 3px; }
 @media (max-width: 680px) { .hubPriorityGrid { grid-template-columns: minmax(0, 1fr); } .hubPriorityCard > p { min-height: 0; } }
+
+
+/* Study Hub performance snapshot */
+.hubInsights {
+    margin: 2.5rem 0;
+    padding: clamp(1.2rem, 3vw, 2rem);
+    border: 1px solid var(--study-border);
+    border-radius: 24px;
+    background: linear-gradient(135deg, #fffefa 0%, #faf8f2 100%);
+}
+
+.hubInsightsHeading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.hubInsightsHeading h2 {
+    margin: 0.4rem 0;
+    color: var(--study-primary);
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    letter-spacing: -0.035em;
+}
+
+.hubInsightsLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #e4dcc9;
+    border-radius: 11px;
+    background: #fff;
+    color: #5c4f31;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.hubInsightsLink:hover { background: #f4efdf; }
+
+.hubInsightMetrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.hubInsightMetric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid #ebe6da;
+    border-radius: 15px;
+    background: rgba(255,255,255,0.86);
+}
+
+.hubInsightMetric > span {
+    color: var(--study-secondary);
+    font-size: 0.73rem;
+    font-weight: 700;
+}
+
+.hubInsightMetric > strong {
+    color: #2b2a25;
+    font-size: clamp(1.45rem, 2.5vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.hubInsightMetric > small {
+    color: #7d796f;
+    font-size: 0.69rem;
+    line-height: 1.45;
+}
+
+.hubInsightColumns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.hubInsightPanel {
+    min-width: 0;
+    padding: 1.15rem;
+    border: 1px solid #ebe6da;
+    border-radius: 17px;
+    background: #fff;
+}
+
+.hubInsightPanelHead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: #95815b;
+}
+
+.hubInsightPanelHead h3 {
+    margin: 0 0 0.25rem;
+    color: #2b2a25;
+    font-size: 1rem;
+    font-weight: 750;
+}
+
+.hubInsightPanelHead p {
+    margin: 0;
+    color: #7d796f;
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+.hubSubjectPerformance, .hubRecentAssessments {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.hubPerformanceRow { display: flex; flex-direction: column; gap: 0.32rem; }
+
+.hubPerformanceLabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.82rem;
+}
+
+.hubPerformanceLabel span {
+    font-weight: 650;
+    color: #3b3a34;
+    overflow-wrap: anywhere;
+}
+
+.hubPerformanceLabel strong { color: #71603e; font-variant-numeric: tabular-nums; }
+
+.hubPerformanceTrack {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #f0eee8;
+}
+
+.hubPerformanceTrack span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #bca46d, #8e7a50);
+}
+
+.hubPerformanceRow small { color: #8a867d; font-size: 0.68rem; }
+
+.hubWeakSubjectAction {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #7d6537;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.hubWeakSubjectAction:hover { text-decoration: underline; }
+
+.hubRecentAssessment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #f0eee8;
+}
+
+.hubRecentAssessment:last-child { border-bottom: 0; }
+
+.hubRecentAssessment > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.hubRecentAssessment strong {
+    color: #35342e;
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+}
+
+.hubRecentAssessment span { color: #868176; font-size: 0.7rem; }
+
+.hubRecentAssessment b {
+    flex-shrink: 0;
+    color: #76633e;
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.hubInsightEmpty {
+    padding: 1rem;
+    border-radius: 13px;
+    background: #faf8f2;
+}
+
+.hubInsightEmpty p { margin: 0; color: #78746b; font-size: 0.8rem; line-height: 1.6; }
+
+.hubInsightEmpty button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.9rem;
+    border: 0;
+    background: transparent;
+    color: #7d6537;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+@media (max-width: 900px) {
+    .hubInsightMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hubInsightColumns { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+    .hubInsightsHeading { align-items: stretch; flex-direction: column; }
+    .hubInsightsLink { width: 100%; }
+    .hubInsightMetrics { gap: 0.55rem; }
+    .hubInsightMetric { padding: 0.8rem; }
+    .hubInsightMetric > small { font-size: 0.65rem; }
+}

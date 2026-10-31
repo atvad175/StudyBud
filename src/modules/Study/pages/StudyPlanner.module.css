@@ -1,0 +1,458 @@
+.page {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: clamp(1rem, 3vw, 2.5rem);
+    color: var(--color-text-primary, #252525);
+}
+
+.hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.7fr);
+    gap: 2rem;
+    align-items: center;
+    padding: clamp(1.5rem, 4vw, 3rem);
+    border: 1px solid var(--color-border, #e8e4dc);
+    border-radius: 28px;
+    background:
+        radial-gradient(circle at 85% 18%, rgba(192, 164, 107, 0.13), transparent 31%),
+        linear-gradient(135deg, #fffefa 0%, #f7f3e9 100%);
+}
+
+.heroCopy { max-width: 680px; }
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #8a7547;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    font-weight: 750;
+    font-size: 0.7rem;
+}
+
+.hero h1 {
+    margin: 0.85rem 0 0.9rem;
+    font-family: var(--font-serif, Georgia, serif);
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 450;
+    letter-spacing: -0.045em;
+    line-height: 1.03;
+}
+
+.hero p {
+    max-width: 620px;
+    color: var(--color-text-secondary, #696969);
+    font-size: 1rem;
+    line-height: 1.75;
+    margin: 0 0 1.4rem;
+}
+
+.today {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4e4b43;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.heroDial {
+    justify-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 255px);
+    min-height: 245px;
+    padding: 1.75rem;
+    border-radius: 26px;
+    border: 1px solid rgba(153, 129, 78, 0.24);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 18px 45px rgba(74, 62, 37, 0.07);
+}
+
+.dialLabel {
+    color: #83724d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+}
+
+.heroDial strong {
+    font-size: 4rem;
+    line-height: 1.12;
+    margin-top: 0.4rem;
+    font-weight: 650;
+    letter-spacing: -0.06em;
+}
+
+.heroDial > span:not(.dialLabel) {
+    color: #77736a;
+    font-size: 0.85rem;
+}
+
+.dialTrack {
+    width: 100%;
+    height: 7px;
+    margin: 1.25rem 0 0.65rem;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #ece7db;
+}
+
+.dialTrack span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #9e8755;
+    transition: width 0.25s ease;
+}
+
+.heroDial small { color: #77736a; font-size: 0.74rem; }
+
+.metricGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 2.5rem;
+}
+
+.metricCard {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    align-items: center;
+    gap: 0.2rem 0.85rem;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid var(--color-border, #e8e4dc);
+    border-radius: 18px;
+    background: #fff;
+}
+
+.metricIcon {
+    display: grid;
+    grid-row: span 2;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    background: #f5f1e8;
+    color: #8a7547;
+}
+
+.metricCard strong {
+    font-size: 1.55rem;
+    font-weight: 750;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.metricCard > span:last-child {
+    color: #77736a;
+    font-size: 0.78rem;
+}
+
+.planSection {
+    padding: clamp(1.25rem, 3vw, 2.2rem);
+    border: 1px solid var(--color-border, #e8e4dc);
+    border-radius: 26px;
+    background: #fff;
+}
+
+.sectionHeading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.sectionHeading h2 {
+    margin: 0.45rem 0;
+    font-family: var(--font-serif, Georgia, serif);
+    font-size: clamp(1.55rem, 3vw, 2.2rem);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+}
+
+.sectionHeading p {
+    color: #77736a;
+    line-height: 1.6;
+    max-width: 620px;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.budgetPicker {
+    flex-shrink: 0;
+    display: flex;
+    gap: 0.35rem;
+    border-radius: 13px;
+    padding: 0.3rem;
+    background: #f5f3ee;
+}
+
+.budgetPicker button {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: #68645b;
+    padding: 0.6rem 0.75rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.budgetPicker button:hover { background: #fff; }
+
+.budgetPicker button.budgetActive {
+    background: #fff;
+    color: #26251f;
+    border-color: #e2d9c5;
+    box-shadow: 0 2px 7px rgba(20, 20, 20, 0.04);
+}
+
+.notice {
+    padding: 1rem;
+    margin: 0 0 1rem;
+    border-radius: 12px;
+    color: #776a4a;
+    background: #f8f3e7;
+}
+
+.planList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.planItem {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid #ece9e1;
+    border-radius: 19px;
+    background: #fffefa;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.planItem:hover {
+    border-color: #d5c7a8;
+    transform: translateY(-1px);
+}
+
+.stepNumber {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: #f0eadb;
+    color: #887144;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.planItemBody { min-width: 0; }
+
+.planItemMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.55rem;
+}
+
+.kind, .priority, .savedPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.68rem;
+    font-weight: 750;
+}
+
+.kind { color: #655b43; background: #f0eadb; }
+.priority { color: #655f52; background: #f4f2ec; }
+.savedPill { color: #426a51; background: #eaf4eb; }
+
+.planItem h3 {
+    margin: 0;
+    font-size: 1.12rem;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+.subject {
+    display: inline-block;
+    color: #8a7547;
+    font-size: 0.75rem;
+    font-weight: 750;
+    margin-top: 0.3rem;
+}
+
+.planItem p {
+    color: #6d6a63;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    margin: 0.5rem 0 1rem;
+}
+
+.planItemFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.planItemFooter > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    color: #77736a;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.planItemFooter button, .bottomCard button, .emptyState button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 0;
+    border-radius: 10px;
+    background: #292923;
+    color: #fff;
+    padding: 0.68rem 0.9rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.planItemFooter button:hover, .bottomCard button:hover, .emptyState button:hover { background: #5e5339; }
+.planItemFooter button:disabled { opacity: 0.55; cursor: wait; }
+
+.itemActions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.planItemFooter button.secondaryAction {
+    background: #f4f1e8;
+    color: #4c483f;
+    border: 1px solid #e4dece;
+}
+
+.planItemFooter button.secondaryAction:hover { background: #ebe4d2; }
+
+.saveBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    padding: 1.2rem 1.25rem;
+    border: 1px solid #e8e0ce;
+    border-radius: 17px;
+    background: #faf7ef;
+}
+
+.saveBar strong { display: block; font-size: 0.95rem; }
+.saveBar p { color: #77736a; font-size: 0.78rem; line-height: 1.5; margin: 0.25rem 0 0; }
+
+.saveBar button {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border: 0;
+    border-radius: 11px;
+    background: #9c8452;
+    color: #fff;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.saveBar button:hover { background: #7f6b42; }
+.saveBar button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.emptyState {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    border: 1px dashed #d7d0bf;
+    border-radius: 18px;
+    color: #80745d;
+    background: #fffefa;
+}
+
+.emptyState h3 { margin: 0.7rem 0; color: #2c2b26; font-size: 1.15rem; }
+.emptyState p { max-width: 440px; margin: 0 auto 1.15rem; color: #77736a; line-height: 1.65; font-size: 0.88rem; }
+
+.bottomGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.bottomCard {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.35rem;
+    border: 1px solid var(--color-border, #e8e4dc);
+    border-radius: 19px;
+    background: #fff;
+}
+
+.bottomIcon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    background: #f5f1e8;
+    color: #8a7547;
+}
+
+.bottomCard h3 { margin: 0.1rem 0 0.45rem; font-size: 0.98rem; }
+.bottomCard p { margin: 0 0 0.9rem; font-size: 0.82rem; line-height: 1.6; color: #77736a; }
+
+@media (max-width: 900px) {
+    .hero { grid-template-columns: minmax(0, 1fr) 210px; gap: 1.2rem; }
+    .heroDial { min-height: 210px; padding: 1.25rem; }
+    .metricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sectionHeading { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 620px) {
+    .page { padding: 1rem; }
+    .hero { grid-template-columns: 1fr; padding: 1.3rem; }
+    .heroDial { justify-self: stretch; width: 100%; min-height: 175px; }
+    .heroDial strong { font-size: 3rem; }
+    .metricGrid { gap: 0.65rem; }
+    .metricCard { padding: 0.9rem; grid-template-columns: 34px 1fr; gap: 0.2rem 0.55rem; }
+    .metricIcon { width: 34px; height: 34px; border-radius: 10px; }
+    .metricCard strong { font-size: 1.35rem; }
+    .metricCard > span:last-child { font-size: 0.7rem; }
+    .planSection { padding: 1rem; }
+    .budgetPicker { width: 100%; }
+    .budgetPicker button { flex: 1; padding: 0.6rem 0.35rem; }
+    .planItem { grid-template-columns: 32px minmax(0, 1fr); padding: 0.9rem; gap: 0.7rem; }
+    .stepNumber { width: 32px; height: 32px; border-radius: 10px; }
+    .saveBar { align-items: flex-start; flex-direction: column; }
+    .saveBar button { width: 100%; }
+    .bottomGrid { grid-template-columns: 1fr; }
+}

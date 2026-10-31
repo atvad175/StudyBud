@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, BookOpen, Clock, ChevronLeft, Check, X } from 'lucide-react';
+import { Layers, Plus, BookOpen, Clock, ChevronLeft, X, Search, Download, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import { getFlashcardNextReviewDate } from '../studyPlannerUtils.js';
+
+const escapeFlashcardCsv = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
 import { useToast } from '../../../context/useToast';
 
 const Flashcards = () => {
@@ -21,6 +24,14 @@ const Flashcards = () => {
     const [showNewCard, setShowNewCard] = useState(false);
     const [newCardFront, setNewCardFront] = useState('');
     const [newCardBack, setNewCardBack] = useState('');
+    const [cardSearch, setCardSearch] = useState('');
+    const [showBulkImport, setShowBulkImport] = useState(false);
+    const [bulkImportText, setBulkImportText] = useState('');
+    const [isBulkImporting, setIsBulkImporting] = useState(false);
+    const [editingCardId, setEditingCardId] = useState(null);
+    const [editCardFront, setEditCardFront] = useState('');
+    const [editCardBack, setEditCardBack] = useState('');
+    const [busyCardId, setBusyCardId] = useState(null);
 
     // Study Mode
     const [studyQueue, setStudyQueue] = useState([]);
@@ -250,6 +261,155 @@ const Flashcards = () => {
         }
     };
 
+    const handleBulkImport = async () => {
+        if (!activeDeckId || isBulkImporting) return;
+        const lines = bulkImportText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const parsed = lines.map(line => {
+            const separator = line.includes('\t') ? '\t' : line.includes(' | ') ? ' | ' : line.includes('|') ? '|' : null;
+            if (!separator) return null;
+            const splitAt = line.indexOf(separator);
+            const front = line.slice(0, splitAt).trim();
+            const back = line.slice(splitAt + separator.length).trim();
+            return front && back && front.length <= 2000 && back.length <= 3000 ? { front, back } : null;
+        }).filter(Boolean);
+
+        if (parsed.length === 0) {
+            toast.error('No valid cards found. Use one card per line: question | answer.');
+            return;
+        }
+        if (parsed.length > 100) {
+            toast.error('Import up to 100 cards at a time. Split a larger deck into batches.');
+            return;
+        }
+
+        setIsBulkImporting(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to import flashcards.');
+
+            const payload = parsed.map(card => ({
+                user_id: user.id,
+                deck_id: activeDeckId,
+                front: card.front,
+                back: card.back,
+                next_review_date: new Date().toISOString(),
+            }));
+            const { data: inserted, error } = await supabase
+                .from('flashcards')
+                .insert(payload)
+                .select();
+            if (error) throw error;
+            if (!inserted || inserted.length !== payload.length) {
+                throw new Error('The database did not confirm every imported card. Refresh the deck before retrying.');
+            }
+
+            setData(previous => ({
+                ...previous,
+                cards: [...inserted.map(card => ({ ...card, deckId: card.deck_id })), ...previous.cards],
+            }));
+            setBulkImportText('');
+            setShowBulkImport(false);
+            toast.success(inserted.length + ' flashcard' + (inserted.length === 1 ? '' : 's') + ' imported.');
+        } catch (error) {
+            toast.error(error?.message || 'The cards could not be imported. Your pasted text is still here.');
+        } finally {
+            setIsBulkImporting(false);
+        }
+    };
+
+    const handleExportDeck = () => {
+        if (!activeDeck || activeDeckCards.length === 0) {
+            toast.info('Add cards before exporting this deck.');
+            return;
+        }
+        const rows = [
+            ['Front', 'Back', 'Next review'],
+            ...activeDeckCards.map(card => [card.front, card.back, card.next_review_date || '']),
+        ];
+        const csv = rows.map(row => row.map(escapeFlashcardCsv).join(',')).join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = (activeDeck.name || 'flashcards').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() + '.csv';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const beginEditCard = card => {
+        setEditingCardId(card.id);
+        setEditCardFront(card.front || '');
+        setEditCardBack(card.back || '');
+    };
+
+    const cancelEditCard = () => {
+        setEditingCardId(null);
+        setEditCardFront('');
+        setEditCardBack('');
+    };
+
+    const handleSaveCardEdit = async cardId => {
+        const front = editCardFront.trim();
+        const back = editCardBack.trim();
+        if (!front || !back || busyCardId !== null) return;
+        setBusyCardId(cardId);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to edit flashcards.');
+            const { data: saved, error } = await supabase
+                .from('flashcards')
+                .update({ front, back })
+                .eq('id', cardId)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!saved) throw new Error('The card was not updated. Refresh and try again.');
+            setData(previous => ({
+                ...previous,
+                cards: previous.cards.map(card => String(card.id) === String(cardId) ? { ...card, front, back } : card),
+            }));
+            cancelEditCard();
+            toast.success('Flashcard updated.');
+        } catch (error) {
+            toast.error(error?.message || 'The card could not be updated.');
+        } finally {
+            setBusyCardId(null);
+        }
+    };
+
+    const handleDeleteCard = async card => {
+        if (busyCardId !== null) return;
+        if (!window.confirm('Delete this flashcard? This cannot be undone.')) return;
+        setBusyCardId(card.id);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to delete flashcards.');
+            const { data: deleted, error } = await supabase
+                .from('flashcards')
+                .delete()
+                .eq('id', card.id)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!deleted) throw new Error('The card was not deleted. Refresh and try again.');
+            setData(previous => ({
+                ...previous,
+                cards: previous.cards.filter(item => String(item.id) !== String(card.id)),
+            }));
+            if (String(editingCardId) === String(card.id)) cancelEditCard();
+            setStudyQueue(previous => previous.filter(item => String(item.id) !== String(card.id)));
+            toast.success('Flashcard deleted.');
+        } catch (error) {
+            toast.error(error?.message || 'The card could not be deleted.');
+        } finally {
+            setBusyCardId(null);
+        }
+    };
+
     const handleStartStudy = async () => {
         const now = new Date();
         const due = data.cards.filter(card =>
@@ -295,26 +455,25 @@ const Flashcards = () => {
         }
     };
 
-    const handleRateCard = async (isEasy) => {
+    const handleRateCard = async rating => {
         const currentCard = studyQueue[currentStudyIndex];
         if (!currentCard || isSaving) return;
 
-        const nextReview = new Date();
-        if (isEasy) nextReview.setDate(nextReview.getDate() + 3);
-        else nextReview.setHours(nextReview.getHours() + 1);
-
-        const nextReviewDate = nextReview.toISOString();
+        const nextReviewDate = getFlashcardNextReviewDate(rating);
         setIsSaving(true);
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError || !user) throw new Error('Sign in to save your review progress.');
 
-            const { error } = await supabase
+            const { data: savedCard, error } = await supabase
                 .from('flashcards')
                 .update({ next_review_date: nextReviewDate })
                 .eq('id', currentCard.id)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!savedCard) throw new Error('Your review rating was not saved. Refresh and try again.');
 
             setData(previous => ({
                 ...previous,
@@ -330,7 +489,7 @@ const Flashcards = () => {
                 setIsFlipped(false);
             } else {
                 setViewMode('DECK_VIEW');
-                toast.success('Review complete. Your next review times are saved.');
+                toast.success('Review complete. Your four-level ratings and next review times are saved.');
             }
         } catch (error) {
             toast.error(error?.message || 'Your review progress could not be saved. Please try again.');
@@ -341,6 +500,11 @@ const Flashcards = () => {
 
     const activeDeck = data.decks.find(deck => String(deck.id) === String(activeDeckId));
     const activeDeckCards = data.cards.filter(card => String(card.deckId) === String(activeDeckId));
+    const visibleDeckCards = activeDeckCards.filter(card => {
+        const query = cardSearch.trim().toLocaleLowerCase();
+        return !query || String(card.front || '').toLocaleLowerCase().includes(query) ||
+            String(card.back || '').toLocaleLowerCase().includes(query);
+    });
 
     return (
         <div className="page-container" style={{ paddingBottom: '80px', maxWidth: '900px', margin: '0 auto' }}>
@@ -478,15 +642,45 @@ const Flashcards = () => {
                         </button>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Cards in {activeDeck?.name}</h2>
-                        <button 
-                            onClick={() => setShowNewCard(true)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', backgroundColor: 'transparent', color: 'var(--color-soft-black)', borderRadius: '100px', border: '1px solid var(--color-soft-black)', cursor: 'pointer', fontWeight: 500 }}
-                        >
-                            <Plus size={16} /> Add Card
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: 0 }}>Cards in {activeDeck?.name}</h2>
+                            <p style={{ margin: '0.3rem 0 0', color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{activeDeckCards.length} cards · {getDueCardsCount(activeDeckId)} due for review</p>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <button type="button" onClick={handleExportDeck} disabled={activeDeckCards.length === 0} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.85rem', backgroundColor: 'white', color: 'var(--color-soft-black)', borderRadius: '100px', border: '1px solid var(--color-border)', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', opacity: activeDeckCards.length === 0 ? 0.5 : 1 }}>
+                                <Download size={15} /> Export
+                            </button>
+                            <button type="button" onClick={() => { setShowBulkImport(value => !value); setShowNewCard(false); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.85rem', backgroundColor: 'white', color: 'var(--color-soft-black)', borderRadius: '100px', border: '1px solid var(--color-border)', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>
+                                <Plus size={15} /> Bulk import
+                            </button>
+                            <button type="button" onClick={() => { setShowNewCard(true); setShowBulkImport(false); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.95rem', backgroundColor: 'var(--color-soft-black)', color: 'white', borderRadius: '100px', border: '1px solid var(--color-soft-black)', cursor: 'pointer', fontWeight: 650, fontSize: '0.8rem' }}>
+                                <Plus size={15} /> Add Card
+                            </button>
+                        </div>
                     </div>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 0.9rem', border: '1px solid var(--color-border)', borderRadius: '12px', background: 'white', marginBottom: '1rem' }}>
+                        <Search size={17} color="var(--color-text-secondary)" />
+                        <input type="search" value={cardSearch} onChange={event => setCardSearch(event.target.value)} placeholder="Search the front or back of a card…" aria-label="Search cards in this deck" style={{ border: 0, outline: 0, width: '100%', background: 'transparent', font: 'inherit', fontSize: '0.85rem' }} />
+                    </label>
+
+                    {showBulkImport && (
+                        <section style={{ background: '#fffefa', border: '1px solid var(--color-gold)', borderRadius: '18px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                            <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem' }}>Import multiple cards</h3>
+                            <p style={{ margin: '0 0 0.85rem', color: 'var(--color-text-secondary)', fontSize: '0.8rem', lineHeight: 1.55 }}>
+                                Paste one card per line using <strong>Front | Back</strong> or tab-separated columns. Up to 100 cards per import.
+                            </p>
+                            <textarea value={bulkImportText} onChange={event => setBulkImportText(event.target.value)} rows={7} placeholder={'What is osmosis? | Movement of water across a selectively permeable membrane.\nWhat is diffusion? | Movement of particles from high to low concentration.'} style={{ width: '100%', padding: '0.85rem', border: '1px solid var(--color-border)', borderRadius: '11px', resize: 'vertical', font: 'inherit', fontSize: '0.84rem', lineHeight: 1.55 }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                                <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>{bulkImportText.split(/\r?\n/).filter(line => line.trim()).length} non-empty lines</span>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button type="button" onClick={() => setShowBulkImport(false)} disabled={isBulkImporting} style={{ padding: '0.65rem 0.9rem', border: '1px solid var(--color-border)', borderRadius: '10px', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="button" onClick={() => void handleBulkImport()} disabled={!bulkImportText.trim() || isBulkImporting} style={{ padding: '0.65rem 0.95rem', border: 0, borderRadius: '10px', background: 'var(--color-soft-black)', color: 'white', cursor: isBulkImporting ? 'wait' : 'pointer', opacity: !bulkImportText.trim() || isBulkImporting ? 0.55 : 1 }}>{isBulkImporting ? 'Importing…' : 'Import cards'}</button>
+                                </div>
+                            </div>
+                        </section>
+                    )}
 
                     {showNewCard && (
                         <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '2rem', boxShadow: 'var(--shadow-soft)', marginBottom: '2rem', border: '1px solid var(--color-gold)' }}>
@@ -508,28 +702,58 @@ const Flashcards = () => {
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {activeDeckCards.map(c => {
-                            const isDue = !c.next_review_date || new Date(c.next_review_date) <= new Date();
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {visibleDeckCards.map(card => {
+                            const isDue = !card.next_review_date || new Date(card.next_review_date) <= new Date();
+                            const isEditing = String(editingCardId) === String(card.id);
+                            const isBusy = String(busyCardId) === String(card.id);
                             return (
-                                <div key={c.id} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', border: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', position: 'relative' }}>
-                                    <div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Front</div>
-                                        <div style={{ fontSize: '1rem', color: 'var(--color-soft-black)' }}>{c.front}</div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Back</div>
-                                        <div style={{ fontSize: '1rem', color: 'var(--color-soft-black)' }}>{c.back}</div>
-                                    </div>
-                                    {isDue && (
-                                        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f57c00' }} title="Due for review"></div>
+                                <article key={card.id} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.2rem', border: '1px solid var(--color-border)', position: 'relative' }}>
+                                    {isDue && <span style={{ position: 'absolute', top: '12px', right: '12px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#d28a35' }} title="Due for review" />}
+                                    {isEditing ? (
+                                        <div style={{ display: 'grid', gap: '0.8rem' }}>
+                                            <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700 }}>Front
+                                                <textarea value={editCardFront} onChange={event => setEditCardFront(event.target.value)} rows={2} style={{ width: '100%', padding: '0.7rem', border: '1px solid var(--color-border)', borderRadius: '9px', font: 'inherit', resize: 'vertical' }} />
+                                            </label>
+                                            <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700 }}>Back
+                                                <textarea value={editCardBack} onChange={event => setEditCardBack(event.target.value)} rows={2} style={{ width: '100%', padding: '0.7rem', border: '1px solid var(--color-border)', borderRadius: '9px', font: 'inherit', resize: 'vertical' }} />
+                                            </label>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                                <button type="button" onClick={cancelEditCard} disabled={isBusy} style={{ padding: '0.6rem 0.85rem', border: '1px solid var(--color-border)', borderRadius: '9px', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                                <button type="button" onClick={() => void handleSaveCardEdit(card.id)} disabled={!editCardFront.trim() || !editCardBack.trim() || isBusy} style={{ padding: '0.6rem 0.85rem', border: 0, borderRadius: '9px', background: 'var(--color-soft-black)', color: 'white', cursor: 'pointer', opacity: !editCardFront.trim() || !editCardBack.trim() || isBusy ? 0.55 : 1 }}>{isBusy ? 'Saving…' : 'Save changes'}</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(210px, 100%), 1fr))', gap: '1.25rem', paddingRight: '2.3rem' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 750 }}>Front · Prompt</div>
+                                                    <div style={{ fontSize: '0.92rem', color: 'var(--color-soft-black)', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{card.front}</div>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 750 }}>Back · Answer</div>
+                                                    <div style={{ fontSize: '0.92rem', color: 'var(--color-soft-black)', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{card.back}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', borderTop: '1px solid #f0eee8', marginTop: '1rem', paddingTop: '0.8rem' }}>
+                                                <span style={{ color: isDue ? '#a36b32' : 'var(--color-text-secondary)', fontSize: '0.7rem', fontWeight: 700 }}>{isDue ? 'Due for review' : 'Next review ' + new Date(card.next_review_date).toLocaleDateString()}</span>
+                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                    <button type="button" onClick={() => beginEditCard(card)} disabled={busyCardId !== null} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.65rem', border: '1px solid var(--color-border)', borderRadius: '8px', background: 'white', color: 'var(--color-soft-black)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 650 }}>
+                                                        <Pencil size={13} /> Edit
+                                                    </button>
+                                                    <button type="button" onClick={() => void handleDeleteCard(card)} disabled={busyCardId !== null} aria-label="Delete flashcard" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '31px', border: '1px solid #efdbd7', borderRadius: '8px', background: '#fff8f6', color: '#a34f45', cursor: 'pointer' }}>
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
                                     )}
-                                </div>
+                                </article>
                             );
                         })}
-                        {activeDeckCards.length === 0 && (
-                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '16px' }}>
-                                No cards in this deck yet. Add your first card above.
+                        {visibleDeckCards.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '2.3rem', color: 'var(--color-text-secondary)', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '16px' }}>
+                                {activeDeckCards.length === 0 ? 'No cards in this deck yet. Add a card or use bulk import.' : 'No cards match your search.'}
                             </div>
                         )}
                     </div>
@@ -627,22 +851,25 @@ const Flashcards = () => {
                         </div>
                     </div>
 
-                    {/* Rating Actions */}
-                    <div style={{ display: 'flex', gap: '1rem', opacity: isFlipped ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: isFlipped ? 'auto' : 'none' }}>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); handleRateCard(false); }}
-                            disabled={isSaving}
-                            style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', border: '1px solid #ffcdd2', backgroundColor: '#ffebee', color: '#c62828', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                        >
-                            Hard <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>(Review soon)</span>
-                        </button>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); handleRateCard(true); }}
-                            disabled={isSaving}
-                            style={{ flex: 1, padding: '1.2rem', borderRadius: '16px', border: '1px solid #c8e6c9', backgroundColor: '#e8f5e9', color: '#2e7d32', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                        >
-                            <Check size={20} /> Easy <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>(in 3 days)</span>
-                        </button>
+                    {/* Four recall ratings map to distinct, persisted review intervals. */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.65rem', opacity: isFlipped ? 1 : 0, transition: 'opacity 0.3s', pointerEvents: isFlipped ? 'auto' : 'none' }}>
+                        {[
+                            { id: 'again', label: 'Again', delay: '10 min', color: '#b33b35', background: '#fff0ee', border: '#f1c2bd' },
+                            { id: 'hard', label: 'Hard', delay: '1 day', color: '#8a5a20', background: '#fff7e9', border: '#ebd2a6' },
+                            { id: 'good', label: 'Good', delay: '3 days', color: '#456948', background: '#edf7ed', border: '#c7e3c8' },
+                            { id: 'easy', label: 'Easy', delay: '7 days', color: '#315f86', background: '#eef6fc', border: '#c7deef' },
+                        ].map(rating => (
+                            <button
+                                key={rating.id}
+                                type="button"
+                                onClick={event => { event.stopPropagation(); void handleRateCard(rating.id); }}
+                                disabled={isSaving}
+                                style={{ minWidth: 0, padding: '0.85rem 0.45rem', borderRadius: '14px', border: '1px solid ' + rating.border, backgroundColor: rating.background, color: rating.color, fontSize: '0.95rem', fontWeight: 750, cursor: isSaving ? 'wait' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
+                            >
+                                <span>{rating.label}</span>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 500 }}>{rating.delay}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
