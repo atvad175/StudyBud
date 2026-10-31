@@ -500,6 +500,11 @@ const Flashcards = () => {
 
     const activeDeck = data.decks.find(deck => String(deck.id) === String(activeDeckId));
     const activeDeckCards = data.cards.filter(card => String(card.deckId) === String(activeDeckId));
+    const visibleDeckCards = activeDeckCards.filter(card => {
+        const query = cardSearch.trim().toLocaleLowerCase();
+        return !query || String(card.front || '').toLocaleLowerCase().includes(query) ||
+            String(card.back || '').toLocaleLowerCase().includes(query);
+    });
 
     return (
         <div className="page-container" style={{ paddingBottom: '80px', maxWidth: '900px', margin: '0 auto' }}>
@@ -637,15 +642,45 @@ const Flashcards = () => {
                         </button>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Cards in {activeDeck?.name}</h2>
-                        <button 
-                            onClick={() => setShowNewCard(true)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', backgroundColor: 'transparent', color: 'var(--color-soft-black)', borderRadius: '100px', border: '1px solid var(--color-soft-black)', cursor: 'pointer', fontWeight: 500 }}
-                        >
-                            <Plus size={16} /> Add Card
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: 0 }}>Cards in {activeDeck?.name}</h2>
+                            <p style={{ margin: '0.3rem 0 0', color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>{activeDeckCards.length} cards · {getDueCardsCount(activeDeckId)} due for review</p>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <button type="button" onClick={handleExportDeck} disabled={activeDeckCards.length === 0} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.85rem', backgroundColor: 'white', color: 'var(--color-soft-black)', borderRadius: '100px', border: '1px solid var(--color-border)', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', opacity: activeDeckCards.length === 0 ? 0.5 : 1 }}>
+                                <Download size={15} /> Export
+                            </button>
+                            <button type="button" onClick={() => { setShowBulkImport(value => !value); setShowNewCard(false); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.85rem', backgroundColor: 'white', color: 'var(--color-soft-black)', borderRadius: '100px', border: '1px solid var(--color-border)', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>
+                                <Plus size={15} /> Bulk import
+                            </button>
+                            <button type="button" onClick={() => { setShowNewCard(true); setShowBulkImport(false); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 0.95rem', backgroundColor: 'var(--color-soft-black)', color: 'white', borderRadius: '100px', border: '1px solid var(--color-soft-black)', cursor: 'pointer', fontWeight: 650, fontSize: '0.8rem' }}>
+                                <Plus size={15} /> Add Card
+                            </button>
+                        </div>
                     </div>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.75rem 0.9rem', border: '1px solid var(--color-border)', borderRadius: '12px', background: 'white', marginBottom: '1rem' }}>
+                        <Search size={17} color="var(--color-text-secondary)" />
+                        <input type="search" value={cardSearch} onChange={event => setCardSearch(event.target.value)} placeholder="Search the front or back of a card…" aria-label="Search cards in this deck" style={{ border: 0, outline: 0, width: '100%', background: 'transparent', font: 'inherit', fontSize: '0.85rem' }} />
+                    </label>
+
+                    {showBulkImport && (
+                        <section style={{ background: '#fffefa', border: '1px solid var(--color-gold)', borderRadius: '18px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                            <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem' }}>Import multiple cards</h3>
+                            <p style={{ margin: '0 0 0.85rem', color: 'var(--color-text-secondary)', fontSize: '0.8rem', lineHeight: 1.55 }}>
+                                Paste one card per line using <strong>Front | Back</strong> or tab-separated columns. Up to 100 cards per import.
+                            </p>
+                            <textarea value={bulkImportText} onChange={event => setBulkImportText(event.target.value)} rows={7} placeholder={'What is osmosis? | Movement of water across a selectively permeable membrane.\nWhat is diffusion? | Movement of particles from high to low concentration.'} style={{ width: '100%', padding: '0.85rem', border: '1px solid var(--color-border)', borderRadius: '11px', resize: 'vertical', font: 'inherit', fontSize: '0.84rem', lineHeight: 1.55 }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                                <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>{bulkImportText.split(/\r?\n/).filter(line => line.trim()).length} non-empty lines</span>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button type="button" onClick={() => setShowBulkImport(false)} disabled={isBulkImporting} style={{ padding: '0.65rem 0.9rem', border: '1px solid var(--color-border)', borderRadius: '10px', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="button" onClick={() => void handleBulkImport()} disabled={!bulkImportText.trim() || isBulkImporting} style={{ padding: '0.65rem 0.95rem', border: 0, borderRadius: '10px', background: 'var(--color-soft-black)', color: 'white', cursor: isBulkImporting ? 'wait' : 'pointer', opacity: !bulkImportText.trim() || isBulkImporting ? 0.55 : 1 }}>{isBulkImporting ? 'Importing…' : 'Import cards'}</button>
+                                </div>
+                            </div>
+                        </section>
+                    )}
 
                     {showNewCard && (
                         <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '2rem', boxShadow: 'var(--shadow-soft)', marginBottom: '2rem', border: '1px solid var(--color-gold)' }}>
@@ -667,28 +702,58 @@ const Flashcards = () => {
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {activeDeckCards.map(c => {
-                            const isDue = !c.next_review_date || new Date(c.next_review_date) <= new Date();
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {visibleDeckCards.map(card => {
+                            const isDue = !card.next_review_date || new Date(card.next_review_date) <= new Date();
+                            const isEditing = String(editingCardId) === String(card.id);
+                            const isBusy = String(busyCardId) === String(card.id);
                             return (
-                                <div key={c.id} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', border: '1px solid var(--color-border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', position: 'relative' }}>
-                                    <div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Front</div>
-                                        <div style={{ fontSize: '1rem', color: 'var(--color-soft-black)' }}>{c.front}</div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Back</div>
-                                        <div style={{ fontSize: '1rem', color: 'var(--color-soft-black)' }}>{c.back}</div>
-                                    </div>
-                                    {isDue && (
-                                        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f57c00' }} title="Due for review"></div>
+                                <article key={card.id} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.2rem', border: '1px solid var(--color-border)', position: 'relative' }}>
+                                    {isDue && <span style={{ position: 'absolute', top: '12px', right: '12px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#d28a35' }} title="Due for review" />}
+                                    {isEditing ? (
+                                        <div style={{ display: 'grid', gap: '0.8rem' }}>
+                                            <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700 }}>Front
+                                                <textarea value={editCardFront} onChange={event => setEditCardFront(event.target.value)} rows={2} style={{ width: '100%', padding: '0.7rem', border: '1px solid var(--color-border)', borderRadius: '9px', font: 'inherit', resize: 'vertical' }} />
+                                            </label>
+                                            <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.78rem', fontWeight: 700 }}>Back
+                                                <textarea value={editCardBack} onChange={event => setEditCardBack(event.target.value)} rows={2} style={{ width: '100%', padding: '0.7rem', border: '1px solid var(--color-border)', borderRadius: '9px', font: 'inherit', resize: 'vertical' }} />
+                                            </label>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                                <button type="button" onClick={cancelEditCard} disabled={isBusy} style={{ padding: '0.6rem 0.85rem', border: '1px solid var(--color-border)', borderRadius: '9px', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                                <button type="button" onClick={() => void handleSaveCardEdit(card.id)} disabled={!editCardFront.trim() || !editCardBack.trim() || isBusy} style={{ padding: '0.6rem 0.85rem', border: 0, borderRadius: '9px', background: 'var(--color-soft-black)', color: 'white', cursor: 'pointer', opacity: !editCardFront.trim() || !editCardBack.trim() || isBusy ? 0.55 : 1 }}>{isBusy ? 'Saving…' : 'Save changes'}</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(210px, 100%), 1fr))', gap: '1.25rem', paddingRight: '2.3rem' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 750 }}>Front · Prompt</div>
+                                                    <div style={{ fontSize: '0.92rem', color: 'var(--color-soft-black)', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{card.front}</div>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 750 }}>Back · Answer</div>
+                                                    <div style={{ fontSize: '0.92rem', color: 'var(--color-soft-black)', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{card.back}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', borderTop: '1px solid #f0eee8', marginTop: '1rem', paddingTop: '0.8rem' }}>
+                                                <span style={{ color: isDue ? '#a36b32' : 'var(--color-text-secondary)', fontSize: '0.7rem', fontWeight: 700 }}>{isDue ? 'Due for review' : 'Next review ' + new Date(card.next_review_date).toLocaleDateString()}</span>
+                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                    <button type="button" onClick={() => beginEditCard(card)} disabled={busyCardId !== null} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.65rem', border: '1px solid var(--color-border)', borderRadius: '8px', background: 'white', color: 'var(--color-soft-black)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 650 }}>
+                                                        <Pencil size={13} /> Edit
+                                                    </button>
+                                                    <button type="button" onClick={() => void handleDeleteCard(card)} disabled={busyCardId !== null} aria-label="Delete flashcard" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '31px', border: '1px solid #efdbd7', borderRadius: '8px', background: '#fff8f6', color: '#a34f45', cursor: 'pointer' }}>
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
                                     )}
-                                </div>
+                                </article>
                             );
                         })}
-                        {activeDeckCards.length === 0 && (
-                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '16px' }}>
-                                No cards in this deck yet. Add your first card above.
+                        {visibleDeckCards.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '2.3rem', color: 'var(--color-text-secondary)', backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: '16px' }}>
+                                {activeDeckCards.length === 0 ? 'No cards in this deck yet. Add a card or use bulk import.' : 'No cards match your search.'}
                             </div>
                         )}
                     </div>
