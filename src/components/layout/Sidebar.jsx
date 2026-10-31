@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users, CalendarClock } from 'lucide-react';
+import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users, CalendarClock, BarChart3 } from 'lucide-react';
 import StudyBudLogo from '../brand/StudyBudLogo';
 import styles from './Sidebar.module.css';
 
@@ -92,6 +92,7 @@ const Sidebar = () => {
       children: [
         { name: 'Hub', path: '/study', exact: true, icon: BookOpen },
         { name: 'Study plan', path: '/study/plan', icon: CalendarClock },
+        { name: 'Insights', path: '/study/insights', icon: BarChart3 },
         { name: 'Feynman', path: '/study/feynman', icon: Lightbulb },
         { name: 'Assignments', path: '/study/assignments', icon: FileText },
         { name: 'Exams', path: '/study/exams', icon: Target },
