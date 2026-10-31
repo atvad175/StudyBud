@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Activity, ArrowRight, CalendarDays, CheckCircle2, Clock3, Save, Sparkles, Target, TrendingUp } from 'lucide-react';
 import { useTime } from '../../../context/useTime';
 import { useMind } from '../../../context/useMind';
@@ -22,6 +23,7 @@ const WeeklyReview = () => {
     const { sessions = [], loading: focusLoading = false } = useFocus();
     const { practiceLogs = [], loading: studyLoading = false } = useStudy();
     const { toast } = useToast();
+    const navigate = useNavigate();
 
     const [wentWell, setWentWell] = useState('');
     const [drainedEnergy, setDrainedEnergy] = useState('');
@@ -240,19 +242,19 @@ const WeeklyReview = () => {
                     </div>
 
                     <label>
-                        **What went well?**
+                        <span>What went well?</span>
                         <textarea value={wentWell} onChange={event => setWentWell(event.target.value)} placeholder="Which actions, routines or study sessions actually worked?" rows={3} />
                     </label>
                     <label>
-                        **What drained your time or energy?**
+                        <span>What drained your time or energy?</span>
                         <textarea value={drainedEnergy} onChange={event => setDrainedEnergy(event.target.value)} placeholder="Where did you lose momentum? What made work harder than necessary?" rows={3} />
                     </label>
                     <label>
-                        **What will you change next week?**
+                        <span>What will you change next week?</span>
                         <textarea value={doDifferently} onChange={event => setDoDifferently(event.target.value)} placeholder="Choose a specific behaviour or workflow to adjust." rows={3} />
                     </label>
                     <label>
-                        **One intention for next week**
+                        <span>One intention for next week</span>
                         <textarea value={nextIntention} onChange={event => setNextIntention(event.target.value)} placeholder="What is the most important outcome you want to protect time for?" rows={2} />
                     </label>
 
@@ -313,7 +315,7 @@ const WeeklyReview = () => {
                         <div><Target size={18} /></div>
                         <h3>Convert the review into action</h3>
                         <p>Take your next intention and give it a place in your study plan.</p>
-                        <button type="button" onClick={() => window.location.assign('/study/plan')}>Open Study Planner <ArrowRight size={14} /></button>
+                        <button type="button" onClick={() => navigate('/study/plan')}>Open Study Planner <ArrowRight size={14} /></button>
                     </article>
                 </aside>
             </section>
