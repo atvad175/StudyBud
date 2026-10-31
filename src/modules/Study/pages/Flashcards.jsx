@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, BookOpen, Clock, ChevronLeft, X } from 'lucide-react';
+import { Layers, Plus, BookOpen, Clock, ChevronLeft, X, Search, Download, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import { getFlashcardNextReviewDate } from '../studyPlannerUtils.js';
+
+const escapeFlashcardCsv = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
 import { useToast } from '../../../context/useToast';
 
 const Flashcards = () => {
@@ -22,6 +24,14 @@ const Flashcards = () => {
     const [showNewCard, setShowNewCard] = useState(false);
     const [newCardFront, setNewCardFront] = useState('');
     const [newCardBack, setNewCardBack] = useState('');
+    const [cardSearch, setCardSearch] = useState('');
+    const [showBulkImport, setShowBulkImport] = useState(false);
+    const [bulkImportText, setBulkImportText] = useState('');
+    const [isBulkImporting, setIsBulkImporting] = useState(false);
+    const [editingCardId, setEditingCardId] = useState(null);
+    const [editCardFront, setEditCardFront] = useState('');
+    const [editCardBack, setEditCardBack] = useState('');
+    const [busyCardId, setBusyCardId] = useState(null);
 
     // Study Mode
     const [studyQueue, setStudyQueue] = useState([]);
@@ -248,6 +258,155 @@ const Flashcards = () => {
             toast.error(error?.message || 'The flashcard could not be saved. Please try again.');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleBulkImport = async () => {
+        if (!activeDeckId || isBulkImporting) return;
+        const lines = bulkImportText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const parsed = lines.map(line => {
+            const separator = line.includes('\t') ? '\t' : line.includes(' | ') ? ' | ' : line.includes('|') ? '|' : null;
+            if (!separator) return null;
+            const splitAt = line.indexOf(separator);
+            const front = line.slice(0, splitAt).trim();
+            const back = line.slice(splitAt + separator.length).trim();
+            return front && back && front.length <= 2000 && back.length <= 3000 ? { front, back } : null;
+        }).filter(Boolean);
+
+        if (parsed.length === 0) {
+            toast.error('No valid cards found. Use one card per line: question | answer.');
+            return;
+        }
+        if (parsed.length > 100) {
+            toast.error('Import up to 100 cards at a time. Split a larger deck into batches.');
+            return;
+        }
+
+        setIsBulkImporting(true);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to import flashcards.');
+
+            const payload = parsed.map(card => ({
+                user_id: user.id,
+                deck_id: activeDeckId,
+                front: card.front,
+                back: card.back,
+                next_review_date: new Date().toISOString(),
+            }));
+            const { data: inserted, error } = await supabase
+                .from('flashcards')
+                .insert(payload)
+                .select();
+            if (error) throw error;
+            if (!inserted || inserted.length !== payload.length) {
+                throw new Error('The database did not confirm every imported card. Refresh the deck before retrying.');
+            }
+
+            setData(previous => ({
+                ...previous,
+                cards: [...inserted.map(card => ({ ...card, deckId: card.deck_id })), ...previous.cards],
+            }));
+            setBulkImportText('');
+            setShowBulkImport(false);
+            toast.success(inserted.length + ' flashcard' + (inserted.length === 1 ? '' : 's') + ' imported.');
+        } catch (error) {
+            toast.error(error?.message || 'The cards could not be imported. Your pasted text is still here.');
+        } finally {
+            setIsBulkImporting(false);
+        }
+    };
+
+    const handleExportDeck = () => {
+        if (!activeDeck || activeDeckCards.length === 0) {
+            toast.info('Add cards before exporting this deck.');
+            return;
+        }
+        const rows = [
+            ['Front', 'Back', 'Next review'],
+            ...activeDeckCards.map(card => [card.front, card.back, card.next_review_date || '']),
+        ];
+        const csv = rows.map(row => row.map(escapeFlashcardCsv).join(',')).join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = (activeDeck.name || 'flashcards').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() + '.csv';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const beginEditCard = card => {
+        setEditingCardId(card.id);
+        setEditCardFront(card.front || '');
+        setEditCardBack(card.back || '');
+    };
+
+    const cancelEditCard = () => {
+        setEditingCardId(null);
+        setEditCardFront('');
+        setEditCardBack('');
+    };
+
+    const handleSaveCardEdit = async cardId => {
+        const front = editCardFront.trim();
+        const back = editCardBack.trim();
+        if (!front || !back || busyCardId !== null) return;
+        setBusyCardId(cardId);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to edit flashcards.');
+            const { data: saved, error } = await supabase
+                .from('flashcards')
+                .update({ front, back })
+                .eq('id', cardId)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!saved) throw new Error('The card was not updated. Refresh and try again.');
+            setData(previous => ({
+                ...previous,
+                cards: previous.cards.map(card => String(card.id) === String(cardId) ? { ...card, front, back } : card),
+            }));
+            cancelEditCard();
+            toast.success('Flashcard updated.');
+        } catch (error) {
+            toast.error(error?.message || 'The card could not be updated.');
+        } finally {
+            setBusyCardId(null);
+        }
+    };
+
+    const handleDeleteCard = async card => {
+        if (busyCardId !== null) return;
+        if (!window.confirm('Delete this flashcard? This cannot be undone.')) return;
+        setBusyCardId(card.id);
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error('Sign in to delete flashcards.');
+            const { data: deleted, error } = await supabase
+                .from('flashcards')
+                .delete()
+                .eq('id', card.id)
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
+            if (error) throw error;
+            if (!deleted) throw new Error('The card was not deleted. Refresh and try again.');
+            setData(previous => ({
+                ...previous,
+                cards: previous.cards.filter(item => String(item.id) !== String(card.id)),
+            }));
+            if (String(editingCardId) === String(card.id)) cancelEditCard();
+            setStudyQueue(previous => previous.filter(item => String(item.id) !== String(card.id)));
+            toast.success('Flashcard deleted.');
+        } catch (error) {
+            toast.error(error?.message || 'The card could not be deleted.');
+        } finally {
+            setBusyCardId(null);
         }
     };
 
