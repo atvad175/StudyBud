@@ -6,7 +6,7 @@ import FocusOverlay from './FocusOverlay';
 
 const MainLayout = () => {
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
+        <div className="studybud-shell" style={{ display: 'flex', minHeight: '100vh', position: 'relative' }}>
             <Sidebar />
             <main style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
                 <Outlet />
