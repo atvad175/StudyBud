@@ -125,8 +125,7 @@ const Sidebar = () => {
                   {isExpanded ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
                 </button>
 
-                {isExpanded && (
-                  <div id={`${item.id}-subnav`} className={styles.subNav}>
+                <div id={`${item.id}-subnav`} className={styles.subNav} hidden={!isExpanded}>
                     {item.children.map(child => (
                       <NavLink
                         key={child.path}
@@ -141,7 +140,6 @@ const Sidebar = () => {
                       </NavLink>
                     ))}
                   </div>
-                )}
               </div>
             );
           }
