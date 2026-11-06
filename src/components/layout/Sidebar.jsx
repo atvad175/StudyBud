@@ -6,16 +6,10 @@ import styles from './Sidebar.module.css';
 
 const Sidebar = () => {
   const location = useLocation();
-  const [expanded, setExpanded] = useState({
-    habits: true,
-    focus: true,
-    time: true,
-    mind: true,
-    study: true
-  });
+  const [expanded, setExpanded] = useState({});
 
-  const toggleGroup = (group) => {
-    setExpanded(prev => ({ ...prev, [group]: !prev[group] }));
+  const toggleGroup = (group, isOpenByDefault) => {
+    setExpanded(prev => ({ ...prev, [group]: !(prev[group] ?? isOpenByDefault) }));
   };
 
   const navItems = [
@@ -111,25 +105,28 @@ const Sidebar = () => {
       <nav className={styles.nav}>
         {navItems.map((item) => {
           if (item.children) {
-            const isExpanded = expanded[item.id];
             const isActiveGroup = location.pathname.startsWith(item.path);
+            const isExpanded = expanded[item.id] ?? isActiveGroup;
 
             return (
               <div key={item.name} className={styles.navGroup}>
-                <div
+                <button
+                  type="button"
                   className={`${styles.navItem} ${styles.groupHeader} ${isActiveGroup ? styles.activeGroup : ''}`}
-                  onClick={() => toggleGroup(item.id)}
+                  onClick={() => toggleGroup(item.id, isActiveGroup)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`${item.id}-subnav`}
                 >
                   <item.icon size={20} className={styles.icon} />
                   <div className={styles.text}>
                     <span className={styles.title}>{item.name}</span>
                     <span className={styles.subtitle}>{item.subtitle}</span>
                   </div>
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </div>
+                  {isExpanded ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+                </button>
 
                 {isExpanded && (
-                  <div className={styles.subNav}>
+                  <div id={`${item.id}-subnav`} className={styles.subNav}>
                     {item.children.map(child => (
                       <NavLink
                         key={child.path}
