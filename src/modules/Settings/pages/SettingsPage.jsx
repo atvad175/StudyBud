@@ -15,7 +15,7 @@ const SettingsPage = () => {
     // Section 2: Appearance
     const [warmMode, setWarmMode] = useState(false);
     const [fontSize, setFontSize] = useState('Normal');
-    const [nightLightIntensity, setNightLightIntensity] = useState(15); // 0 to 100 scale
+    const [nightLightIntensity, setNightLightIntensity] = useState(0); // 0 to 100 scale
 
     // Section 3: Account
     const [password, setPassword] = useState('');
@@ -35,18 +35,19 @@ const SettingsPage = () => {
         
         try {
             const settings = JSON.parse(localStorage.getItem('studybud_settings') || '{}');
-            setWarmMode(!!settings.warmMode);
-            if (settings.largeFont) {
-                setFontSize('Large');
-                document.documentElement.classList.add('font-large');
-            }
-            if (settings.nightLightIntensity !== undefined) {
-                setNightLightIntensity(settings.nightLightIntensity);
-                document.documentElement.style.setProperty('--night-light-intensity', settings.nightLightIntensity / 100);
-            } else {
-                // Default 15%
-                document.documentElement.style.setProperty('--night-light-intensity', 0.15);
-            }
+            const isWarmMode = Boolean(settings.warmMode);
+            const isLargeFont = Boolean(settings.largeFont);
+            const savedIntensity = Number(settings.nightLightIntensity);
+            const safeIntensity = Number.isFinite(savedIntensity) && savedIntensity >= 0 && savedIntensity <= 100
+                ? savedIntensity
+                : 0;
+
+            setWarmMode(isWarmMode);
+            setFontSize(isLargeFont ? 'Large' : 'Normal');
+            setNightLightIntensity(safeIntensity);
+            document.documentElement.classList.toggle('warm-mode', isWarmMode);
+            document.documentElement.classList.toggle('font-large', isLargeFont);
+            document.documentElement.style.setProperty('--night-light-intensity', safeIntensity / 100);
         } catch (error) { console.warn('Unable to load saved appearance settings:', error); }
     }, []);
 
