@@ -24,7 +24,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    color: #8a7547;
+    color: var(--color-gold);
     text-transform: uppercase;
     letter-spacing: 0.13em;
     font-weight: 750;
@@ -52,7 +52,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: #4e4b43;
+    color: var(--color-text-primary);
     font-size: 0.9rem;
     font-weight: 650;
 }
@@ -73,7 +73,7 @@
 }
 
 .dialLabel {
-    color: #83724d;
+    color: var(--color-text-secondary);
     font-size: 0.68rem;
     font-weight: 800;
     letter-spacing: 0.13em;
@@ -88,7 +88,7 @@
 }
 
 .heroDial > span:not(.dialLabel) {
-    color: #77736a;
+    color: var(--color-text-secondary);
     font-size: 0.85rem;
 }
 
@@ -98,18 +98,18 @@
     margin: 1.25rem 0 0.65rem;
     overflow: hidden;
     border-radius: 20px;
-    background: #ece7db;
+    background: var(--color-beige);
 }
 
 .dialTrack span {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: #9e8755;
+    background: var(--color-gold);
     transition: width 0.25s ease;
 }
 
-.heroDial small { color: #77736a; font-size: 0.74rem; }
+.heroDial small { color: var(--color-text-secondary); font-size: 0.74rem; }
 
 .metricGrid {
     display: grid;
@@ -136,8 +136,8 @@
     width: 42px;
     height: 42px;
     border-radius: 13px;
-    background: #f5f1e8;
-    color: #8a7547;
+    background: var(--color-gold-light);
+    color: var(--color-gold);
 }
 
 .metricCard strong {
@@ -148,7 +148,7 @@
 }
 
 .metricCard > span:last-child {
-    color: #77736a;
+    color: var(--color-text-secondary);
     font-size: 0.78rem;
 }
 
@@ -176,7 +176,7 @@
 }
 
 .sectionHeading p {
-    color: #77736a;
+    color: var(--color-text-secondary);
     line-height: 1.6;
     max-width: 620px;
     margin: 0;
@@ -249,7 +249,7 @@
     width: 42px;
     height: 42px;
     border-radius: 14px;
-    background: #f0eadb;
+    background: var(--color-gold-light);
     color: #887144;
     font-size: 0.82rem;
     font-weight: 800;
@@ -276,8 +276,8 @@
     font-weight: 750;
 }
 
-.kind { color: #655b43; background: #f0eadb; }
-.priority { color: #655f52; background: #f4f2ec; }
+.kind { color: var(--color-gold-hover); background: var(--color-gold-light); }
+.priority { color: var(--color-text-secondary); background: var(--color-beige); }
 .savedPill { color: #426a51; background: #eaf4eb; }
 
 .planItem h3 {
@@ -289,7 +289,7 @@
 
 .subject {
     display: inline-block;
-    color: #8a7547;
+    color: var(--color-gold);
     font-size: 0.75rem;
     font-weight: 750;
     margin-top: 0.3rem;
@@ -314,7 +314,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.38rem;
-    color: #77736a;
+    color: var(--color-text-secondary);
     font-size: 0.78rem;
     font-weight: 700;
 }
@@ -326,7 +326,7 @@
     gap: 0.45rem;
     border: 0;
     border-radius: 10px;
-    background: #292923;
+    background: var(--color-soft-black);
     color: #fff;
     padding: 0.68rem 0.9rem;
     font: inherit;
@@ -336,7 +336,7 @@
     transition: background 0.2s ease;
 }
 
-.planItemFooter button:hover, .bottomCard button:hover, .emptyState button:hover { background: #5e5339; }
+.planItemFooter button:hover, .bottomCard button:hover, .emptyState button:hover { background: var(--color-gold-hover); }
 .planItemFooter button:disabled { opacity: 0.55; cursor: wait; }
 
 .itemActions {
@@ -348,11 +348,11 @@
 
 .planItemFooter button.secondaryAction {
     background: #f4f1e8;
-    color: #4c483f;
-    border: 1px solid #e4dece;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
 }
 
-.planItemFooter button.secondaryAction:hover { background: #ebe4d2; }
+.planItemFooter button.secondaryAction:hover { background: var(--color-gold-light); }
 
 .saveBar {
     display: flex;
@@ -361,13 +361,13 @@
     gap: 1.25rem;
     margin-top: 1.5rem;
     padding: 1.2rem 1.25rem;
-    border: 1px solid #e8e0ce;
+    border: 1px solid var(--color-border);
     border-radius: 17px;
-    background: #faf7ef;
+    background: var(--color-cream);
 }
 
 .saveBar strong { display: block; font-size: 0.95rem; }
-.saveBar p { color: #77736a; font-size: 0.78rem; line-height: 1.5; margin: 0.25rem 0 0; }
+.saveBar p { color: var(--color-text-secondary); font-size: 0.78rem; line-height: 1.5; margin: 0.25rem 0 0; }
 
 .saveBar button {
     flex-shrink: 0;
@@ -377,7 +377,7 @@
     padding: 0.85rem 1rem;
     border: 0;
     border-radius: 11px;
-    background: #9c8452;
+    background: var(--color-gold);
     color: #fff;
     font: inherit;
     font-size: 0.82rem;
@@ -385,20 +385,20 @@
     cursor: pointer;
 }
 
-.saveBar button:hover { background: #7f6b42; }
+.saveBar button:hover { background: var(--color-gold-hover); }
 .saveBar button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .emptyState {
     text-align: center;
     padding: 3rem 1.5rem;
-    border: 1px dashed #d7d0bf;
+    border: 1px dashed var(--color-border);
     border-radius: 18px;
-    color: #80745d;
+    color: var(--color-text-secondary);
     background: #fffefa;
 }
 
-.emptyState h3 { margin: 0.7rem 0; color: #2c2b26; font-size: 1.15rem; }
-.emptyState p { max-width: 440px; margin: 0 auto 1.15rem; color: #77736a; line-height: 1.65; font-size: 0.88rem; }
+.emptyState h3 { margin: 0.7rem 0; color: var(--color-text-primary); font-size: 1.15rem; }
+.emptyState p { max-width: 440px; margin: 0 auto 1.15rem; color: var(--color-text-secondary); line-height: 1.65; font-size: 0.88rem; }
 
 .bottomGrid {
     display: grid;
@@ -423,12 +423,12 @@
     width: 42px;
     height: 42px;
     border-radius: 13px;
-    background: #f5f1e8;
-    color: #8a7547;
+    background: var(--color-gold-light);
+    color: var(--color-gold);
 }
 
 .bottomCard h3 { margin: 0.1rem 0 0.45rem; font-size: 0.98rem; }
-.bottomCard p { margin: 0 0 0.9rem; font-size: 0.82rem; line-height: 1.6; color: #77736a; }
+.bottomCard p { margin: 0 0 0.9rem; font-size: 0.82rem; line-height: 1.6; color: var(--color-text-secondary); }
 
 @media (max-width: 900px) {
     .hero { grid-template-columns: minmax(0, 1fr) 210px; gap: 1.2rem; }
@@ -455,4 +455,38 @@
     .saveBar { align-items: flex-start; flex-direction: column; }
     .saveBar button { width: 100%; }
     .bottomGrid { grid-template-columns: 1fr; }
+}
+
+.reviewActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+.reviewActions > span {
+    color: var(--color-text-secondary);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+.reviewRatingGroup { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.reviewRatingGroup button.reviewRating {
+    min-width: 58px;
+    padding: 0.58rem 0.72rem;
+    background: var(--color-beige);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+}
+.reviewRatingGroup button.reviewRating:hover { filter: brightness(0.98); }
+.reviewRatingGroup button.rating_again { color: #A33D45; background: #FFF1F1; border-color: #F2D4D6; }
+.reviewRatingGroup button.rating_hard { color: #8A5B23; background: #FFF6E9; border-color: #F0E0C5; }
+.reviewRatingGroup button.rating_good { color: #315E98; background: #EEF4FF; border-color: #D9E5FA; }
+.reviewRatingGroup button.rating_easy { color: #276342; background: #EAF5EE; border-color: #D4E9DC; }
+.page button:focus-visible { outline: 3px solid rgba(82, 109, 255, 0.55); outline-offset: 2px; }
+
+@media (max-width: 620px) {
+    .planItemFooter { align-items: flex-start; flex-direction: column; }
+    .reviewActions { align-items: flex-start; justify-content: flex-start; flex-direction: column; width: 100%; }
+    .reviewRatingGroup { width: 100%; }
+    .reviewRatingGroup button.reviewRating { flex: 1; min-width: 0; padding-inline: 0.45rem; }
 }
