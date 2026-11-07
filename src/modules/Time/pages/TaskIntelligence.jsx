@@ -152,6 +152,13 @@ const TaskIntelligence = () => {
                         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem' }}>Queue</h2>
                     </div>
 
+                    {loading ? (
+                        <p role="status" style={{ color: 'var(--color-text-secondary)' }}>Loading your saved tasks…</p>
+                    ) : plannedTasks.length === 0 ? (
+                        <p style={{ padding: '1.25rem', border: '1px dashed var(--color-border)', borderRadius: '16px', color: 'var(--color-text-secondary)' }}>
+                            No planned tasks yet. Add one on the left to build your queue.
+                        </p>
+                    ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                         {plannedTasks.map(task => (
                             <div
@@ -178,6 +185,7 @@ const TaskIntelligence = () => {
                             </div>
                         ))}
                     </div>
+                    )}
                 </div>
             </div>
         </div>
