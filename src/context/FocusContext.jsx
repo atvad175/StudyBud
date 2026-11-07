@@ -93,7 +93,7 @@ export const FocusProvider = ({ children }) => {
             } catch (error) {
                 console.error('Unable to load focus history:', error);
                 if (active) {
-                    setSessions([]);
+                    // Keep any already-loaded history visible; a network error does not mean it is empty.
                     setLoadError('Your saved focus history could not be loaded. You can still use the timer; reload this page when your connection is stable.');
                 }
             } finally {

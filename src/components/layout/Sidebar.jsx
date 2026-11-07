@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users } from 'lucide-react';
+import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users, CalendarClock, BarChart3 } from 'lucide-react';
 import StudyBudLogo from '../brand/StudyBudLogo';
 import styles from './Sidebar.module.css';
 
 const Sidebar = () => {
   const location = useLocation();
-  const [expanded, setExpanded] = useState({
-    habits: true,
-    focus: true,
-    time: true,
-    mind: true,
-    study: true
-  });
+  const [expanded, setExpanded] = useState({});
 
-  const toggleGroup = (group) => {
-    setExpanded(prev => ({ ...prev, [group]: !prev[group] }));
+  const toggleGroup = (group, isOpenByDefault) => {
+    setExpanded(prev => ({ ...prev, [group]: !(prev[group] ?? isOpenByDefault) }));
   };
 
   const navItems = [
@@ -91,6 +85,8 @@ const Sidebar = () => {
       subtitle: 'Learning',
       children: [
         { name: 'Hub', path: '/study', exact: true, icon: BookOpen },
+        { name: 'Study plan', path: '/study/plan', icon: CalendarClock },
+        { name: 'Insights', path: '/study/insights', icon: BarChart3 },
         { name: 'Feynman', path: '/study/feynman', icon: Lightbulb },
         { name: 'Assignments', path: '/study/assignments', icon: FileText },
         { name: 'Exams', path: '/study/exams', icon: Target },
@@ -109,25 +105,27 @@ const Sidebar = () => {
       <nav className={styles.nav}>
         {navItems.map((item) => {
           if (item.children) {
-            const isExpanded = expanded[item.id];
             const isActiveGroup = location.pathname.startsWith(item.path);
+            const isExpanded = expanded[item.id] ?? isActiveGroup;
 
             return (
               <div key={item.name} className={styles.navGroup}>
-                <div
+                <button
+                  type="button"
                   className={`${styles.navItem} ${styles.groupHeader} ${isActiveGroup ? styles.activeGroup : ''}`}
-                  onClick={() => toggleGroup(item.id)}
+                  onClick={() => toggleGroup(item.id, isActiveGroup)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`${item.id}-subnav`}
                 >
                   <item.icon size={20} className={styles.icon} />
                   <div className={styles.text}>
                     <span className={styles.title}>{item.name}</span>
                     <span className={styles.subtitle}>{item.subtitle}</span>
                   </div>
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </div>
+                  {isExpanded ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+                </button>
 
-                {isExpanded && (
-                  <div className={styles.subNav}>
+                <div id={`${item.id}-subnav`} className={styles.subNav} hidden={!isExpanded}>
                     {item.children.map(child => (
                       <NavLink
                         key={child.path}
@@ -142,7 +140,6 @@ const Sidebar = () => {
                       </NavLink>
                     ))}
                   </div>
-                )}
               </div>
             );
           }

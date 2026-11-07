@@ -117,12 +117,14 @@ export const MindProvider = ({ children }) => {
 
     // Load Data
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
             setLoading(true);
             setLoadError('');
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw authError;
+                if (!active) return;
                 if (!user) {
                     setLogs([]);
                     setOffloadItems([]);
@@ -138,20 +140,21 @@ export const MindProvider = ({ children }) => {
 
                 const failed = results.find(result => result.error);
                 if (failed?.error) throw failed.error;
+                if (!active) return;
                 setLogs(results[0].data || []);
                 setOffloadItems(results[1].data || []);
                 setWins(results[2].data || []);
             } catch (error) {
                 console.error('Error fetching Mind data:', error?.code || 'unknown');
-                setLoadError('Saved Mind data could not be loaded. Your entries have not been deleted; refresh to try again.');
-                setLogs([]);
-                setOffloadItems([]);
-                setWins([]);
+                if (active) {
+                    setLoadError('Saved Mind data could not be loaded. Your entries have not been deleted; refresh to try again.');
+                }
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-        fetchData();
+        void fetchData();
+        return () => { active = false; };
     }, []);
 
 

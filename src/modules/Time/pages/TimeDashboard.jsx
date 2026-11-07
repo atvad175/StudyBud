@@ -51,7 +51,7 @@ const getTaskPriorityScore = (task, now = new Date()) => {
 };
 
 const TimeDashboard = () => {
-    const { tasks, updateTask } = useTime();
+    const { tasks = [], updateTask, loading = false } = useTime();
     const { toast } = useToast();
     const [savingTaskId, setSavingTaskId] = useState(null);
 
@@ -69,9 +69,10 @@ const TimeDashboard = () => {
     };
 
     // Stats
-    const planned = tasks.filter(t => t.status === 'Planned');
-    const executed = tasks.filter(t => t.status === 'Executed');
-    const reflected = tasks.filter(t => t.status === 'Reflected');
+    const getStatus = task => String(task?.status || 'Planned').trim().toLowerCase();
+    const planned = tasks.filter(task => getStatus(task) === 'planned');
+    const executed = tasks.filter(task => getStatus(task) === 'executed');
+    const reflected = tasks.filter(task => getStatus(task) === 'reflected');
 
     const totalTasks = tasks.length;
     const completedTasks = executed.length + reflected.length;
@@ -135,8 +136,8 @@ const TimeDashboard = () => {
             {/* Metrics Row */}
             <div className={styles.statGrid}>
                 <div className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Daily Progress</span>
-                    <span className={styles.metricValue}>{efficiency}%</span>
+                    <span className={styles.metricLabel}>Overall completion</span>
+                    <span className={styles.metricValue}>{loading ? '—' : efficiency + '%'}</span>
                     <div className={styles.progressContainer}>
                         <div className={styles.barFill} style={{ width: `${efficiency}%` }}></div>
                     </div>
@@ -144,14 +145,14 @@ const TimeDashboard = () => {
 
                 <div className={styles.metricCard}>
                     <span className={styles.metricLabel}>Pending Tasks</span>
-                    <span className={styles.metricValue}>{planned.length}</span>
+                    <span className={styles.metricValue}>{loading ? '—' : planned.length}</span>
                     <span className={styles.metricTrend}><Clock size={16} /> Awaiting Energy</span>
                 </div>
 
                 <div className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Done</span>
-                    <span className={styles.metricValue}>{reflected.length}</span>
-                    <span className={styles.metricTrend} style={{ color: 'var(--color-gold)' }}><CheckCircle size={16} /> Reflected</span>
+                    <span className={styles.metricLabel}>Completed</span>
+                    <span className={styles.metricValue}>{loading ? '—' : completedTasks}</span>
+                    <span className={styles.metricTrend} style={{ color: 'var(--color-gold)' }}><CheckCircle size={16} /> Executed or reflected</span>
                 </div>
             </div>
 

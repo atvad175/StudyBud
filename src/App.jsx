@@ -57,6 +57,8 @@ import FeynmanSandbox from './modules/Study/pages/FeynmanSandbox';
 import AssignmentsBreakdown from './modules/Study/pages/AssignmentsBreakdown';
 import ExamsPrep from './modules/Study/pages/ExamsPrep';
 import Flashcards from './modules/Study/pages/Flashcards';
+import StudyPlanner from './modules/Study/pages/StudyPlanner';
+import StudyInsights from './modules/Study/pages/StudyInsights';
 
 
 
@@ -288,11 +290,11 @@ const App = () => {
   return (
     <AIProvider key={session?.user?.id || 'signed-out'}>
       <MusicProvider>
-        <HabitsProvider>
-          <FocusProvider>
-            <TimeProvider>
-              <MindProvider>
-                <StudyProvider>
+        <HabitsProvider key={session?.user?.id || 'signed-out'}>
+          <FocusProvider key={session?.user?.id || 'signed-out'}>
+            <TimeProvider key={session?.user?.id || 'signed-out'}>
+              <MindProvider key={session?.user?.id || 'signed-out'}>
+                <StudyProvider key={session?.user?.id || 'signed-out'}>
                   <ToastProvider>
                   <BrowserRouter>
                     <Routes>
@@ -356,6 +358,8 @@ const App = () => {
                           <Route index element={<UnifiedStudy />} />
                           <Route path="feynman" element={<FeynmanSandbox />} />
                           <Route path="assignments" element={<AssignmentsBreakdown />} />
+                          <Route path="plan" element={<StudyPlanner />} />
+                          <Route path="insights" element={<StudyInsights />} />
                           <Route path="exams" element={<ExamsPrep />} />
                           <Route path="flashcards" element={<Flashcards />} />
                         </Route>
