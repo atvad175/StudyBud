@@ -9,9 +9,10 @@ const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FRICTIONS = ['Low', 'Medium', 'High'];
 
 const TaskIntelligence = () => {
-    const { tasks, createTask, deleteTask } = useTime();
+    const { tasks = [], createTask, deleteTask, loading = false } = useTime();
     const { toast } = useToast();
     const [deletingTaskId, setDeletingTaskId] = useState(null);
+    const [isCreatingTask, setIsCreatingTask] = useState(false);
     const [form, setForm] = useState({
         title: '',
         cognitive_type: 'Understand',
@@ -20,7 +21,7 @@ const TaskIntelligence = () => {
         emotional_friction: 'Medium'
     });
 
-    const plannedTasks = tasks.filter(t => t.status === 'Planned');
+    const plannedTasks = tasks.filter(task => String(task?.status || 'Planned').trim().toLowerCase() === 'planned');
 
     const handleDeleteTask = async (task) => {
         if (deletingTaskId !== null) return;
@@ -39,14 +40,17 @@ const TaskIntelligence = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.title.trim()) return;
+        if (!form.title.trim() || isCreatingTask) return;
 
+        setIsCreatingTask(true);
         try {
-            await createTask(form);
+            await createTask({ ...form, title: form.title.trim() });
             setForm(current => ({ ...current, title: '' }));
             toast.success('Task saved.');
         } catch (error) {
             toast.error(error?.message || 'Task could not be saved. Please try again.');
+        } finally {
+            setIsCreatingTask(false);
         }
     };
 
@@ -136,8 +140,8 @@ const TaskIntelligence = () => {
                             </div>
                         </div>
 
-                        <button type="submit" style={btnStyle}>
-                            <Plus size={20} /> Add to Queue
+                        <button type="submit" style={btnStyle} disabled={isCreatingTask || !form.title.trim()}>
+                            <Plus size={20} /> {isCreatingTask ? 'Saving task…' : 'Add to Queue'}
                         </button>
                     </form>
                 </div>
