@@ -79,20 +79,21 @@ const StudyPlanner = () => {
         navigate('/study/exams');
     };
 
-    const handleItemAction = async item => {
+    const handleOpenItem = item => {
         if (item.kind === 'assignment') {
             navigate('/study/assignments');
             return;
         }
-        if (item.kind === 'practice') {
-            openPractice(item.subject);
-            return;
-        }
+        if (item.kind === 'practice') openPractice(item.subject);
+    };
 
+    const handleRateReview = async (item, rating) => {
+        if (busyId) return;
         setBusyId(item.id);
         try {
-            await completeReview(item.sourceId, 'good');
-            toast.success('Review saved. The next review date has been updated.');
+            await completeReview(item.sourceId, rating);
+            const label = rating.charAt(0).toUpperCase() + rating.slice(1);
+            toast.success(`${label} recall saved. Your next review date has been updated.`);
         } catch (error) {
             toast.error(error?.message || 'The review could not be saved. Try again.');
         } finally {
@@ -244,20 +245,39 @@ const StudyPlanner = () => {
                                         <div className={styles.planItemFooter}>
                                             <span><Timer size={14} /> {item.minutes} min</span>
                                             {item.kind === 'review' ? (
-                                                <button type="button" onClick={() => void handleItemAction(item)} disabled={isBusy}>
-                                                    {isBusy ? 'Saving…' : 'Mark reviewed'} <ArrowRight size={14} />
-                                                </button>
+                                                <div className={styles.reviewActions}>
+                                                    <span>How well did you recall it?</span>
+                                                    <div className={styles.reviewRatingGroup}>
+                                                        {[
+                                                            { value: 'again', label: 'Again' },
+                                                            { value: 'hard', label: 'Hard' },
+                                                            { value: 'good', label: 'Good' },
+                                                            { value: 'easy', label: 'Easy' },
+                                                        ].map(option => (
+                                                            <button
+                                                                key={option.value}
+                                                                type="button"
+                                                                className={`${styles.reviewRating} ${styles[`rating_${option.value}`]}`}
+                                                                onClick={() => void handleRateReview(item, option.value)}
+                                                                disabled={isBusy || Boolean(busyId)}
+                                                                aria-label={`Rate recall as ${option.label} for ${item.title}`}
+                                                            >
+                                                                {isBusy ? 'Saving…' : option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             ) : item.kind === 'assignment' ? (
                                                 <div className={styles.itemActions}>
-                                                    <button type="button" className={styles.secondaryAction} onClick={() => void handleCompleteAssignment(item)} disabled={isBusy}>
+                                                    <button type="button" className={styles.secondaryAction} onClick={() => void handleCompleteAssignment(item)} disabled={isBusy || Boolean(busyId)}>
                                                         {isBusy ? 'Saving…' : 'Mark complete'}
                                                     </button>
-                                                    <button type="button" onClick={() => void handleItemAction(item)}>
+                                                    <button type="button" onClick={() => handleOpenItem(item)} disabled={Boolean(busyId)}>
                                                         Open assignment <ArrowRight size={14} />
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <button type="button" onClick={() => void handleItemAction(item)}>
+                                                <button type="button" onClick={() => handleOpenItem(item)} disabled={Boolean(busyId)}>
                                                     Start practice <ArrowRight size={14} />
                                                 </button>
                                             )}
