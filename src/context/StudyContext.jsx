@@ -399,8 +399,8 @@ export const StudyProvider = ({ children }) => {
             content,
             subject,
             next_review_date: parsedNextReviewDate.toISOString(),
-            interval_days: Math.max(1, Math.min(365, Number(review.interval_days) || 1)),
-            review_count: Math.max(0, Math.min(100000, Number(review.review_count) || 0)),
+            interval_days: Math.max(1, Math.min(365, Number(review?.interval_days) || 1)),
+            review_count: Math.max(0, Math.min(100000, Number(review?.review_count) || 0)),
             user_id: user.id,
         };
 
@@ -417,7 +417,11 @@ export const StudyProvider = ({ children }) => {
                 .limit(1);
             if (lookupError) throw lookupError;
 
-            const existing = matchingReviews?.[0] || null;
+            const localMatch = reviews.find(item =>
+                item.user_id === user.id &&
+                getStudyReviewDedupeKey(item.subject, item.content) === key
+            );
+            const existing = localMatch || matchingReviews?.[0] || null;
             let savedReview = existing;
             if (existing) {
                 const existingDate = new Date(existing.next_review_date);
