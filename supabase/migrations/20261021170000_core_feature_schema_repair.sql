@@ -1,6 +1,6 @@
 -- Additive fixes for tables and columns already used by shipped StudyBud flows.
--- This migration intentionally does not change RLS on existing tables. Those policies
--- require a separate, reviewed rollout because some legacy tasks have no owner.
+-- This migration does not change RLS on existing tables. It creates and secures
+-- the two account-owned tables that are introduced here.
 begin;
 
 alter table public.atoms add column if not exists notes text;
@@ -17,19 +17,6 @@ create table if not exists public.focus_sessions (
   duration_seconds integer,
   mode text
 );
-alter table public.focus_sessions enable row level security;
-drop policy if exists focus_sessions_select_owner on public.focus_sessions;
-create policy focus_sessions_select_owner on public.focus_sessions
-  for select using ((select auth.uid()) = user_id);
-drop policy if exists focus_sessions_insert_owner on public.focus_sessions;
-create policy focus_sessions_insert_owner on public.focus_sessions
-  for insert with check ((select auth.uid()) = user_id);
-drop policy if exists focus_sessions_update_owner on public.focus_sessions;
-create policy focus_sessions_update_owner on public.focus_sessions
-  for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
-drop policy if exists focus_sessions_delete_owner on public.focus_sessions;
-create policy focus_sessions_delete_owner on public.focus_sessions
-  for delete using ((select auth.uid()) = user_id);
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -39,11 +26,13 @@ create table if not exists public.profiles (
   age integer,
   created_at timestamptz not null default now()
 );
+
+alter table public.focus_sessions enable row level security;
 alter table public.profiles enable row level security;
 
--- Remove every pre-existing policy from the two tables created in this
--- migration. A leftover permissive policy could otherwise broaden access.
-do $
+-- PostgreSQL combines permissive policies with OR. Remove every old policy
+-- before adding the owner-only rules so no broad legacy policy survives.
+do $$
 declare
   p record;
 begin
@@ -55,18 +44,23 @@ begin
   loop
     execute format('drop policy if exists %I on %I.%I', p.policyname, p.schemaname, p.tablename);
   end loop;
-end $;
+end $$;
 
-drop policy if exists profiles_select_owner on public.profiles;
+create policy focus_sessions_select_owner on public.focus_sessions
+  for select using ((select auth.uid()) = user_id);
+create policy focus_sessions_insert_owner on public.focus_sessions
+  for insert with check ((select auth.uid()) = user_id);
+create policy focus_sessions_update_owner on public.focus_sessions
+  for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy focus_sessions_delete_owner on public.focus_sessions
+  for delete using ((select auth.uid()) = user_id);
+
 create policy profiles_select_owner on public.profiles
   for select using ((select auth.uid()) = id);
-drop policy if exists profiles_insert_owner on public.profiles;
 create policy profiles_insert_owner on public.profiles
   for insert with check ((select auth.uid()) = id);
-drop policy if exists profiles_update_owner on public.profiles;
 create policy profiles_update_owner on public.profiles
   for update using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
-drop policy if exists profiles_delete_owner on public.profiles;
 create policy profiles_delete_owner on public.profiles
   for delete using ((select auth.uid()) = id);
 
