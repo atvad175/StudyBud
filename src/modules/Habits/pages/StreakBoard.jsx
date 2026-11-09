@@ -107,10 +107,10 @@ const StreakBoard = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
                         <span>Less</span>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#EDE8DF' }}></div>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#F0C98A' }}></div>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#D4A054' }}></div>
-                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#9B6B2F' }}></div>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#EEF1F5' }}></div>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#C9D4FF' }}></div>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#879EFF' }}></div>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#526DFF' }}></div>
                         <span>More</span>
                     </div>
 
@@ -148,6 +148,7 @@ const StreakBoard = () => {
                         <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-soft-black)', lineHeight: 1 }}>{stats.monthActiveDays} / {stats.monthElapsedDays}</div>
                     </div>
                 </div>
+            </div>
             </div>
             )}
 
