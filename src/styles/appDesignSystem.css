@@ -159,3 +159,263 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Buddy: fast, prompt-free learning actions in a compact floating companion. */
+.budRoot {
+    position: fixed;
+    right: 1.4rem;
+    bottom: 1.4rem;
+    z-index: 1000;
+    font-family: inherit;
+}
+.budPanel {
+    position: absolute;
+    right: 0;
+    bottom: 4.85rem;
+    display: flex;
+    flex-direction: column;
+    width: min(398px, calc(100vw - 32px));
+    height: min(590px, calc(100dvh - 116px));
+    overflow: hidden;
+    border: 1px solid var(--sb-border);
+    border-radius: 24px;
+    background: var(--sb-surface-solid);
+    color: var(--sb-text);
+    box-shadow: 0 28px 80px rgba(17, 24, 44, 0.2), 0 4px 18px rgba(17, 24, 44, 0.08);
+    animation: budSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(24px);
+}
+.budPanelMinimised { height: 56px; }
+.budHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex: 0 0 auto;
+    padding: 0.85rem 1rem;
+    color: #fff;
+    background: linear-gradient(112deg, #5758E8 0%, #8270EF 60%, #A18AF5 100%);
+}
+.budHeaderIdentity { display: flex; align-items: center; gap: 0.68rem; min-width: 0; }
+.budAvatar {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 13px;
+    color: #fff;
+    background: rgba(255,255,255,0.17);
+}
+.budHeaderName { font-size: 0.96rem; font-weight: 760; line-height: 1.15; letter-spacing: -0.025em; }
+.budHeaderPersona { margin-top: 0.18rem; color: rgba(255,255,255,0.8); font-size: 0.68rem; }
+.budHeaderActions { display: flex; gap: 0.3rem; }
+.budHeaderButton {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 9px;
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+}
+.budHeaderButton:hover { background: rgba(255,255,255,0.25); }
+.budMessages {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.78rem;
+    min-height: 0;
+    padding: 1rem 0.9rem 0.7rem;
+    overflow-y: auto;
+    background:
+        radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--sb-violet) 8%, transparent), transparent 38%),
+        var(--sb-bg);
+}
+.budMessageRow { display: flex; align-items: flex-start; gap: 0.42rem; }
+.budMessageRowUser { justify-content: flex-end; }
+.budMessageAvatar {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    margin-top: 0.12rem;
+    border-radius: 9px;
+    color: #fff;
+    background: linear-gradient(135deg, #5D5CEB, #9D80F2);
+}
+.budBubble {
+    max-width: 84%;
+    padding: 0.7rem 0.82rem;
+    border: 1px solid var(--sb-border);
+    border-radius: 15px 15px 15px 5px;
+    background: var(--sb-surface-solid);
+    color: var(--sb-text);
+    box-shadow: 0 3px 10px rgba(27, 37, 67, 0.045);
+    font-size: 0.83rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.budBubbleUser {
+    border-color: transparent;
+    border-radius: 15px 15px 5px 15px;
+    background: var(--sb-accent-soft);
+    color: var(--sb-text);
+    box-shadow: none;
+}
+.budPersonaList { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.25rem 0; }
+.budPersonaButton {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.65rem 0.78rem;
+    border: 1px solid var(--sb-border);
+    border-radius: 13px;
+    background: var(--sb-surface-solid);
+    color: var(--sb-text);
+    text-align: left;
+}
+.budPersonaButton:hover { border-color: var(--sb-accent); background: var(--sb-accent-soft); }
+.budPersonaEmoji { font-size: 1.15rem; }
+.budPersonaTitle { font-size: 0.81rem; font-weight: 720; }
+.budPersonaDescription { margin-top: 0.12rem; color: var(--sb-text-muted); font-size: 0.72rem; }
+.budQuickActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.43rem;
+    margin-top: 0.15rem;
+    padding: 0.75rem;
+    border: 1px solid var(--sb-border);
+    border-radius: 17px;
+    background: var(--sb-surface);
+}
+.budQuickActionsLabel {
+    color: var(--sb-text-muted);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+}
+.budQuickActionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+.budQuickAction {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 64px;
+    gap: 0.35rem;
+    padding: 0.6rem 0.62rem;
+    border: 1px solid var(--sb-border);
+    border-radius: 12px;
+    color: var(--sb-text);
+    background: var(--sb-surface-solid);
+    text-align: left;
+    font-size: 0.69rem;
+    font-weight: 690;
+    line-height: 1.25;
+    transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.budQuickAction:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: var(--sb-accent);
+    background: var(--sb-accent-soft);
+}
+.budQuickAction:disabled { cursor: wait; opacity: 0.55; }
+.budQuickActionEmoji { font-size: 1.05rem; line-height: 1; }
+.budTypingBubble {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.78rem 0.9rem;
+    border: 1px solid var(--sb-border);
+    border-radius: 15px 15px 15px 5px;
+    background: var(--sb-surface-solid);
+}
+.budTypingDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sb-accent);
+    animation: budBounce 1.2s infinite;
+}
+.budInputBar {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.72rem 0.78rem 0.55rem;
+    border-top: 1px solid var(--sb-border);
+    background: var(--sb-surface-solid);
+}
+.budInput {
+    flex: 1;
+    min-height: 40px;
+    max-height: 100px;
+    padding: 0.66rem 0.86rem;
+    border: 1px solid var(--sb-border);
+    border-radius: 14px;
+    outline: none;
+    resize: vertical;
+    color: var(--sb-text);
+    background: var(--sb-bg);
+    font: inherit;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+.budInput:focus { border-color: var(--sb-accent); box-shadow: 0 0 0 3px var(--sb-accent-soft); }
+.budSend {
+    display: grid;
+    place-items: center;
+    flex: 0 0 39px;
+    width: 39px;
+    height: 39px;
+    border-radius: 13px;
+    color: #fff;
+    background: linear-gradient(135deg, #5D5CEB, #8270EF);
+}
+.budSend:disabled { opacity: 0.4; cursor: not-allowed; }
+.budNote {
+    padding: 0.25rem 0.85rem 0.68rem;
+    color: var(--sb-text-muted);
+    background: var(--sb-surface-solid);
+    font-size: 0.64rem;
+    line-height: 1.4;
+}
+.budFab {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    border: 1px solid rgba(255,255,255,0.34);
+    border-radius: 20px;
+    color: #fff;
+    background: linear-gradient(145deg, #5D5CEB, #9B7BF1);
+    box-shadow: 0 13px 34px rgba(93,92,235,0.35);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.budFab:hover { transform: translateY(-2px) scale(1.025); box-shadow: 0 17px 40px rgba(93,92,235,0.4); }
+
+@keyframes budSlideUp {
+    from { transform: translateY(12px) scale(0.985); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes budBounce {
+    0%, 80%, 100% { transform: scale(0.45); opacity: 0.45; }
+    40% { transform: scale(1); opacity: 1; }
+}
+@media (max-width: 760px) {
+    .studybud-shell .shellMain { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+    .budRoot { right: 0.85rem; bottom: calc(82px + env(safe-area-inset-bottom)); }
+    .budPanel {
+        position: fixed;
+        right: 0.75rem;
+        bottom: calc(150px + env(safe-area-inset-bottom));
+        width: calc(100vw - 1.5rem);
+        height: min(560px, calc(100dvh - 180px));
+    }
+    .budPanelMinimised { height: 56px; }
+    .budFab { width: 52px; height: 52px; border-radius: 18px; }
+}
