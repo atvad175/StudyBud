@@ -59,13 +59,14 @@ export const AIProvider = ({ children }) => {
 
                 // Clearing a conversation while a response is in flight must win;
                 // a late response must not repopulate the cleared chat.
-                if ((chatGenerationRef.current.get(key) || 0) === generation) {
-                    const finalHistory = [...updatedHistory, assistantMessage];
-                    setChatHistory(previous => ({
-                        ...previous,
-                        [key]: finalHistory,
-                    }));
+                if ((chatGenerationRef.current.get(key) || 0) !== generation) {
+                    return null;
                 }
+                const finalHistory = [...updatedHistory, assistantMessage];
+                setChatHistory(previous => ({
+                    ...previous,
+                    [key]: finalHistory,
+                }));
                 return response;
             });
         } finally {
