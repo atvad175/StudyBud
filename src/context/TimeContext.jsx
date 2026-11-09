@@ -44,7 +44,7 @@ export const TimeProvider = ({ children, userId = null }) => {
         let active = true;
         void fetchTasks(() => active);
         return () => { active = false; };
-    }, [refreshKey, userId]);
+    }, [fetchTasks, refreshKey, userId]);
 
     const fetchTasks = useCallback(async (isActive = () => true) => {
         if (isActive()) {
