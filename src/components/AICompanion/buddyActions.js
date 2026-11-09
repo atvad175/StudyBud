@@ -35,15 +35,23 @@ export const buildBuddyActionPrompt = (actionId, context = {}) => {
     if (!action) throw new Error('Choose a Buddy action to continue.');
 
     const subject = cleanContextValue(context.selectedSubject, 80);
+    const board = cleanContextValue(context.board, 40);
+    const grade = cleanContextValue(context.grade, 20);
     const page = getBuddyPageLabel(context.pathname);
+    const curriculum = [board, grade ? 'Grade ' + grade : ''].filter(Boolean).join(' · ');
     const subjectContext = subject
-        ? 'The student’s current subject is ' + subject + '. Do not invent a chapter or claim to know their exact notes.'
-        : 'No subject or chapter has been selected. Ask one short question to get the exact topic before teaching or testing.';
+        ? [
+            'The student’s current subject is ' + subject + '.',
+            curriculum ? 'Course context: ' + curriculum + '.' : '',
+            'No exact chapter or notes were selected. Choose one foundational, age-appropriate concept from this subject, name the concept you chose, and invite the student to redirect to a different chapter.',
+            'Do not claim that your chosen concept is from the student’s exact syllabus or notes unless they provide that material.',
+        ].filter(Boolean).join(' ')
+        : 'No subject or chapter has been selected. Ask one short question to get the subject and exact topic before teaching or testing.';
 
     const instructions = {
-        explain: 'Explain the selected topic in plain, age-appropriate language. Start with the core idea, use one everyday analogy, then give one short check-for-understanding question. Keep it concise and accurate.',
-        quiz: 'Run one-phase active recall. Ask exactly ONE clear question and then stop so the student can answer. Do not reveal the answer, ask multiple questions, or turn this into a full quiz. After the student responds, give specific feedback and then ask the next question.',
-        mnemonic: 'Create one memorable, accurate mnemonic or memory hook for the topic. Explain what each part represents and flag any simplification that could cause a misconception. If the material is unsuitable for a mnemonic, give a compact alternative memory structure.',
+        explain: 'Explain one foundational concept in plain, age-appropriate language. Start with the core idea, use one everyday analogy, then give one short check-for-understanding question. Keep it concise and accurate.',
+        quiz: 'Run one-phase active recall. Ask exactly ONE clear question about the chosen concept and then stop so the student can answer. Do not reveal the answer, ask multiple questions, or turn this into a full quiz. After the student responds, give specific feedback and then ask the next question.',
+        mnemonic: 'Create one memorable, accurate mnemonic or memory hook for the chosen concept. Explain what each part represents and flag any simplification that could cause a misconception. If the concept is unsuitable for a mnemonic, give a compact alternative memory structure.',
     };
 
     return [
