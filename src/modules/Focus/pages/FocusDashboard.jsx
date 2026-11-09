@@ -14,6 +14,7 @@ const FocusDashboard = () => {
         isSavingSession,
         retryPendingSessionSave,
         discardPendingSession,
+        refreshSessions,
     } = useFocus();
     const [historyWindow, setHistoryWindow] = useState(7);
     const stats = summarizeFocusSessions(sessions);
