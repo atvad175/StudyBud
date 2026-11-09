@@ -151,7 +151,7 @@ export const HabitsProvider = ({ children }) => {
                 }
             }));
 
-            const { error } = await supabase
+            const { data: savedLog, error } = await supabase
                 .from('logs')
                 .upsert({
                     atom_id: atomId,
@@ -161,9 +161,19 @@ export const HabitsProvider = ({ children }) => {
                     duration: data.duration ?? previousLog?.duration ?? null,
                     time: data.time ?? previousLog?.time ?? null,
                     user_id: user.id,
-                }, { onConflict: 'atom_id, date_logged' });
+                }, { onConflict: 'atom_id, date_logged' })
+                .select('id')
+                .maybeSingle();
 
             if (error) throw error;
+            if (!savedLog) throw new Error('The habit update was not confirmed. Refresh and try again.');
+            setLogs(prev => ({
+                ...prev,
+                [today]: {
+                    ...(prev[today] || {}),
+                    [atomId]: { ...(prev[today]?.[atomId] || {}), ...data, id: savedLog.id }
+                }
+            }));
             return true;
         } catch (error) {
             setLogs(prev => {
@@ -195,12 +205,15 @@ export const HabitsProvider = ({ children }) => {
         setAtoms(prev => prev.filter(atom => String(atom.id) !== String(atomId)));
 
         try {
-            const { error } = await supabase
+            const { data: deletedAtom, error } = await supabase
                 .from('atoms')
                 .delete()
                 .eq('id', atomId)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!deletedAtom) throw new Error('The habit was not deleted. Refresh and try again.');
         } catch (error) {
             if (previous) setAtoms(prev => [...prev.filter(atom => String(atom.id) !== String(atomId)), previous]);
             console.error('Error deleting atom:', error);
