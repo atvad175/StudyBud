@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TimeContext } from './TimeContextCore.js';
 import { supabase } from '../supabaseClient';
 
@@ -36,6 +36,7 @@ export const TimeProvider = ({ children, userId = null }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
+    const taskMutationLocksRef = useRef(new Set());
     const refreshTasks = () => setRefreshKey(value => value + 1);
 
     useEffect(() => {
@@ -109,31 +110,41 @@ export const TimeProvider = ({ children, userId = null }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to update tasks.');
 
-        const previous = tasks.find(task => String(task.id) === String(id));
+        const lockKey = String(id);
+        if (taskMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This task is already being saved. Wait for that update to finish, then try again.');
+        }
+        const previous = tasks.find(task => String(task.id) === lockKey);
         if (!previous || String(previous.user_id) !== String(user.id)) {
             throw new Error('That task is not available in this account. Refresh and try again.');
         }
-        const safeUpdates = { ...updates };
-        delete safeUpdates.id;
-        delete safeUpdates.user_id;
-        setTasks(prev => prev.map(task => String(task.id) === String(id) ? { ...task, ...safeUpdates } : task));
 
+        taskMutationLocksRef.current.add(lockKey);
         try {
-            const { data, error } = await supabase
-                .from('tasks')
-                .update(safeUpdates)
-                .eq('id', id)
-                .eq('user_id', user.id)
-                .select('id')
-                .maybeSingle();
+            const safeUpdates = { ...updates };
+            delete safeUpdates.id;
+            delete safeUpdates.user_id;
+            setTasks(prev => prev.map(task => String(task.id) === lockKey ? { ...task, ...safeUpdates } : task));
 
-            if (error) throw error;
-            if (!data) throw new Error('The task was not updated. Refresh and try again.');
-            return true;
-        } catch (error) {
-            setTasks(prev => prev.map(task => String(task.id) === String(id) ? previous : task));
-            console.error('Error updating task:', error?.code || 'unknown');
-            throw error;
+            try {
+                const { data, error } = await supabase
+                    .from('tasks')
+                    .update(safeUpdates)
+                    .eq('id', id)
+                    .eq('user_id', user.id)
+                    .select('id')
+                    .maybeSingle();
+
+                if (error) throw error;
+                if (!data) throw new Error('The task was not updated. Refresh and try again.');
+                return true;
+            } catch (error) {
+                setTasks(prev => prev.map(task => String(task.id) === lockKey ? previous : task));
+                console.error('Error updating task:', error?.code || 'unknown');
+                throw error;
+            }
+        } finally {
+            taskMutationLocksRef.current.delete(lockKey);
         }
     };
 
@@ -141,11 +152,17 @@ export const TimeProvider = ({ children, userId = null }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to delete tasks.');
 
-        const previous = tasks.find(task => String(task.id) === String(id));
+        const lockKey = String(id);
+        if (taskMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This task is already being saved. Wait for that update to finish, then try again.');
+        }
+        const previous = tasks.find(task => String(task.id) === lockKey);
         if (!previous || String(previous.user_id) !== String(user.id)) {
             throw new Error('That task is not available in this account. Refresh and try again.');
         }
-        setTasks(prev => prev.filter(task => String(task.id) !== String(id)));
+
+        taskMutationLocksRef.current.add(lockKey);
+        setTasks(prev => prev.filter(task => String(task.id) !== lockKey));
         try {
             const { data, error } = await supabase
                 .from('tasks')
@@ -158,9 +175,11 @@ export const TimeProvider = ({ children, userId = null }) => {
             if (!data) throw new Error('The task was not deleted. Refresh and try again.');
             return true;
         } catch (error) {
-            setTasks(prev => prev.some(task => String(task.id) === String(id)) ? prev : [previous, ...prev]);
+            setTasks(prev => prev.some(task => String(task.id) === lockKey) ? prev : [previous, ...prev]);
             console.error('Error deleting task:', error?.code || 'unknown');
             throw error;
+        } finally {
+            taskMutationLocksRef.current.delete(lockKey);
         }
     };
 
