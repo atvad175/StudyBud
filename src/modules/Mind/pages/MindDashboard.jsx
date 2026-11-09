@@ -139,7 +139,7 @@ const MindDashboard = () => {
                     ))}
                 </div>
                 )}
-                {!loading && weeklyTotal === 0 && (
+                {!loading && !loadError && weeklyTotal === 0 && (
                     <p className={styles.activityEmpty}>
                         Your reflections, brain dumps and wins will appear here as you save them.
                     </p>
