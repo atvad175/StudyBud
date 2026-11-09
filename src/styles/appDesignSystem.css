@@ -1,0 +1,161 @@
+/* StudyBud signed-in design system. Public/marketing pages intentionally do not inherit these tokens. */
+.studybud-shell {
+    --sb-bg: #F4F6FB;
+    --sb-surface: rgba(255, 255, 255, 0.88);
+    --sb-surface-solid: #FFFFFF;
+    --sb-surface-muted: #EDF0F8;
+    --sb-border: #E3E8F2;
+    --sb-text: #182338;
+    --sb-text-muted: #718096;
+    --sb-accent: #5D5CEB;
+    --sb-accent-hover: #4C4BD5;
+    --sb-accent-soft: #ECECFF;
+    --sb-violet: #8B78F6;
+    --sb-coral: #FF826F;
+    --sb-mint: #35BFA5;
+    --sb-lime: #C9EF68;
+    --sb-sky: #65BDF7;
+    --sb-shadow: 0 14px 38px rgba(35, 45, 76, 0.07);
+    --sb-shadow-hover: 0 20px 48px rgba(35, 45, 76, 0.12);
+    --sb-radius-xl: 26px;
+    --sb-radius-lg: 20px;
+    --sb-radius-md: 14px;
+
+    /* Compatibility aliases for the existing modules while they are migrated. */
+    --color-cream: var(--sb-bg);
+    --color-beige: var(--sb-surface-muted);
+    --color-warm-gray: var(--sb-text-muted);
+    --color-soft-black: var(--sb-text);
+    --color-gold: var(--sb-accent);
+    --color-gold-light: var(--sb-accent-soft);
+    --color-gold-hover: var(--sb-accent-hover);
+    --color-border: var(--sb-border);
+    --color-text-primary: var(--sb-text);
+    --color-text-secondary: var(--sb-text-muted);
+    --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-serif: var(--font-sans);
+    --shadow-soft: var(--sb-shadow);
+    --shadow-card: 0 5px 18px rgba(35, 45, 76, 0.045);
+    --shadow-medium: var(--sb-shadow-hover);
+    --radius-card: var(--sb-radius-lg);
+    --radius-squircle: 18px;
+
+    background:
+        radial-gradient(ellipse at 12% 0%, rgba(110, 113, 255, 0.075), transparent 33%),
+        radial-gradient(ellipse at 94% 18%, rgba(101, 189, 247, 0.07), transparent 29%),
+        var(--sb-bg);
+    color: var(--sb-text);
+    font-family: var(--font-sans);
+    transition: background-color 180ms ease, color 180ms ease;
+}
+
+.studybud-shell[data-theme="dark"] {
+    color-scheme: dark;
+    --sb-bg: #111521;
+    --sb-surface: rgba(27, 34, 49, 0.92);
+    --sb-surface-solid: #1B2231;
+    --sb-surface-muted: #222B3C;
+    --sb-border: #303A4E;
+    --sb-text: #F0F3FA;
+    --sb-text-muted: #A1ADC1;
+    --sb-accent: #9794FF;
+    --sb-accent-hover: #B0AEFF;
+    --sb-accent-soft: #292947;
+    --sb-violet: #A99BFF;
+    --sb-coral: #FF9587;
+    --sb-mint: #5ED7BF;
+    --sb-lime: #D0F18A;
+    --sb-sky: #83CEFF;
+    --sb-shadow: 0 14px 38px rgba(0, 0, 0, 0.22);
+    --sb-shadow-hover: 0 20px 48px rgba(0, 0, 0, 0.3);
+    background:
+        radial-gradient(ellipse at 12% 0%, rgba(112, 105, 238, 0.12), transparent 34%),
+        radial-gradient(ellipse at 94% 18%, rgba(52, 142, 190, 0.09), transparent 30%),
+        var(--sb-bg);
+}
+
+.studybud-shell,
+.studybud-shell * {
+    box-sizing: border-box;
+}
+
+.studybud-shell h1,
+.studybud-shell h2,
+.studybud-shell h3,
+.studybud-shell h4,
+.studybud-shell h5,
+.studybud-shell h6 {
+    color: var(--sb-text);
+    font-family: var(--font-sans);
+    letter-spacing: -0.035em;
+}
+
+.studybud-shell main {
+    min-width: 0;
+    color: var(--sb-text);
+}
+
+.studybud-shell main p,
+.studybud-shell main label,
+.studybud-shell main small {
+    color: inherit;
+}
+
+.studybud-shell main input,
+.studybud-shell main textarea,
+.studybud-shell main select {
+    color: var(--sb-text);
+    background: var(--sb-surface-solid);
+    border-color: var(--sb-border);
+    border-radius: 12px;
+}
+
+.studybud-shell main input::placeholder,
+.studybud-shell main textarea::placeholder {
+    color: var(--sb-text-muted);
+}
+
+.studybud-shell :is(a, button, input, textarea, select):focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--sb-accent) 72%, transparent);
+    outline-offset: 3px;
+}
+
+.studybud-shell :is([class*="card"], [class*="Card"], [class*="panel"], [class*="Panel"], [class*="statCard"], [class*="dailyPulse"]) {
+    border-color: var(--sb-border);
+}
+
+.studybud-shell[data-theme="dark"] :is([class*="card"], [class*="Card"], [class*="panel"], [class*="Panel"], [class*="statCard"], [class*="dailyPulse"]) {
+    color: var(--sb-text);
+    background-color: var(--sb-surface);
+    border-color: var(--sb-border);
+    box-shadow: var(--sb-shadow);
+}
+
+.studybud-shell[data-theme="dark"] :is([class*="card"], [class*="Card"], [class*="panel"], [class*="Panel"], [class*="statCard"], [class*="dailyPulse"]) :is(h1, h2, h3, h4, strong, p, span, small) {
+    color: inherit;
+}
+
+.studybud-shell[data-theme="dark"] :is(input, textarea, select) {
+    background: #151B28;
+    color: var(--sb-text);
+    border-color: var(--sb-border);
+}
+
+.studybud-shell .shellMain {
+    flex: 1;
+    min-width: 0;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .studybud-shell *,
+    .studybud-shell *::before,
+    .studybud-shell *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
