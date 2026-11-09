@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
+const environment = globalThis.process?.env || {};
 const env = {
-    url: process.env.SUPABASE_TEST_URL,
-    anonKey: process.env.SUPABASE_TEST_ANON_KEY,
-    accountAEmail: process.env.SUPABASE_TEST_USER_A_EMAIL,
-    accountAPassword: process.env.SUPABASE_TEST_USER_A_PASSWORD,
-    accountBEmail: process.env.SUPABASE_TEST_USER_B_EMAIL,
-    accountBPassword: process.env.SUPABASE_TEST_USER_B_PASSWORD,
+    url: environment.SUPABASE_TEST_URL,
+    anonKey: environment.SUPABASE_TEST_ANON_KEY,
+    accountAEmail: environment.SUPABASE_TEST_USER_A_EMAIL,
+    accountAPassword: environment.SUPABASE_TEST_USER_A_PASSWORD,
+    accountBEmail: environment.SUPABASE_TEST_USER_B_EMAIL,
+    accountBPassword: environment.SUPABASE_TEST_USER_B_PASSWORD,
 };
 const configured = Object.values(env).every(value => typeof value === 'string' && value.length > 0);
 
@@ -39,6 +40,8 @@ test('two test accounts cannot read, update or delete each other’s private row
     const createdDeckIds = [];
     const createdFocusIds = [];
 
+    let operationError = null;
+    const cleanupErrors = [];
     try {
         const { data: deck, error: deckInsertError } = await clientA
             .from('flashcard_decks')
@@ -136,6 +139,8 @@ test('two test accounts cannot read, update or delete each other’s private row
         if (ownerFocusError) throw ownerFocusError;
         assert.equal(ownerFocus.category, marker);
         assert.equal(ownerFocus.user_id, userA.id);
+    } catch (error) {
+        operationError = error;
     } finally {
         if (createdDeckIds.length) {
             const { error } = await clientA
@@ -143,7 +148,7 @@ test('two test accounts cannot read, update or delete each other’s private row
                 .delete()
                 .in('id', createdDeckIds)
                 .eq('user_id', userA.id);
-            if (error) throw error;
+            if (error) cleanupErrors.push(error);
         }
         if (createdFocusIds.length) {
             const { error } = await clientA
@@ -151,8 +156,19 @@ test('two test accounts cannot read, update or delete each other’s private row
                 .delete()
                 .in('id', createdFocusIds)
                 .eq('user_id', userA.id);
-            if (error) throw error;
+            if (error) cleanupErrors.push(error);
         }
-        await Promise.all([clientA.auth.signOut(), clientB.auth.signOut()]);
+        const signOutResults = await Promise.all([
+            clientA.auth.signOut(),
+            clientB.auth.signOut(),
+        ]);
+        signOutResults.forEach(result => {
+            if (result.error) cleanupErrors.push(result.error);
+        });
+    }
+
+    if (operationError) throw operationError;
+    if (cleanupErrors.length) {
+        throw new Error('The integration test passed its assertions but could not clean up every staging record.');
     }
 });
