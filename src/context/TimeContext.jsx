@@ -40,20 +40,29 @@ const readInitialTimeSettings = () => {
 export const TimeProvider = ({ children }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshTasks = () => setRefreshKey(value => value + 1);
 
     useEffect(() => {
         let active = true;
         void fetchTasks(() => active);
         return () => { active = false; };
-    }, []);
+    }, [refreshKey]);
 
     const fetchTasks = async (isActive = () => true) => {
-        if (isActive()) setLoading(true);
+        if (isActive()) {
+            setLoading(true);
+            setLoadError('');
+        }
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError) throw authError;
             if (!user) {
-                if (isActive()) setTasks([]);
+                if (isActive()) {
+                    setTasks([]);
+                    setLoadError('');
+                }
                 return;
             }
 
@@ -68,7 +77,9 @@ export const TimeProvider = ({ children }) => {
             if (isActive()) setTasks(data || []);
         } catch (error) {
             console.error('Error fetching tasks:', error?.code || 'unknown');
-            // A failed refresh is not evidence that the student's saved tasks are empty.
+            if (isActive()) {
+                setLoadError('Saved Time tasks could not be loaded. Your existing tasks have not been deleted; retry when your connection is stable.');
+            }
         } finally {
             if (isActive()) setLoading(false);
         }
@@ -78,7 +89,7 @@ export const TimeProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to save tasks.');
 
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const payload = { ...taskData, user_id: user.id, status: taskData.status || 'Planned' };
         const optimisticTask = { ...payload, id: tempId, created_at: new Date() };
         setTasks(prev => [optimisticTask, ...prev]);
@@ -253,6 +264,8 @@ export const TimeProvider = ({ children }) => {
             deleteTask,
             checkEnergyMismatch,
             loading,
+            loadError,
+            refreshTasks,
             settings,      // New
             updateSettings,// New
             batchTasks     // New
