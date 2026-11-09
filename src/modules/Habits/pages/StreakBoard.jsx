@@ -1,119 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { Flame, Trophy, Percent } from 'lucide-react';
 import { useHabits } from '../../../context/useHabits';
-import { getLocalDateKey } from '../../../utils/localDateKey';
+import { buildHabitStreakData } from '../habitStats';
 
-const getColor = (count) => {
-    if (count === 0) return '#EDE8DF';
-    if (count <= 2) return '#F0C98A';
-    if (count <= 4) return '#D4A054';
-    return '#9B6B2F';
+const getColor = count => {
+    if (count === 0) return '#EEF1F5';
+    if (count <= 2) return '#C9D4FF';
+    if (count <= 4) return '#879EFF';
+    return '#526DFF';
 };
 
 const StreakBoard = () => {
-    const { logs } = useHabits();
-    const [selectedCell, setSelectedCell] = useState(null);
+    const { logs = {}, loading = false, loadError = '', refreshHabits } = useHabits();
+    const [selectedDate, setSelectedDate] = useState(null);
 
-    const { heatmap, stats } = useMemo(() => {
-        // Build map of YYYY-MM-DD to count from actual Supabase Context Logs
-        const dateMap = {};
-        if (logs) {
-            Object.keys(logs).forEach(dateStr => {
-                const dateLogs = logs[dateStr];
-                const completedCount = Object.values(dateLogs).filter(l => l.status === 'completed' || l.completed).length;
-                if(completedCount > 0) {
-                    dateMap[dateStr] = completedCount;
-                }
-            });
-        }
-
-        // Generate 13 weeks * 7 days grid
-        // Start from top-left. Let's find the date for the bottom-right cell (which is a Sunday, or today if we just fill 91 days ending today).
-        // Since columns are days M T W T F S S, we will make sure the grid aligns to Monday=col 0, Sunday=col 6.
-        const today = new Date();
-        const currentDayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday
-        const daysToNextSunday = currentDayOfWeek === 0 ? 0 : 7 - currentDayOfWeek;
-        
-        // This 'endDate' represents the last cell in the 91-day grid (which falls on a Sunday).
-        const endDate = new Date(today);
-        endDate.setDate(today.getDate() + daysToNextSunday);
-        
-        // We have 13 weeks = 91 days.
-        const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - 90);
-
-        const newHeatmap = [];
-        let curStreak = 0;
-        let maxStreak = 0;
-        let monthTotalDays = 0;
-        let monthActiveDays = 0;
-
-        // Date boundaries for "This Month's Completion Rate"
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-        for (let i = 0; i < 91; i++) {
-            const currentObj = new Date(startDate);
-            currentObj.setDate(startDate.getDate() + i);
-            const dateStr = getLocalDateKey(currentObj);
-            
-            // Avoid plotting future dates if we want them blank, but we need cells to exist.
-            const isFuture = currentObj > today;
-            const count = isFuture ? 0 : (dateMap[dateStr] || 0);
-
-            newHeatmap.push({
-                date: dateStr,
-                count: count,
-                isFuture
-            });
-
-            if (!isFuture) {
-                if (count > 0) {
-                    curStreak++;
-                    maxStreak = Math.max(maxStreak, curStreak);
-                } else {
-                    curStreak = 0;
-                }
-
-                if (currentObj >= startOfMonth) {
-                    monthTotalDays++;
-                    if (count > 0) monthActiveDays++;
-                }
-            }
-        }
-
-        // We might want curStreak to reset only if yesterday was 0. 
-        // Let's recalculate accurately backwards from today for current streak.
-        let actualCurrentStreak = 0;
-        let d = new Date(today);
-        while (true) {
-            const dStr = getLocalDateKey(d);
-            if ((dateMap[dStr] || 0) > 0) {
-                actualCurrentStreak++;
-                d.setDate(d.getDate() - 1);
-            } else {
-                // if today is 0, check yesterday before breaking
-                if (d.toDateString() === today.toDateString()) {
-                    d.setDate(d.getDate() - 1);
-                    const yStr = getLocalDateKey(d);
-                    if ((dateMap[yStr] || 0) > 0) {
-                        actualCurrentStreak++;
-                        d.setDate(d.getDate() - 1);
-                        continue;
-                    }
-                }
-                break;
-            }
-        }
-
-        return {
-            heatmap: newHeatmap,
-            stats: {
-                currentStreak: actualCurrentStreak,
-                longestStreak: maxStreak,
-                completionRate: monthTotalDays > 0 ? Math.round((monthActiveDays / monthTotalDays) * 100) : 0,
-            },
-        };
-    }, [logs]);
+    const { heatmap, stats } = useMemo(
+        () => buildHabitStreakData(logs),
+        [logs]
+    );
 
     const daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -122,9 +26,18 @@ const StreakBoard = () => {
             <header style={{ marginBottom: '3rem' }}>
                 <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Habits / Streaks</span>
                 <h1 style={{ fontSize: '3.5rem', fontFamily: 'var(--font-serif)', marginTop: '0.5rem', color: 'var(--color-soft-black)' }}>Streak Board</h1>
-                <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)' }}>Consistency visualized over the last 13 weeks.</p>
+                <p style={{ fontSize: '1.2rem', color: 'var(--color-text-secondary)' }}>A Monday-aligned view of your last 13 weeks. Longest streak uses all saved history.</p>
             </header>
 
+            {loadError && (
+                <div role="alert" style={{ marginBottom: '1.25rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    {loadError}
+                    <button type="button" onClick={refreshHabits} style={{ display: 'block', marginTop: '0.55rem', border: '1px solid #c99a7f', borderRadius: '7px', padding: '0.45rem 0.7rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry</button>
+                </div>
+            )}
+            {loading ? (
+                <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading your habit history…</p>
+            ) : (
             <div style={{ backgroundColor: 'white', borderRadius: '32px', padding: '3rem', boxShadow: 'var(--shadow-soft)', marginBottom: '2rem' }}>
                 {/* Heatmap */}
                 <div style={{ marginBottom: '2rem' }}>
@@ -140,7 +53,9 @@ const StreakBoard = () => {
                         {heatmap.map((cell, index) => (
                             <div key={index} style={{ position: 'relative' }}>
                                 <button
-                                    onClick={() => setSelectedCell(selectedCell === index ? null : index)}
+                                    onClick={() => setSelectedDate(selectedDate === cell.date ? null : cell.date)}
+                                    disabled={cell.isFuture}
+                                    aria-label={cell.date + ': ' + (cell.isFuture ? 'future date' : cell.count + ' habits completed')}
                                     style={{
                                         width: '100%',
                                         aspectRatio: '1/1',
@@ -156,7 +71,7 @@ const StreakBoard = () => {
                                     onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                                 ></button>
 
-                                {selectedCell === index && !cell.isFuture && (
+                                {selectedDate === cell.date && !cell.isFuture && (
                                     <div style={{
                                         position: 'absolute',
                                         bottom: 'calc(100% + 10px)',
@@ -171,7 +86,7 @@ const StreakBoard = () => {
                                         zIndex: 10,
                                         boxShadow: '0 10px 20px rgba(0,0,0,0.2)'
                                     }}>
-                                        <div style={{ fontWeight: 600, marginBottom: '0.2rem' }}>{new Date(cell.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                        <div style={{ fontWeight: 600, marginBottom: '0.2rem' }}>{new Date(cell.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                                         <div style={{ color: 'var(--color-gold)' }}>{cell.count} habits completed</div>
                                         
                                         {/* Tooltip triangle */}
@@ -219,7 +134,7 @@ const StreakBoard = () => {
                         <Trophy size={28} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>Longest Streak</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>Longest recorded streak</div>
                         <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-soft-black)', lineHeight: 1 }}>{stats.longestStreak} <span style={{ fontSize: '1.2rem', fontWeight: 400, color: 'var(--color-text-secondary)' }}>days</span></div>
                     </div>
                 </div>
@@ -229,11 +144,12 @@ const StreakBoard = () => {
                         <Percent size={28} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>Month Completion</div>
-                        <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-soft-black)', lineHeight: 1 }}>{stats.completionRate}%</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>Days active this month</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--color-soft-black)', lineHeight: 1 }}>{stats.monthActiveDays} / {stats.monthElapsedDays}</div>
                     </div>
                 </div>
             </div>
+            )}
 
         </div>
     );
