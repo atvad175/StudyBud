@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { StudyContext } from './StudyContextCore.js';
 import { getNextReviewIntervalDays, getStudyReviewDedupeKey } from '../modules/Study/studyPlannerUtils.js';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
-export const StudyProvider = ({ children }) => {
+export const StudyProvider = ({ children, userId = null }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
@@ -274,8 +275,7 @@ export const StudyProvider = ({ children }) => {
     // --- Actions ---
 
     const addAssignment = async (assignment) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save assignments.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save assignments');
 
         const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const payload = { ...assignment, user_id: user.id, status: assignment.status || 'not_started' };
@@ -298,8 +298,7 @@ export const StudyProvider = ({ children }) => {
     };
 
     const updateAssignment = async (id, updates) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to update assignments.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'update assignments');
 
         const lockKey = 'assignment:' + String(id);
         if (studyMutationLocksRef.current.has(lockKey)) {
@@ -338,8 +337,7 @@ export const StudyProvider = ({ children }) => {
     };
 
     const deleteAssignment = async (id) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to delete assignments.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'delete assignments');
 
         const lockKey = 'assignment:' + String(id);
         if (studyMutationLocksRef.current.has(lockKey)) {
@@ -372,8 +370,7 @@ export const StudyProvider = ({ children }) => {
     };
 
     const logPractice = async (log) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save practice logs.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save practice logs');
 
         const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         setPracticeLogs(prev => [{ ...log, user_id: user.id, id: tempId }, ...prev]);
@@ -405,8 +402,7 @@ export const StudyProvider = ({ children }) => {
             throw new Error('Choose a valid date for the next review.');
         }
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to schedule a review.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'schedule a review');
 
         const key = getStudyReviewDedupeKey(subject, content);
         const existingRequest = reviewSchedulingLocksRef.current.get(key);
@@ -491,8 +487,7 @@ export const StudyProvider = ({ children }) => {
     };
 
     const completeReview = async (id, rating = 'good') => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to update your review schedule.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'update your review schedule');
 
         const lockKey = 'review:' + String(id);
         if (studyMutationLocksRef.current.has(lockKey)) {
@@ -547,8 +542,9 @@ export const StudyProvider = ({ children }) => {
             setLoading(true);
             setLoadError('');
             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
+                const user = userId
+                    ? await requireExpectedAccountUser(supabase.auth, userId, 'load Study data')
+                    : null;
                 if (!active) return;
 
                 const emptyPrivateResult = Promise.resolve({ data: [], error: null });
@@ -604,7 +600,7 @@ export const StudyProvider = ({ children }) => {
         };
         void fetchData();
         return () => { active = false; };
-    }, [refreshKey]);
+    }, [refreshKey, userId]);
 
     return (
         <StudyContext.Provider value={{
