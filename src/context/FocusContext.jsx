@@ -49,6 +49,8 @@ export const FocusProvider = ({ children }) => {
     );
     const [completed, setCompleted] = useState(() => initialPendingSession?.reason === 'completed');
     const [currentUserId, setCurrentUserId] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshSessions = () => setRefreshKey(value => value + 1);
 
     const timerRef = useRef(null);
     const activeOwnerUserIdRef = useRef(restoredRuntime?.ownerUserId ?? null);
@@ -66,6 +68,7 @@ export const FocusProvider = ({ children }) => {
         let active = true;
 
         const fetchSessions = async () => {
+            setLoading(true);
             setLoadError('');
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -103,7 +106,7 @@ export const FocusProvider = ({ children }) => {
 
         fetchSessions();
         return () => { active = false; };
-    }, []);
+    }, [refreshKey]);
 
     const persistSessionDraft = useCallback(async (draft) => {
         if (savingRef.current) return false;
@@ -486,6 +489,7 @@ export const FocusProvider = ({ children }) => {
                 isSavingSession,
                 retryPendingSessionSave,
                 discardPendingSession,
+                refreshSessions,
             }}
         >
             {children}
