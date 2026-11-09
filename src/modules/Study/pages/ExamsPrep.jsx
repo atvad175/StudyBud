@@ -146,14 +146,21 @@ const ExamsPrep = () => {
                     interval_days: 7,
                     review_count: 0,
                 }];
-            try {
-                await Promise.all(reviewItems.map(item => scheduleReview(item)));
+            const reviewResults = await Promise.allSettled(
+                reviewItems.map(item => scheduleReview(item))
+            );
+            const savedCount = reviewResults.filter(result => result.status === 'fulfilled').length;
+            const failedCount = reviewResults.length - savedCount;
+            if (failedCount > 0) {
+                console.error('Some follow-up reviews could not be scheduled:', failedCount);
+                toast.error(
+                    savedCount + ' of ' + reviewResults.length +
+                    ' follow-up reviews were confirmed. Retry scheduling the remaining reviews from your result.'
+                );
+            } else {
                 toast.info(missedQuestions.length
-                    ? missedQuestions.length + ' missed concept' + (missedQuestions.length === 1 ? '' : 's') + ' added to your review queue.'
+                    ? savedCount + ' missed concept' + (savedCount === 1 ? '' : 's') + ' saved to your review queue.'
                     : 'A topic revisit has been scheduled for next week.');
-            } catch (error) {
-                console.error('Unable to schedule follow-up reviews:', error?.code || 'unknown');
-                toast.error('The result was saved, but one or more follow-up reviews could not be scheduled.');
             }
         })();
     }, [activeExam, aiTopic, examQuestions, logPractice, scheduleReview, toast, userAnswers]);
