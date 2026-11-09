@@ -62,6 +62,10 @@ const formatMmSs = (sec) => {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
+// Keep the clock read outside the React render scope; the session timer calls this
+// only in user actions and the timer effect.
+const getCurrentTimeMs = () => Date.now();
+
 const StudyRooms = () => {
     const navigate = useNavigate();
     const [activeRoom, setActiveRoom] = useState(null);
@@ -75,14 +79,14 @@ const StudyRooms = () => {
         setActiveRoom(room);
         setIntention('');
         elapsedBaseRef.current = 0;
-        segmentStartedAtRef.current = Date.now();
+        segmentStartedAtRef.current = getCurrentTimeMs();
         setSessionSeconds(0);
         setRunning(true);
     };
 
     const leaveRoom = () => {
         if (running && segmentStartedAtRef.current) {
-            elapsedBaseRef.current += Math.floor((Date.now() - segmentStartedAtRef.current) / 1000);
+            elapsedBaseRef.current += Math.floor((getCurrentTimeMs() - segmentStartedAtRef.current) / 1000);
         }
         segmentStartedAtRef.current = null;
         setActiveRoom(null);
@@ -92,21 +96,21 @@ const StudyRooms = () => {
     const toggleRoomTimer = () => {
         if (running) {
             if (segmentStartedAtRef.current) {
-                elapsedBaseRef.current += Math.floor((Date.now() - segmentStartedAtRef.current) / 1000);
+                elapsedBaseRef.current += Math.floor((getCurrentTimeMs() - segmentStartedAtRef.current) / 1000);
             }
             segmentStartedAtRef.current = null;
             setSessionSeconds(elapsedBaseRef.current);
             setRunning(false);
             return;
         }
-        segmentStartedAtRef.current = Date.now();
+        segmentStartedAtRef.current = getCurrentTimeMs();
         setRunning(true);
     };
 
     useEffect(() => {
         if (!activeRoom || !running || !segmentStartedAtRef.current) return undefined;
         const updateElapsed = () => {
-            const liveSeconds = Math.floor((Date.now() - segmentStartedAtRef.current) / 1000);
+            const liveSeconds = Math.floor((getCurrentTimeMs() - segmentStartedAtRef.current) / 1000);
             setSessionSeconds(elapsedBaseRef.current + liveSeconds);
         };
         updateElapsed();
