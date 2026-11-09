@@ -29,6 +29,8 @@ const getCompanionProfile = () => ({
     struggles: readStoredList('studybud_struggles'),
     intention: localStorage.getItem('studybud_intention') || '',
     motivation: localStorage.getItem('studybud_motivation') || '',
+    board: localStorage.getItem('studybud_board') || '',
+    grade: localStorage.getItem('studybud_grade') || '',
 });
 
 const getSelectedBuddySubject = () => {
@@ -279,6 +281,8 @@ const AICompanion = () => {
         const prompt = buildBuddyActionPrompt(action.id, {
             pathname: location.pathname,
             selectedSubject: getSelectedBuddySubject(),
+            board: getCompanionProfile().board,
+            grade: getCompanionProfile().grade,
         });
         void handleSend(prompt, action.label);
     };
