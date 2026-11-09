@@ -9,9 +9,9 @@ const ROOMS = [
         name: 'The Grand Library',
         icon: <Library size={22} />,
         purpose: 'Deep solo work',
-        desc: 'For when you need stillness. No chat, no noise — only the quiet signal that others are reading and writing beside you, somewhere in the world.',
+        desc: 'A quiet visual setting for exam prep, essays and proof-heavy work.',
         meaning:
-            'Psychologists call this “co-presence”: you focus better when you sense others are working too, even if you never speak. This room is for exams, essays, and proof-heavy subjects.',
+            'Use this setting to start a deliberate session for exams, essays and problem-solving.',
         color: '#C9883A',
     },
     {
@@ -19,9 +19,9 @@ const ROOMS = [
         name: 'Lo-fi Cafe',
         icon: <Coffee size={22} />,
         purpose: 'Gentle energy',
-        desc: 'A softer rhythm — like a corner café. Good for lighter tasks, creative notes, or when silence feels too heavy.',
+        desc: 'A warmer visual setting for lighter tasks, creative notes or a change of pace.',
         meaning:
-            'Use this when you want accountability without pressure. The “cafe” idea nudges your brain toward a low-stakes but attentive state — ideal for review and ideation.',
+            'Use this setting for review, planning and low-pressure creative work.',
         color: '#E65100',
     },
     {
@@ -29,9 +29,9 @@ const ROOMS = [
         name: 'Study Group Space',
         icon: <Users size={22} />,
         purpose: 'Shared momentum',
-        desc: 'Symbolic group energy: you are not performing for anyone; you are riding the same wave as people tackling hard problems.',
+        desc: 'A structured setting for planning a group project or tackling a difficult task on your own.',
         meaning:
-            'Best before a test or deadline. The room stands for mutual effort — “we are all in the grind” — which can reduce loneliness and procrastination.',
+            'Use this when you want to simulate a deliberate study-room routine without a live group.',
         color: '#4CAF50',
     },
     {
@@ -39,9 +39,9 @@ const ROOMS = [
         name: 'Late Night Grinders',
         icon: <Moon size={22} />,
         purpose: 'Off-hours focus',
-        desc: 'For night owls and odd schedules. Dim visual tone; the point is permission to work when the world is quiet.',
+        desc: 'A quiet setting for late-hour reading and individual work.',
         meaning:
-            'If your peak hours are late, this room aligns your environment with that reality instead of fighting it — less guilt, steadier sessions.',
+            'Choose a calm visual environment when you need fewer distractions.',
         color: '#3F51B5',
     },
     {
@@ -49,7 +49,7 @@ const ROOMS = [
         name: 'Reading Room',
         icon: <BookOpen size={22} />,
         purpose: 'Long-form reading',
-        desc: 'Designed for chapters, papers, and slow absorption — not quick tasks.',
+        desc: 'Designed for chapters, papers and slower, sustained reading.',
         meaning:
             'Commit to one book or paper per session. The room is a cue: “I am here to read with intention,” which cuts skim-scrolling habits.',
         color: '#9C27B0',
