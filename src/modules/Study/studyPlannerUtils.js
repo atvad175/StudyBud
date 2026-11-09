@@ -301,3 +301,10 @@ export const getFlashcardNextReviewDate = (rating, now = new Date()) => {
     if (!current) throw new Error('A valid current date is required.');
     return new Date(current.getTime() + delay).toISOString();
 };
+
+export const getStudyReviewDedupeKey = (subject, content) => {
+    const normalize = value => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+    const normalizedContent = normalize(content);
+    if (!normalizedContent) return '';
+    return normalize(subject) + '\u001f' + normalizedContent;
+};
