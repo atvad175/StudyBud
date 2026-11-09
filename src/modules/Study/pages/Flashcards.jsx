@@ -13,6 +13,8 @@ const Flashcards = () => {
     const [activeDeckId, setActiveDeckId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshFlashcards = () => setRefreshKey(value => value + 1);
     const [isSaving, setIsSaving] = useState(false);
     const [legacyBackup, setLegacyBackup] = useState(null);
     const [isImportingLegacy, setIsImportingLegacy] = useState(false);
@@ -42,6 +44,8 @@ const Flashcards = () => {
         let active = true;
 
         const loadFlashcards = async () => {
+            setIsLoading(true);
+            setLoadError('');
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError || !user) {
@@ -107,7 +111,7 @@ const Flashcards = () => {
 
         loadFlashcards();
         return () => { active = false; };
-    }, []);
+    }, [refreshKey]);
 
     const handleImportLegacy = async () => {
         if (!legacyBackup || isImportingLegacy) return;
@@ -429,12 +433,15 @@ const Flashcards = () => {
             if (authError || !user) throw new Error('Sign in to start a review session.');
 
             const lastReviewed = new Date().toISOString();
-            const { error } = await supabase
+            const { data: reviewedDeck, error } = await supabase
                 .from('flashcard_decks')
                 .update({ last_reviewed: lastReviewed })
                 .eq('id', activeDeckId)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!reviewedDeck) throw new Error('The deck review could not be confirmed. Refresh and try again.');
 
             setData(previous => ({
                 ...previous,
@@ -526,7 +533,7 @@ const Flashcards = () => {
             {loadError && (
                 <div role="alert" style={{ padding: '1rem', marginBottom: '1.5rem', borderRadius: '12px', background: '#fff3e0', color: '#7a4b00' }}>
                     <p>{loadError}</p>
-                    <button type="button" onClick={() => window.location.reload()} style={{ marginTop: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}>Retry</button>
+                    <button type="button" onClick={refreshFlashcards} style={{ marginTop: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}>Retry</button>
                 </div>
             )}
 
