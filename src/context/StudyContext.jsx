@@ -6,6 +6,8 @@ import { getNextReviewIntervalDays } from '../modules/Study/studyPlannerUtils.js
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshStudy = () => setRefreshKey(value => value + 1);
 
     // State
     const [techniques, setTechniques] = useState([]);
@@ -273,7 +275,7 @@ export const StudyProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to save assignments.');
 
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const payload = { ...assignment, user_id: user.id, status: assignment.status || 'not_started' };
         const optimisticAssignment = { ...payload, id: tempId, created_at: new Date() };
         setAssignments(prev => [optimisticAssignment, ...prev]);
@@ -355,7 +357,7 @@ export const StudyProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to save practice logs.');
 
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         setPracticeLogs(prev => [{ ...log, user_id: user.id, id: tempId }, ...prev]);
         try {
             const { data, error } = await supabase
@@ -383,7 +385,7 @@ export const StudyProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to schedule a review.');
 
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const payload = {
             content,
             subject: typeof review.subject === 'string' ? review.subject.trim() : '',
@@ -514,7 +516,7 @@ export const StudyProvider = ({ children }) => {
         };
         void fetchData();
         return () => { active = false; };
-    }, []);
+    }, [refreshKey]);
 
     return (
         <StudyContext.Provider value={{
@@ -525,6 +527,7 @@ export const StudyProvider = ({ children }) => {
             reviews,
             boards,
             loadError,
+            refreshStudy,
             addAssignment,
             updateAssignment,
             deleteAssignment,
