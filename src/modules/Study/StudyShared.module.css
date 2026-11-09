@@ -1,11 +1,11 @@
 /* Study Module - Extraordinary Premium Design */
 
-:root {
-    --study-primary: #2d3436;
-    --study-secondary: #636e72;
-    --study-accent: #74b9ff;
-    --study-surface: #f8f9fa;
-    --study-border: #e9ecef;
+:global(.studybud-shell) {
+    --study-primary: var(--sb-text);
+    --study-secondary: var(--sb-text-muted);
+    --study-accent: var(--sb-accent);
+    --study-surface: var(--sb-surface-muted);
+    --study-border: var(--sb-border);
 }
 
 .container {
