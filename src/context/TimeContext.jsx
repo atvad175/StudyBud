@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TimeContext } from './TimeContextCore.js';
 import { supabase } from '../supabaseClient';
 import { requireExpectedAccountUser } from '../utils/accountSession.js';
@@ -46,7 +46,7 @@ export const TimeProvider = ({ children, userId = null }) => {
         return () => { active = false; };
     }, [refreshKey, userId]);
 
-    const fetchTasks = async (isActive = () => true) => {
+    const fetchTasks = useCallback(async (isActive = () => true) => {
         if (isActive()) {
             setLoading(true);
             setLoadError('');
@@ -78,7 +78,7 @@ export const TimeProvider = ({ children, userId = null }) => {
         } finally {
             if (isActive()) setLoading(false);
         }
-    };
+    }, [userId]);
 
     const createTask = async (taskData) => {
         const user = await requireExpectedAccountUser(supabase.auth, userId, 'save tasks');
