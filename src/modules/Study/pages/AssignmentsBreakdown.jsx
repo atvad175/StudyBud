@@ -6,7 +6,7 @@ import { useToast } from '../../../context/useToast';
 import { parseLocalDateValue } from '../studyPlannerUtils';
 
 const AssignmentsBreakdown = () => {
-    const { assignments = [], addAssignment, updateAssignment, deleteAssignment, loading = false, loadError = '' } = useStudy();
+    const { assignments = [], addAssignment, updateAssignment, deleteAssignment, loading = false, loadError = '', refreshStudy } = useStudy();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
     const [busyAssignmentId, setBusyAssignmentId] = useState(null);
@@ -199,7 +199,8 @@ const AssignmentsBreakdown = () => {
             </div>
             {loadError && (
                 <div role="alert" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
-                    Assignments could not be fully loaded. Your saved records have not been deleted. Refresh to retry.
+                    Assignments could not be fully loaded. Your saved records have not been deleted.
+                    <button type="button" onClick={refreshStudy} style={{ marginLeft: '0.75rem', textDecoration: 'underline' }}>Retry</button>
                 </div>
             )}
             {loading ? (
