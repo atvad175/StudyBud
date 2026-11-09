@@ -17,16 +17,14 @@ const MainLayout = ({ userId = null }) => {
     const [theme, setTheme] = useState(() => readTheme(userId));
 
     const toggleTheme = () => {
-        setTheme(current => {
-            const next = current === 'dark' ? 'light' : 'dark';
-            try {
-                const key = userId ? 'studybud_theme_' + userId : 'studybud_theme_guest';
-                localStorage.setItem(key, next);
-            } catch {
-                // Theme switching remains available for this session if storage is blocked.
-            }
-            return next;
-        });
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        try {
+            const key = userId ? 'studybud_theme_' + userId : 'studybud_theme_guest';
+            localStorage.setItem(key, next);
+        } catch {
+            // Theme switching remains available for this session if storage is blocked.
+        }
     };
 
     return (
