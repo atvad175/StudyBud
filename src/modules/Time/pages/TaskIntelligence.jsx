@@ -9,7 +9,7 @@ const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FRICTIONS = ['Low', 'Medium', 'High'];
 
 const TaskIntelligence = () => {
-    const { tasks = [], createTask, deleteTask, loading = false } = useTime();
+    const { tasks = [], createTask, deleteTask, loading = false, loadError = '', refreshTasks } = useTime();
     const { toast } = useToast();
     const [deletingTaskId, setDeletingTaskId] = useState(null);
     const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -151,9 +151,19 @@ const TaskIntelligence = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem' }}>Queue</h2>
                     </div>
+                    {loadError && (
+                        <div role="alert" style={{ marginBottom: '1rem', padding: '0.9rem', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                            {loadError}
+                            <button type="button" onClick={refreshTasks} style={{ marginLeft: '0.75rem', textDecoration: 'underline' }}>Retry</button>
+                        </div>
+                    )}
 
                     {loading ? (
                         <p role="status" style={{ color: 'var(--color-text-secondary)' }}>Loading your saved tasks…</p>
+                    ) : plannedTasks.length === 0 && loadError ? (
+                        <p style={{ padding: '1.25rem', border: '1px dashed var(--color-border)', borderRadius: '16px', color: 'var(--color-text-secondary)' }}>
+                            The saved task queue is unavailable until it loads successfully.
+                        </p>
                     ) : plannedTasks.length === 0 ? (
                         <p style={{ padding: '1.25rem', border: '1px dashed var(--color-border)', borderRadius: '16px', color: 'var(--color-text-secondary)' }}>
                             No planned tasks yet. Add one on the left to build your queue.
