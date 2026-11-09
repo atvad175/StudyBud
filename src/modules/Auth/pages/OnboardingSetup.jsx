@@ -154,24 +154,31 @@ const OnboardingSetup = () => {
                 return;
             }
 
-            const { error } = await supabase.from('user_onboarding').upsert({
-                user_id: userId,
-                name: name.trim(),
-                role,
-                board,
-                grade,
-                struggles,
-                learning_style: learningStyle,
-                fav_topics: favTopics,
-                topic_type: role === 'Working professional' ? 'professions' : 'subjects',
-                first_atom: firstAtom || null,
-                intention: intention.trim(),
-                productive_time: productiveTime,
-                motivation,
-                updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id' });
+            const { data: savedProfile, error } = await supabase
+                .from('user_onboarding')
+                .upsert({
+                    user_id: userId,
+                    name: name.trim(),
+                    role,
+                    board,
+                    grade,
+                    struggles,
+                    learning_style: learningStyle,
+                    fav_topics: favTopics,
+                    topic_type: role === 'Working professional' ? 'professions' : 'subjects',
+                    first_atom: firstAtom || null,
+                    intention: intention.trim(),
+                    productive_time: productiveTime,
+                    motivation,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id' })
+                .select('user_id')
+                .single();
 
             if (error) throw error;
+            if (!savedProfile || savedProfile.user_id !== userId) {
+                throw new Error('StudyBud could not confirm that your setup was saved to this account.');
+            }
 
             // The starter habit is optional: profile setup should still complete if
             // the separate Habits write fails, but the student must be told clearly.
