@@ -40,6 +40,23 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
+
+-- Remove every pre-existing policy from the two tables created in this
+-- migration. A leftover permissive policy could otherwise broaden access.
+do $
+declare
+  p record;
+begin
+  for p in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = any (array['focus_sessions', 'profiles'])
+  loop
+    execute format('drop policy if exists %I on %I.%I', p.policyname, p.schemaname, p.tablename);
+  end loop;
+end $;
+
 drop policy if exists profiles_select_owner on public.profiles;
 create policy profiles_select_owner on public.profiles
   for select using ((select auth.uid()) = id);
