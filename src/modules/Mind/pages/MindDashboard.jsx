@@ -21,7 +21,7 @@ const getGreeting = () => {
 };
 
 const MindDashboard = () => {
-    const { logs = [], loading = false, loadError = '', refreshMind } = useMind();
+    const { logs = [], wins = [], offloadItems = [], loading = false, loadError = '', refreshMind } = useMind();
     const [greeting] = useState(getGreeting);
 
     const activityByDay = useMemo(() => {
@@ -34,9 +34,15 @@ const MindDashboard = () => {
             const nextDay = new Date(date);
             nextDay.setDate(date.getDate() + 1);
 
-            const count = (Array.isArray(logs) ? logs : []).filter(log => {
-                if (!log?.created_at) return false;
-                const created = new Date(log.created_at);
+            const activityRecords = [
+                ...(Array.isArray(logs) ? logs : []),
+                ...(Array.isArray(wins) ? wins : []),
+                ...(Array.isArray(offloadItems) ? offloadItems : []),
+            ];
+            const count = activityRecords.filter(record => {
+                const timestamp = record?.created_at || record?.date;
+                if (!timestamp) return false;
+                const created = new Date(timestamp);
                 return !Number.isNaN(created.getTime()) && created >= date && created < nextDay;
             }).length;
 
@@ -47,7 +53,7 @@ const MindDashboard = () => {
                 count,
             };
         });
-    }, [logs]);
+    }, [logs, wins, offloadItems]);
 
     const maxActivity = Math.max(1, ...activityByDay.map(day => day.count));
     const firstName = (() => {
@@ -105,7 +111,7 @@ const MindDashboard = () => {
                 <div className={styles.activityChartHeader}>
                     <div>
                         <h2 id="mind-activity-title">Mind activity</h2>
-                        <p>Saved reflections and check-ins over the last 7 days</p>
+                        <p>Saved Mind activity over the last 7 days</p>
                     </div>
                     <div className={styles.activityChartTotal}>
                         <strong>{weeklyTotal}</strong>
@@ -116,7 +122,7 @@ const MindDashboard = () => {
                 {loading ? (
                     <p role="status" className={styles.activityEmpty}>Loading your recent reflections…</p>
                 ) : (
-                <div className={styles.activityBars} role="list" aria-label="Daily saved reflection and check-in counts">
+                <div className={styles.activityBars} role="list" aria-label="Daily saved Mind activity counts">
                     {activityByDay.map(day => (
                         <div className={styles.activityDay} role="listitem" key={day.key}>
                             <div className={styles.activityBarTrack}>
@@ -135,7 +141,7 @@ const MindDashboard = () => {
                 )}
                 {!loading && weeklyTotal === 0 && (
                     <p className={styles.activityEmpty}>
-                        Your saved reflections, breathing sessions, wins and other Mind entries will appear here.
+                        Your reflections, brain dumps and wins will appear here as you save them.
                     </p>
                 )}
                 <p className={styles.activityDisclaimer}>
