@@ -100,7 +100,7 @@ export const HabitsProvider = ({ children, userId = null }) => {
             active = false;
             window.removeEventListener('studybud-starter-habit-created', handleStarterHabitCreated);
         };
-    }, [refreshKey]);
+    }, [refreshKey, userId]);
 
     const addAtom = async (atom) => {
         const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
