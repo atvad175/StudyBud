@@ -102,3 +102,33 @@ test('flashcard ratings create distinct, predictable review dates', () => {
     assert.equal(getFlashcardNextReviewDate('easy', fixedNow), '2026-11-03T12:00:00.000Z');
     assert.throws(() => getFlashcardNextReviewDate('maybe', fixedNow), /valid flashcard rating/i);
 });
+
+test('date-only assignment deadlines use the selected local calendar day', () => {
+    const plan = buildDailyStudyPlan({
+        now: new Date(2026, 9, 27, 12, 0, 0),
+        budgetMinutes: 60,
+        reviews: [],
+        assignments: [
+            { id: 20, title: 'Due today', deadline: '2026-10-27', status: 'not_started', steps: [] },
+        ],
+        practiceLogs: [],
+    });
+    const assignment = plan.items.find(item => item.kind === 'assignment');
+    assert.ok(assignment);
+    assert.equal(assignment.priorityLabel, 'Due today');
+});
+
+test('reviews due yesterday late in the day are labelled overdue by calendar day', () => {
+    const plan = buildDailyStudyPlan({
+        now: new Date(2026, 9, 27, 12, 0, 0),
+        budgetMinutes: 60,
+        reviews: [
+            { id: 30, content: 'Yesterday review', next_review_date: new Date(2026, 9, 26, 23, 30, 0).toISOString() },
+        ],
+        assignments: [],
+        practiceLogs: [],
+    });
+    const review = plan.items.find(item => item.kind === 'review');
+    assert.ok(review);
+    assert.equal(review.priorityLabel, '1d overdue');
+});
