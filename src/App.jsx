@@ -312,7 +312,7 @@ const App = () => {
                         element={session ? (isOnboarded ? <Navigate to="/" replace /> : <OnboardingSetup />) : <Navigate to="/login" replace />}
                       />
 
-                      <Route path="/" element={session ? (isOnboarded ? <MainLayout /> : <Navigate to="/onboarding/setup" replace />) : <Navigate to="/landing" replace />}>
+                      <Route path="/" element={session ? (isOnboarded ? <MainLayout key={session.user.id} /> : <Navigate to="/onboarding/setup" replace />) : <Navigate to="/landing" replace />}>
                         <Route index element={<MainDashboard />} />
                         <Route path="settings" element={<SettingsPage />} />
 
