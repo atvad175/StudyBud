@@ -20,9 +20,9 @@ export const HabitsProvider = ({ children, userId = null }) => {
         let active = true;
 
         const handleStarterHabitCreated = async (event) => {
-            const userId = event.detail?.userId;
+            const eventUserId = event.detail?.userId;
             const habit = event.detail?.habit;
-            if (!userId || !habit) return;
+            if (!eventUserId || !habit || eventUserId !== userId) return;
 
             try {
                 const user = await requireExpectedAccountUser(supabase.auth, userId, 'sync your habits');
