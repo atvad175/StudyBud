@@ -292,7 +292,7 @@ const App = () => {
       <MusicProvider>
         <HabitsProvider key={session?.user?.id || 'signed-out'}>
           <FocusProvider key={session?.user?.id || 'signed-out'}>
-            <TimeProvider key={session?.user?.id || 'signed-out'}>
+            <TimeProvider key={session?.user?.id || 'signed-out'} userId={session?.user?.id || null}>
               <MindProvider key={session?.user?.id || 'signed-out'}>
                 <StudyProvider key={session?.user?.id || 'signed-out'}>
                   <ToastProvider>
