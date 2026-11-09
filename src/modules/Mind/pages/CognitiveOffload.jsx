@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import styles from '../MindShared.module.css';
-import { Archive, Trash2, Box, ArrowRight } from 'lucide-react';
+import { Archive, Trash2, Box, Search } from 'lucide-react';
 import { useMind } from '../../../context/useMind';
 import { useToast } from '../../../context/useToast';
 
-const BUCKETS = ['Worry', 'Conflict', 'Conversation', 'Regret'];
-
 const CognitiveOffload = () => {
-    const { offloadItems = [], addOffloadItem, deleteOffloadItem, loadError = '' } = useMind();
+    const { offloadItems = [], addOffloadItem, deleteOffloadItem, loading = false, loadError = '', refreshMind } = useMind();
     const { toast } = useToast();
     const [newItem, setNewItem] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [deletingItemId, setDeletingItemId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredItems = offloadItems.filter(item =>
+        String(item.content || '').toLocaleLowerCase().includes(searchQuery.trim().toLocaleLowerCase())
+    );
 
     const handleDelete = async (itemId) => {
         if (!deleteOffloadItem || deletingItemId !== null) return;
@@ -59,7 +62,7 @@ const CognitiveOffload = () => {
             {loadError && (
                 <div role="alert" style={{ margin: '0 0 1.25rem', padding: '0.9rem 1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
                     {loadError}
-                    <button type="button" onClick={() => window.location.reload()} style={{ display: 'block', marginTop: '0.55rem', border: '1px solid #c99a7f', borderRadius: '7px', padding: '0.45rem 0.7rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry</button>
+                    <button type="button" onClick={refreshMind} style={{ display: 'block', marginTop: '0.55rem', border: '1px solid #c99a7f', borderRadius: '7px', padding: '0.45rem 0.7rem', background: '#fff', color: '#754a35', cursor: 'pointer' }}>Retry</button>
                 </div>
             )}
 
@@ -77,9 +80,11 @@ const CognitiveOffload = () => {
                             rows={6}
                             placeholder="Type anything that's bothering you or that you need to remember later..."
                             value={newItem}
+                            maxLength={2000}
                             onChange={e => setNewItem(e.target.value)}
-                            style={{ width: '100%', marginBottom: '1.5rem', border: '1px solid #eee', borderRadius: '16px' }}
+                            style={{ width: '100%', marginBottom: '0.5rem', border: '1px solid #eee', borderRadius: '16px' }}
                         />
+                        <p style={{ margin: '0 0 1rem', color: 'var(--color-text-secondary)', fontSize: '0.75rem', textAlign: 'right' }}>{newItem.length} / 2,000</p>
                         <button type="submit" disabled={isSaving || !newItem.trim()} className={styles.sendBtn} style={{ width: '100%', borderRadius: '16px', padding: '1rem', fontSize: '1.1rem', fontWeight: '600', opacity: isSaving || !newItem.trim() ? 0.65 : 1 }}>
                             {isSaving ? 'Saving…' : 'Dump Thought & Focus'}
                         </button>
@@ -88,7 +93,21 @@ const CognitiveOffload = () => {
 
                 {/* Thoughts List */}
                 <div>
-                    <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', marginBottom: '1.5rem' }}>Offloaded Thoughts</h2>
+                    <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', marginBottom: '1rem' }}>Offloaded Thoughts</h2>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem', padding: '0.75rem 0.9rem', border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff' }}>
+                        <Search size={17} color="var(--color-text-secondary)" aria-hidden="true" />
+                        <input
+                            type="search"
+                            value={searchQuery}
+                            onChange={event => setSearchQuery(event.target.value)}
+                            placeholder="Search saved thoughts"
+                            aria-label="Search saved thoughts"
+                            style={{ width: '100%', border: 0, outline: 0, background: 'transparent', font: 'inherit' }}
+                        />
+                    </label>
+                    {loading ? (
+                        <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading saved thoughts…</p>
+                    ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {offloadItems.length === 0 && (
                             <div style={{ padding: '3rem', textAlign: 'center', background: '#f8f9fa', borderRadius: '24px', color: '#999' }}>
@@ -96,7 +115,7 @@ const CognitiveOffload = () => {
                                 <p>Your mind is clear. No offloaded thoughts yet.</p>
                             </div>
                         )}
-                        {offloadItems.map(item => (
+                        {filteredItems.map(item => (
                             <div key={item.id} style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.03)' }}>
                                 <div style={{ fontSize: '1.05rem', color: '#444', lineHeight: '1.5' }}>
                                     {item.content}
@@ -114,7 +133,11 @@ const CognitiveOffload = () => {
                                 </button>
                             </div>
                         ))}
+                        {offloadItems.length > 0 && filteredItems.length === 0 && (
+                            <p style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>No saved thoughts match that search.</p>
+                        )}
                     </div>
+                    )}
                 </div>
             </div>
         </div>
