@@ -7,6 +7,10 @@ export const HabitsProvider = ({ children }) => {
     const [atoms, setAtoms] = useState([]);
     const [logs, setLogs] = useState({});
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const refreshHabits = () => setRefreshKey(value => value + 1);
 
     // Refresh provider state when onboarding creates its optional starter habit.
     useEffect(() => {
@@ -37,12 +41,14 @@ export const HabitsProvider = ({ children }) => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                setLoadError('');
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw authError;
                 if (!user) {
                     if (active) {
                         setAtoms([]);
                         setLogs({});
+                        setLoadError('');
                     }
                     return;
                 }
@@ -85,7 +91,10 @@ export const HabitsProvider = ({ children }) => {
                 });
                 setLogs(logsDict);
             } catch (error) {
-                if (active) console.error('Error fetching habits data:', error?.code || 'unknown');
+                if (active) {
+                    console.error('Error fetching habits data:', error?.code || 'unknown');
+                    setLoadError('Some saved habits or daily logs could not be loaded. Your existing records have not been deleted.');
+                }
             } finally {
                 if (active) setLoading(false);
             }
@@ -96,10 +105,10 @@ export const HabitsProvider = ({ children }) => {
             active = false;
             window.removeEventListener('studybud-starter-habit-created', handleStarterHabitCreated);
         };
-    }, []);
+    }, [refreshKey]);
 
     const addAtom = async (atom) => {
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError || !user) throw new Error('Sign in to save habits.');
@@ -222,7 +231,7 @@ export const HabitsProvider = ({ children }) => {
     };
 
     return (
-        <HabitsContext.Provider value={{ atoms, logs, addAtom, removeAtom, getTodayLog, updateLog, getTotalWins, loading }}>
+        <HabitsContext.Provider value={{ atoms, logs, addAtom, removeAtom, getTodayLog, updateLog, getTotalWins, loading, loadError, refreshHabits }}>
             {children}
         </HabitsContext.Provider>
     );
