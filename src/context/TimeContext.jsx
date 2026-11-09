@@ -5,18 +5,12 @@ import { supabase } from '../supabaseClient';
 const DEFAULT_TIME_SETTINGS = { chronotype: 'Bear', peakStart: 10, peakEnd: 14 };
 const VALID_CHRONOTYPES = ['Bear', 'Wolf', 'Lion', 'Dolphin'];
 
-const getTimeSettingsKey = () => {
-    try {
-        const userId = localStorage.getItem('studybud_active_user_id');
-        return userId ? 'studybud_time_settings_' + userId : null;
-    } catch {
-        return null;
-    }
-};
+const getTimeSettingsKey = userId =>
+    userId ? 'studybud_time_settings_' + userId : null;
 
-const readInitialTimeSettings = () => {
+const readInitialTimeSettings = (userId) => {
     try {
-        const key = getTimeSettingsKey();
+        const key = getTimeSettingsKey(userId);
         const stored = key ? localStorage.getItem(key) : null;
         if (!stored) return { ...DEFAULT_TIME_SETTINGS };
         const parsed = JSON.parse(stored);
@@ -37,7 +31,7 @@ const readInitialTimeSettings = () => {
     }
 };
 
-export const TimeProvider = ({ children }) => {
+export const TimeProvider = ({ children, userId = null }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
@@ -197,7 +191,7 @@ export const TimeProvider = ({ children }) => {
 
     // --- Feature 1: Settings (Chronotype) ---
     // Keep the existing preference across reloads, separated by signed-in account.
-    const [settings, setSettings] = useState(readInitialTimeSettings);
+    const [settings, setSettings] = useState(() => readInitialTimeSettings(userId));
 
     const updateSettings = (newSettings = {}) => {
         const next = { ...settings, ...newSettings };
@@ -217,7 +211,7 @@ export const TimeProvider = ({ children }) => {
 
         setSettings(next);
         try {
-            const key = getTimeSettingsKey();
+            const key = getTimeSettingsKey(userId);
             if (key) localStorage.setItem(key, JSON.stringify(next));
         } catch {
             // Task management remains usable in browsers that block local storage.
