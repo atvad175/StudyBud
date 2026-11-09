@@ -27,8 +27,8 @@ test('newly created tables remove every previous policy before installing owner 
     const firstOwnerPolicyIndex = sql.indexOf('create policy focus_sessions_select_owner');
     assert.ok(cleanupIndex >= 0);
     assert.ok(firstOwnerPolicyIndex > cleanupIndex);
-    assert.match(sql, /auth\.uid\(\)\s*=\s*user_id/);
-    assert.match(sql, /auth\.uid\(\)\s*=\s*id/);
+    assert.match(sql, /auth\.uid\(\)\s*\)\s*=\s*user_id/);
+    assert.match(sql, /auth\.uid\(\)\s*\)\s*=\s*id/);
 });
 
 test('flashcard tables have RLS and owner-specific policies for every operation', async () => {
