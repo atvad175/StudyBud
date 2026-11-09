@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MindContext } from './MindContextCore.js';
 import { supabase } from '../supabaseClient';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
 const createOptimisticId = () => 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
-export const MindProvider = ({ children }) => {
+export const MindProvider = ({ children, userId = null }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
 
@@ -18,8 +19,7 @@ export const MindProvider = ({ children }) => {
     // --- Actions ---
 
     const addLog = async (logData) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save this reflection.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save this reflection');
 
         const tempId = createOptimisticId();
         const payload = { ...logData, user_id: user.id };
@@ -41,8 +41,7 @@ export const MindProvider = ({ children }) => {
     };
 
     const addOffloadItem = async (item) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save this item.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save this item');
 
         const tempId = createOptimisticId();
         const payload = { ...item, user_id: user.id };
@@ -64,8 +63,7 @@ export const MindProvider = ({ children }) => {
     };
 
     const deleteOffloadItem = async (itemId) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to delete this item.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'delete this item');
 
         const previous = offloadItems.find(item => String(item.id) === String(itemId));
         if (!previous || (previous.user_id && previous.user_id !== user.id)) {
@@ -92,8 +90,7 @@ export const MindProvider = ({ children }) => {
     };
 
     const addWin = async (win) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save this win.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save this win');
 
         const tempId = createOptimisticId();
         // The database uses created_at, not a separate client-supplied date column.
@@ -129,15 +126,14 @@ export const MindProvider = ({ children }) => {
             setLoading(true);
             setLoadError('');
             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
-                if (!active) return;
-                if (!user) {
+                if (!userId) {
                     setLogs([]);
                     setOffloadItems([]);
                     setWins([]);
                     return;
                 }
+                const user = await requireExpectedAccountUser(supabase.auth, userId, 'load Mind data');
+                if (!active) return;
 
                 const results = await Promise.all([
                     supabase.from('mind_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
@@ -176,7 +172,7 @@ export const MindProvider = ({ children }) => {
         };
         void fetchData();
         return () => { active = false; };
-    }, [refreshKey]);
+    }, [refreshKey, userId]);
 
     return (
         <MindContext.Provider value={{
