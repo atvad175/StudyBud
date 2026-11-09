@@ -364,9 +364,12 @@ const TrackAtom = () => {
                                                 return (
                                                     <button
                                                         key={m.value}
+                                                        type="button"
                                                         onClick={() => { void handleMoodChange(atom.id, m.value); }}
                                                         disabled={savingAtomId !== null}
                                                         title={m.label}
+                                                        aria-label={m.label}
+                                                        aria-pressed={isSelected}
                                                         style={{
                                                             padding: '3px 6px',
                                                             borderRadius: '8px',
