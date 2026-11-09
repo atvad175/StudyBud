@@ -102,9 +102,9 @@ const MainDashboard = () => {
                     <span>{welcomeMsg}, {name}</span>
                 </div>
                 <h1 className={styles.centerpiece}>
-                    Study<span>Bud</span>
+                    What’s your next <span>win?</span>
                 </h1>
-                <p className={styles.tagline}>Pick a section below to plan, focus, or study.</p>
+                <p className={styles.tagline}>Your day, your pace. Choose one useful thing and build from there.</p>
             </div>
 
             <section className={styles.quickStart} aria-labelledby="quick-start-heading">
