@@ -18,8 +18,6 @@ alter table public.mind_logs enable row level security;
 alter table public.mind_offload_items enable row level security;
 alter table public.mind_wins enable row level security;
 alter table public.tasks enable row level security;
-alter table public.focus_sessions enable row level security;
-alter table public.profiles enable row level security;
 
 do $$
 declare
@@ -34,7 +32,7 @@ begin
       and tablename = any (array[
         'atoms', 'logs', 'study_assignments', 'study_practice_logs',
         'study_reviews', 'mind_logs', 'mind_offload_items', 'mind_wins',
-        'tasks', 'focus_sessions', 'profiles'
+        'tasks'
       ])
   loop
     execute format('drop policy if exists %I on %I.%I', p.policyname, p.schemaname, p.tablename);
@@ -122,20 +120,6 @@ create policy "tasks_update_owner" on public.tasks
 create policy "tasks_delete_owner" on public.tasks
   for delete using (auth.uid() = user_id);
 
-create policy "focus_sessions_select_owner" on public.focus_sessions
-  for select using (auth.uid() = user_id);
-create policy "focus_sessions_insert_owner" on public.focus_sessions
-  for insert with check (auth.uid() = user_id);
-create policy "focus_sessions_update_owner" on public.focus_sessions
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "focus_sessions_delete_owner" on public.focus_sessions
-  for delete using (auth.uid() = user_id);
-
-create policy "profiles_select_owner" on public.profiles
-  for select using (auth.uid() = id);
-create policy "profiles_insert_owner" on public.profiles
-  for insert with check (auth.uid() = id);
-create policy "profiles_update_owner" on public.profiles
-  for update using (auth.uid() = id) with check (auth.uid() = id);
-create policy "profiles_delete_owner" on public.profiles
-  for delete using (auth.uid() = id);
+-- focus_sessions and profiles are created by the later
+-- 20261021170000_core_feature_schema_repair migration. That migration
+-- enables RLS and creates owner-only policies after creating those tables.
