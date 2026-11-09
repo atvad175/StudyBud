@@ -74,7 +74,6 @@ const TrackAtom = () => {
     const weeklyData = React.useMemo(() => {
         const last7 = [];
         const today = new Date();
-        const numAtoms = atoms?.length || 1; 
         for(let i=6; i>=0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
@@ -87,7 +86,7 @@ const TrackAtom = () => {
             });
         }
         return last7;
-    }, [contextLogs, atoms]);
+    }, [contextLogs]);
 
     const averageCompleted = (weeklyData.reduce((sum, day) => sum + day.value, 0) / 7).toFixed(1);
     const peakCompleted = Math.max(0, ...weeklyData.map(day => day.value));
