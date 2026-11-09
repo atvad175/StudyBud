@@ -78,7 +78,7 @@ export const HabitsProvider = ({ children }) => {
                     .select('*')
                     .eq('user_id', user.id)
                     .order('date_logged', { ascending: false })
-                    .limit(400);
+                    .limit(1200);
 
                 if (logsError) throw logsError;
                 if (!active) return;
