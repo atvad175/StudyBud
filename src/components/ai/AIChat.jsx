@@ -48,7 +48,9 @@ const AIChat = ({
 
         try {
             const response = await sendMessage(userMessage, context, sessionId);
-            setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+            if (response !== null && response !== undefined) {
+                setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+            }
         } catch (err) {
             console.error('Chat error:', err);
             // Error is handled by context
