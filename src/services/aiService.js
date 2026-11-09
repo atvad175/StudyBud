@@ -26,19 +26,23 @@ const requestAI = async (payload) => {
             signal: controller.signal,
         });
     } catch (error) {
+        clearTimeout(timeoutId);
         if (error?.name === 'AbortError') {
             throw new Error('StudyBud AI took too long to respond. Try a shorter topic or try again.');
         }
         throw new Error('StudyBud AI could not connect. Check your connection and try again.');
-    } finally {
-        clearTimeout(timeoutId);
     }
 
     let body;
     try {
         body = await response.json();
-    } catch {
+    } catch (error) {
+        if (controller.signal.aborted || error?.name === 'AbortError') {
+            throw new Error('StudyBud AI took too long to respond. Try a shorter topic or try again.');
+        }
         throw new Error('StudyBud AI returned an unexpected response. Please try again.');
+    } finally {
+        clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
