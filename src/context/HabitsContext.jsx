@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HabitsContext } from './HabitsContextCore.js';
 import { supabase } from '../supabaseClient';
 import { getLocalDateKey } from '../utils/localDateKey';
+import { buildHabitLogMap, buildHabitLogPayload } from '../modules/Habits/habitLogUtils.js';
 
 export const HabitsProvider = ({ children }) => {
     const [atoms, setAtoms] = useState([]);
@@ -83,13 +84,7 @@ export const HabitsProvider = ({ children }) => {
                 if (logsError) throw logsError;
                 if (!active) return;
 
-                const logsDict = {};
-                (logsData || []).forEach(log => {
-                    const date = log.date_logged;
-                    if (!logsDict[date]) logsDict[date] = {};
-                    logsDict[date][log.atom_id] = { status: log.status, id: log.id };
-                });
-                setLogs(logsDict);
+                setLogs(buildHabitLogMap(logsData || []));
             } catch (error) {
                 if (active) {
                     console.error('Error fetching habits data:', error?.code || 'unknown');
@@ -160,18 +155,17 @@ export const HabitsProvider = ({ children }) => {
                 }
             }));
 
+            const payload = buildHabitLogPayload({
+                atomId,
+                date: today,
+                userId: user.id,
+                previousLog,
+                changes: data,
+            });
             const { data: savedLog, error } = await supabase
                 .from('logs')
-                .upsert({
-                    atom_id: atomId,
-                    date_logged: today,
-                    status: data.status || (data.completed ? 'completed' : 'pending'),
-                    mood: data.mood ?? previousLog?.mood ?? null,
-                    duration: data.duration ?? previousLog?.duration ?? null,
-                    time: data.time ?? previousLog?.time ?? null,
-                    user_id: user.id,
-                }, { onConflict: 'atom_id, date_logged' })
-                .select('id')
+                .upsert(payload, { onConflict: 'atom_id, date_logged' })
+                .select('id, status, mood, duration, time')
                 .maybeSingle();
 
             if (error) throw error;
@@ -180,7 +174,16 @@ export const HabitsProvider = ({ children }) => {
                 ...prev,
                 [today]: {
                     ...(prev[today] || {}),
-                    [atomId]: { ...(prev[today]?.[atomId] || {}), ...data, id: savedLog.id }
+                    [atomId]: {
+                        ...(prev[today]?.[atomId] || {}),
+                        ...data,
+                        status: savedLog.status,
+                        mood: savedLog.mood,
+                        duration: savedLog.duration,
+                        time: savedLog.time,
+                        completed: savedLog.status === 'completed',
+                        id: savedLog.id,
+                    }
                 }
             }));
             return true;
