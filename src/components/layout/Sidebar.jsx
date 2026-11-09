@@ -122,6 +122,16 @@ const Sidebar = ({ theme = 'light', onToggleTheme = () => {} }) => {
             <span>{item.label}</span>
           </NavLink>
         ))}
+        <button
+          type="button"
+          className={styles.mobileNavItem}
+          onClick={onToggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-pressed={theme === 'dark'}
+        >
+          {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+          <span>Theme</span>
+        </button>
       </nav>
 
       <nav className={styles.nav}>
