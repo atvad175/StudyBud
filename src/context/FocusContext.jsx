@@ -245,7 +245,7 @@ export const FocusProvider = ({ children, userId = null }) => {
         setCompleted(false);
         setTimeLeft(mode === 'TIMER' ? duration : 0);
         return true;
-    }, [duration, mode]);
+    }, [duration, mode, pendingStorageKey]);
 
     const createDraft = useCallback((actualDuration, reason, actualMode = mode) => ({
         version: 1,
@@ -275,7 +275,7 @@ export const FocusProvider = ({ children, userId = null }) => {
 
         const draft = createDraft(duration, 'completed', 'TIMER');
         return persistSessionDraft(draft);
-    }, [createDraft, duration, persistSessionDraft]);
+    }, [activeStorageKey, createDraft, duration, persistSessionDraft]);
 
     // The deadline is the source of truth for timers, so tab throttling and sleep
     // do not make a 25-minute session silently run longer than 25 minutes.
@@ -470,7 +470,7 @@ export const FocusProvider = ({ children, userId = null }) => {
         const saved = await persistSessionDraft(draft);
         if (!saved) setTimeLeft(actualDuration);
         return saved;
-    }, [completed, createDraft, duration, finishTimerSession, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
+    }, [activeStorageKey, completed, createDraft, duration, finishTimerSession, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
 
     const updateDuration = useCallback((minutes) => {
         if (isActive || pendingSession || savingRef.current) return;
