@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users, CalendarClock, BarChart3 } from 'lucide-react';
+import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users, CalendarClock, BarChart3, Moon, Sun } from 'lucide-react';
 import StudyBudLogo from '../brand/StudyBudLogo';
 import styles from './Sidebar.module.css';
 
-const Sidebar = () => {
+const Sidebar = ({ theme = 'light', onToggleTheme = () => {} }) => {
   const location = useLocation();
   const [expanded, setExpanded] = useState({});
 
@@ -102,6 +102,28 @@ const Sidebar = () => {
         <span className={styles.brandTagline}>Your quiet space</span>
       </div>
 
+      <nav className={styles.mobileNav} aria-label="Quick navigation">
+        {[
+          { label: 'Home', path: '/', icon: Activity, exact: true },
+          { label: 'Habits', path: '/habits', icon: Layers },
+          { label: 'Focus', path: '/focus', icon: Brain },
+          { label: 'Time', path: '/time', icon: Clock },
+          { label: 'Study', path: '/study', icon: BookOpen },
+          { label: 'Mind', path: '/mind', icon: Smile },
+        ].map(item => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.exact}
+            className={({ isActive }) => `${styles.mobileNavItem} ${isActive ? styles.mobileNavActive : ''}`}
+            aria-label={item.label}
+          >
+            <item.icon size={18} aria-hidden="true" />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
       <nav className={styles.nav}>
         {navItems.map((item) => {
           if (item.children) {
@@ -188,6 +210,18 @@ const Sidebar = () => {
             </div>
         </NavLink>
       </nav>
+
+      <button
+        type="button"
+        className={styles.themeToggle}
+        onClick={onToggleTheme}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        aria-pressed={theme === 'dark'}
+      >
+        <span className={styles.themeToggleIcon}>{theme === 'dark' ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}</span>
+        <span className={styles.themeToggleText}>{theme === 'dark' ? 'Light appearance' : 'Dark appearance'}</span>
+        <span className={styles.themeToggleState}>{theme === 'dark' ? 'On' : 'Off'}</span>
+      </button>
 
       <div className={styles.quoteContainer}>
         <h4>Today's Focus</h4>
