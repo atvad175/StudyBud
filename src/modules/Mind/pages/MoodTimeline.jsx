@@ -19,13 +19,29 @@ const getText = value => {
 };
 
 const MoodTimeline = () => {
-    const { logs = [], loading = false, loadError = '', refreshMind } = useMind();
+    const { logs = [], wins = [], offloadItems = [], loading = false, loadError = '', refreshMind } = useMind();
     const [filter, setFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedIds, setExpandedIds] = useState(() => new Set());
 
     const entries = useMemo(() => {
-        return (Array.isArray(logs) ? logs : [])
+        const records = [
+            ...(Array.isArray(logs) ? logs : []),
+            ...(Array.isArray(wins) ? wins : []).map(win => ({
+                ...win,
+                id: 'win-' + win.id,
+                type: 'win',
+                created_at: win.created_at || win.date,
+            })),
+            ...(Array.isArray(offloadItems) ? offloadItems : []).map(item => ({
+                ...item,
+                id: 'offload-' + item.id,
+                type: 'brain_dump',
+                created_at: item.created_at,
+            })),
+        ];
+
+        return records
             .map(log => {
                 const date = new Date(log?.created_at);
                 if (!Number.isFinite(date.getTime())) return null;
@@ -33,7 +49,8 @@ const MoodTimeline = () => {
                 const base = {
                     id: String(log.id ?? date.getTime()),
                     date,
-                    type: rawType === 'reflection' ? 'Reflection'
+                    type: rawType === 'brain_dump' ? 'Brain Dump'
+                        : rawType === 'reflection' ? 'Reflection'
                         : rawType === 'weekly' ? 'Weekly'
                             : rawType === 'meditation' ? 'Meditation'
                                 : rawType === 'win' ? 'Win'
@@ -75,7 +92,7 @@ const MoodTimeline = () => {
             })
             .filter(Boolean)
             .sort((a, b) => b.date.getTime() - a.date.getTime());
-    }, [logs]);
+    }, [logs, wins, offloadItems]);
 
     const filters = useMemo(
         () => ['All', ...new Set(entries.map(entry => entry.type))],
