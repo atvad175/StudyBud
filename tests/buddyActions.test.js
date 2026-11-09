@@ -22,7 +22,7 @@ test('explain action uses selected subject without inventing a chapter', () => {
         selectedSubject: 'Biology',
     });
     assert.match(prompt, /current subject is Biology/);
-    assert.match(prompt, /Do not invent a chapter/);
+    assert.match(prompt, /No exact chapter or notes were selected/);
     assert.match(prompt, /everyday analogy/);
 });
 
