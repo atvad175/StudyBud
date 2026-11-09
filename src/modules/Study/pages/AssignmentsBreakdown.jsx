@@ -3,9 +3,10 @@ import styles from '../StudyShared.module.css';
 import { FileText, Plus, Calendar, CheckSquare } from 'lucide-react';
 import { useStudy } from '../../../context/useStudy';
 import { useToast } from '../../../context/useToast';
+import { parseLocalDateValue } from '../studyPlannerUtils';
 
 const AssignmentsBreakdown = () => {
-    const { assignments, addAssignment, updateAssignment, deleteAssignment } = useStudy();
+    const { assignments = [], addAssignment, updateAssignment, deleteAssignment, loading = false, loadError = '' } = useStudy();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
     const [busyAssignmentId, setBusyAssignmentId] = useState(null);
@@ -98,9 +99,9 @@ const AssignmentsBreakdown = () => {
         const aDone = String(a.status || '').toLowerCase() === 'completed';
         const bDone = String(b.status || '').toLowerCase() === 'completed';
         if (aDone !== bDone) return aDone ? 1 : -1;
-        const aDue = a.deadline ? Date.parse(a.deadline) : Number.POSITIVE_INFINITY;
-        const bDue = b.deadline ? Date.parse(b.deadline) : Number.POSITIVE_INFINITY;
-        return (Number.isFinite(aDue) ? aDue : Number.POSITIVE_INFINITY) - (Number.isFinite(bDue) ? bDue : Number.POSITIVE_INFINITY);
+        const aDue = parseLocalDateValue(a.deadline)?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bDue = parseLocalDateValue(b.deadline)?.getTime() ?? Number.POSITIVE_INFINITY;
+        return aDue - bDue;
     });
 
     return (
@@ -196,6 +197,14 @@ const AssignmentsBreakdown = () => {
                 <span>{assignments.filter(item => String(item.status || '').toLowerCase() !== 'completed').length} open · {assignments.filter(item => String(item.status || '').toLowerCase() === 'completed').length} completed</span>
                 <span style={{ fontSize: '0.82rem' }}>Deadlines first · progress saves automatically</span>
             </div>
+            {loadError && (
+                <div role="alert" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    Assignments could not be fully loaded. Your saved records have not been deleted. Refresh to retry.
+                </div>
+            )}
+            {loading ? (
+                <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading your assignments…</p>
+            ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {sortedAssignments.map(assignment => (
                     <div key={assignment.id} style={{ background: 'white', padding: '1.6rem', borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid ' + (String(assignment.status || '').toLowerCase() === 'completed' ? '#cce6d0' : '#eeeae1') }}>
@@ -203,8 +212,13 @@ const AssignmentsBreakdown = () => {
                             const steps = Array.isArray(assignment.steps) ? assignment.steps : [];
                             const doneSteps = steps.filter(step => step.done).length;
                             const progress = steps.length ? Math.round((doneSteps / steps.length) * 100) : (String(assignment.status || '').toLowerCase() === 'completed' ? 100 : 0);
-                            const deadlineTime = assignment.deadline ? Date.parse(assignment.deadline) : NaN;
-                            const overdue = Number.isFinite(deadlineTime) && deadlineTime < new Date().setHours(0, 0, 0, 0) && String(assignment.status || '').toLowerCase() !== 'completed';
+                            const deadlineDate = parseLocalDateValue(assignment.deadline);
+                            const todayStart = new Date();
+                            todayStart.setHours(0, 0, 0, 0);
+                            const deadlineDay = deadlineDate ? new Date(deadlineDate) : null;
+                            if (deadlineDay) deadlineDay.setHours(0, 0, 0, 0);
+                            const overdue = Boolean(deadlineDay && deadlineDay < todayStart)
+                                && String(assignment.status || '').toLowerCase() !== 'completed';
                             return (
                                 <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -213,7 +227,7 @@ const AssignmentsBreakdown = () => {
                                 {assignment.subject && <span className={styles.subjectBadge}>{assignment.subject}</span>}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
                                     <span style={{ borderRadius: '100px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', fontWeight: 750, background: progress === 100 ? '#edf7ed' : '#f5f1e7', color: progress === 100 ? '#34683b' : '#77633a' }}>{String(assignment.status || 'not_started').replace(/_/g, ' ')}</span>
-                                    <span style={{ fontSize: '0.78rem', color: overdue ? '#b42318' : '#777' }}>{overdue ? 'Overdue' : assignment.deadline ? 'Due ' + new Date(assignment.deadline).toLocaleDateString() : 'No deadline'}</span>
+                                    <span style={{ fontSize: '0.78rem', color: overdue ? '#b42318' : '#777' }}>{overdue ? 'Overdue' : deadlineDate ? 'Due ' + deadlineDate.toLocaleDateString() : 'No deadline'}</span>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
@@ -258,13 +272,14 @@ const AssignmentsBreakdown = () => {
                     </div>
                 ))}
 
-                {assignments.length === 0 && !showForm && (
+                {assignments.length === 0 && !showForm && !loadError && (
                     <div style={{ textAlign: 'center', padding: '4rem', color: '#999' }}>
                         <FileText size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
                         <p>No assignments yet. Click "New Assignment" to get started.</p>
                     </div>
                 )}
             </div>
+            )}
         </div>
     );
 };
