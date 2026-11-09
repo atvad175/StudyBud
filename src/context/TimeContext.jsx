@@ -40,12 +40,6 @@ export const TimeProvider = ({ children, userId = null }) => {
     const taskMutationLocksRef = useRef(new Set());
     const refreshTasks = () => setRefreshKey(value => value + 1);
 
-    useEffect(() => {
-        let active = true;
-        void fetchTasks(() => active);
-        return () => { active = false; };
-    }, [fetchTasks, refreshKey, userId]);
-
     const fetchTasks = useCallback(async (isActive = () => true) => {
         if (isActive()) {
             setLoading(true);
@@ -79,6 +73,13 @@ export const TimeProvider = ({ children, userId = null }) => {
             if (isActive()) setLoading(false);
         }
     }, [userId]);
+
+    useEffect(() => {
+        let active = true;
+        void fetchTasks(() => active);
+        return () => { active = false; };
+    }, [fetchTasks, refreshKey, userId]);
+
 
     const createTask = async (taskData) => {
         const user = await requireExpectedAccountUser(supabase.auth, userId, 'save tasks');
