@@ -9,6 +9,7 @@ export const StudyProvider = ({ children }) => {
     const [refreshKey, setRefreshKey] = useState(0);
     const refreshStudy = () => setRefreshKey(value => value + 1);
     const reviewSchedulingLocksRef = useRef(new Map());
+    const studyMutationLocksRef = useRef(new Set());
 
     // State
     const [techniques, setTechniques] = useState([]);
@@ -300,30 +301,39 @@ export const StudyProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to update assignments.');
 
+        const lockKey = 'assignment:' + String(id);
+        if (studyMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This assignment is already being saved. Wait for that update to finish, then try again.');
+        }
         const previous = assignments.find(item => String(item.id) === String(id));
         if (!previous || (previous.user_id && previous.user_id !== user.id)) {
             throw new Error('That assignment is not available in this account. Refresh and try again.');
         }
 
-        const safeUpdates = { ...updates };
-        delete safeUpdates.id;
-        delete safeUpdates.user_id;
-        setAssignments(prev => prev.map(item => String(item.id) === String(id) ? { ...item, ...safeUpdates } : item));
-
+        studyMutationLocksRef.current.add(lockKey);
         try {
-            const { data, error } = await supabase
-                .from('study_assignments')
-                .update(safeUpdates)
-                .eq('id', id)
-                .eq('user_id', user.id)
-                .select('id')
-                .maybeSingle();
-            if (error) throw error;
-            if (!data) throw new Error('The assignment was not updated. Refresh and try again.');
-        } catch (error) {
-            setAssignments(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
-            console.error('Error updating assignment:', error?.code || 'unknown');
-            throw error;
+            const safeUpdates = { ...updates };
+            delete safeUpdates.id;
+            delete safeUpdates.user_id;
+            setAssignments(prev => prev.map(item => String(item.id) === String(id) ? { ...item, ...safeUpdates } : item));
+
+            try {
+                const { data, error } = await supabase
+                    .from('study_assignments')
+                    .update(safeUpdates)
+                    .eq('id', id)
+                    .eq('user_id', user.id)
+                    .select('id')
+                    .maybeSingle();
+                if (error) throw error;
+                if (!data) throw new Error('The assignment was not updated. Refresh and try again.');
+            } catch (error) {
+                setAssignments(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
+                console.error('Error updating assignment:', error?.code || 'unknown');
+                throw error;
+            }
+        } finally {
+            studyMutationLocksRef.current.delete(lockKey);
         }
     };
 
@@ -331,11 +341,16 @@ export const StudyProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to delete assignments.');
 
+        const lockKey = 'assignment:' + String(id);
+        if (studyMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This assignment is already being saved. Wait for that update to finish, then try again.');
+        }
         const previous = assignments.find(item => String(item.id) === String(id));
         if (!previous || (previous.user_id && previous.user_id !== user.id)) {
             throw new Error('That assignment is not available in this account. Refresh and try again.');
         }
 
+        studyMutationLocksRef.current.add(lockKey);
         setAssignments(prev => prev.filter(item => String(item.id) !== String(id)));
         try {
             const { data, error } = await supabase
@@ -351,6 +366,8 @@ export const StudyProvider = ({ children }) => {
             setAssignments(prev => prev.some(item => String(item.id) === String(id)) ? prev : [previous, ...prev]);
             console.error('Error deleting assignment:', error?.code || 'unknown');
             throw error;
+        } finally {
+            studyMutationLocksRef.current.delete(lockKey);
         }
     };
 
@@ -477,40 +494,49 @@ export const StudyProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to update your review schedule.');
 
+        const lockKey = 'review:' + String(id);
+        if (studyMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This review is already being saved. Wait for that update to finish, then try again.');
+        }
         const previous = reviews.find(item => String(item.id) === String(id));
         if (!previous || (previous.user_id && previous.user_id !== user.id)) {
             throw new Error('That review is not available in this account. Refresh and try again.');
         }
 
-        const intervalDays = getNextReviewIntervalDays(rating, previous.interval_days || 1);
-        const updated = {
-            ...previous,
-            interval_days: intervalDays,
-            review_count: Math.max(0, Number(previous.review_count) || 0) + 1,
-            next_review_date: new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000).toISOString(),
-        };
-        setReviews(prev => prev.map(item => String(item.id) === String(id) ? updated : item));
-
+        studyMutationLocksRef.current.add(lockKey);
         try {
-            const { data, error } = await supabase
-                .from('study_reviews')
-                .update({
-                    interval_days: updated.interval_days,
-                    review_count: updated.review_count,
-                    next_review_date: updated.next_review_date,
-                })
-                .eq('id', id)
-                .eq('user_id', user.id)
-                .select()
-                .maybeSingle();
-            if (error) throw error;
-            if (!data) throw new Error('Your review was not rescheduled. Refresh and try again.');
-            setReviews(prev => prev.map(item => String(item.id) === String(id) ? data : item));
-            return data;
-        } catch (error) {
-            setReviews(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
-            console.error('Error updating review schedule:', error?.code || 'unknown');
-            throw error;
+            const intervalDays = getNextReviewIntervalDays(rating, previous.interval_days || 1);
+            const updated = {
+                ...previous,
+                interval_days: intervalDays,
+                review_count: Math.max(0, Number(previous.review_count) || 0) + 1,
+                next_review_date: new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000).toISOString(),
+            };
+            setReviews(prev => prev.map(item => String(item.id) === String(id) ? updated : item));
+
+            try {
+                const { data, error } = await supabase
+                    .from('study_reviews')
+                    .update({
+                        interval_days: updated.interval_days,
+                        review_count: updated.review_count,
+                        next_review_date: updated.next_review_date,
+                    })
+                    .eq('id', id)
+                    .eq('user_id', user.id)
+                    .select()
+                    .maybeSingle();
+                if (error) throw error;
+                if (!data) throw new Error('Your review was not rescheduled. Refresh and try again.');
+                setReviews(prev => prev.map(item => String(item.id) === String(id) ? data : item));
+                return data;
+            } catch (error) {
+                setReviews(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
+                console.error('Error updating review schedule:', error?.code || 'unknown');
+                throw error;
+            }
+        } finally {
+            studyMutationLocksRef.current.delete(lockKey);
         }
     };
 
