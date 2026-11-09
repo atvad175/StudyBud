@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    getAccountScopedFocusKey,
     hydrateActiveFocusSession,
+    isFocusSessionOwnedByUser,
+    isPendingFocusSessionOwnedByUser,
     remainingSeconds,
     stopwatchElapsedSeconds,
 } from '../src/modules/Focus/focusTimerUtils.js';
@@ -78,4 +81,25 @@ test('does not restore malformed session data or unsupported modes', () => {
     assert.equal(hydrateActiveFocusSession(null, 1000), null);
     assert.equal(hydrateActiveFocusSession({ version: 1, isActive: false, mode: 'TIMER' }, 1000), null);
     assert.equal(hydrateActiveFocusSession({ version: 1, isActive: true, mode: 'ALIEN' }, 1000), null);
+});
+
+test('focus storage keys are isolated by signed-in account', () => {
+    const base = 'studybud_active_focus_session_v1';
+    assert.notEqual(getAccountScopedFocusKey(base, 'student-a'), getAccountScopedFocusKey(base, 'student-b'));
+    assert.equal(getAccountScopedFocusKey(base, null), null);
+    assert.equal(getAccountScopedFocusKey(base, '  '), null);
+});
+
+test('active focus state is restored only for its original account', () => {
+    const saved = { ownerUserId: 'student-a' };
+    assert.equal(isFocusSessionOwnedByUser(saved, 'student-a'), true);
+    assert.equal(isFocusSessionOwnedByUser(saved, 'student-b'), false);
+    assert.equal(isFocusSessionOwnedByUser({ ownerUserId: null }, 'student-a'), false);
+});
+
+test('pending focus saves are restored only for their original account', () => {
+    const draft = { owner_user_id: 'student-a' };
+    assert.equal(isPendingFocusSessionOwnedByUser(draft, 'student-a'), true);
+    assert.equal(isPendingFocusSessionOwnedByUser(draft, 'student-b'), false);
+    assert.equal(isPendingFocusSessionOwnedByUser({ owner_user_id: null }, 'student-a'), false);
 });
