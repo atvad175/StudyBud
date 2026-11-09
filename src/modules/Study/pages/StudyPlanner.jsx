@@ -40,6 +40,8 @@ const StudyPlanner = () => {
         reviews = [],
         practiceLogs = [],
         loading: studyLoading = false,
+        loadError: studyLoadError = '',
+        refreshStudy,
         completeReview,
         updateAssignment,
     } = useStudy();
@@ -222,6 +224,11 @@ const StudyPlanner = () => {
                 </div>
 
                 {studyLoading && <p className={styles.notice} role="status">Loading your saved Study data…</p>}
+                {studyLoadError && !studyLoading && (
+                    <p className={styles.notice} role="alert">
+                        {studyLoadError} <button type="button" onClick={refreshStudy}>Retry</button>
+                    </p>
+                )}
                 {!studyLoading && timeLoading && (
                     <p className={styles.notice} role="status">Checking your saved Time tasks before offering to save this plan…</p>
                 )}
