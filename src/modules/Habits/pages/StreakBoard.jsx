@@ -38,6 +38,7 @@ const StreakBoard = () => {
             {loading ? (
                 <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading your habit history…</p>
             ) : (
+            <div>
             <div style={{ backgroundColor: 'white', borderRadius: '32px', padding: '3rem', boxShadow: 'var(--shadow-soft)', marginBottom: '2rem' }}>
                 {/* Heatmap */}
                 <div style={{ marginBottom: '2rem' }}>
