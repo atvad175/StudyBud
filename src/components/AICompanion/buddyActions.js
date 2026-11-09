@@ -15,7 +15,13 @@ const PAGE_LABELS = [
 
 const cleanContextValue = (value, maximum = 100) =>
     typeof value === 'string'
-        ? value.trim().replace(/[\u0000-\u001f]/g, '').slice(0, maximum)
+        ? [...value.trim()]
+            .filter(character => {
+                const codePoint = character.codePointAt(0) || 0;
+                return codePoint >= 32 && codePoint !== 127;
+            })
+            .join('')
+            .slice(0, maximum)
         : '';
 
 export const getBuddyPageLabel = (pathname = '/') => {
