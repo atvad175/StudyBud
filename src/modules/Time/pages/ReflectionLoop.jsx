@@ -9,7 +9,7 @@ const ReflectionLoop = () => {
     const { toast } = useToast();
 
     const getStatus = task => String(task?.status || 'Planned').trim().toLowerCase();
-    const readyTasks = tasks.filter(task => getStatus(task) === 'planned' && task.energy_block);
+    const readyTasks = tasks.filter(task => getStatus(task) === 'planned');
     const executedTasks = tasks.filter(task => getStatus(task) === 'executed');
     const reflectedTasks = tasks.filter(task => getStatus(task) === 'reflected');
 
@@ -95,7 +95,7 @@ const ReflectionLoop = () => {
                                     <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333' }}>{task.title}</h3>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                                         <span style={pill}>{task.time_estimate}m</span>
-                                        <span style={pill}>{task.energy_block} Energy</span>
+                                        <span style={pill}>{task.energy_block ? task.energy_block + ' Energy' : 'Energy not set'}</span>
                                     </div>
                                 </div>
                                 <button type="button" onClick={() => markExecuted(task.id)} disabled={savingTaskId !== null} aria-label={`Mark ${task.title} as finished`} style={{ ...checkBtn, opacity: savingTaskId !== null ? 0.55 : 1, cursor: savingTaskId !== null ? 'wait' : 'pointer' }}>
