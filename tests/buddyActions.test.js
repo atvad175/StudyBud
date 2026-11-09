@@ -50,3 +50,15 @@ test('missing subject asks for the exact topic instead of guessing', () => {
 test('unsupported Buddy actions fail explicitly', () => {
     assert.throws(() => buildBuddyActionPrompt('unknown'), /Choose a Buddy action/);
 });
+
+test('Buddy adapts foundational examples to the saved curriculum', () => {
+    const prompt = buildBuddyActionPrompt('explain', {
+        pathname: '/study',
+        selectedSubject: 'Biology',
+        board: 'ICSE',
+        grade: '9',
+    });
+    assert.match(prompt, /ICSE · Grade 9/);
+    assert.match(prompt, /foundational, age-appropriate concept/);
+    assert.match(prompt, /Do not claim that your chosen concept is from the student’s exact syllabus/);
+});
