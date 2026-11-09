@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { StudyContext } from './StudyContextCore.js';
-import { getNextReviewIntervalDays } from '../modules/Study/studyPlannerUtils.js';
+import { getNextReviewIntervalDays, getStudyReviewDedupeKey } from '../modules/Study/studyPlannerUtils.js';
 
 export const StudyProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
     const refreshStudy = () => setRefreshKey(value => value + 1);
+    const reviewSchedulingLocksRef = useRef(new Map());
 
     // State
     const [techniques, setTechniques] = useState([]);
@@ -376,38 +377,95 @@ export const StudyProvider = ({ children }) => {
 
     const scheduleReview = async (review) => {
         const content = typeof review?.content === 'string' ? review.content.trim() : '';
+        const subject = typeof review?.subject === 'string' ? review.subject.trim() : '';
         const nextReviewDate = review?.next_review_date;
-        if (!content) throw new Error('Add a topic or concept before scheduling its review.');
-        if (!nextReviewDate || !Number.isFinite(new Date(nextReviewDate).getTime())) {
+        const parsedNextReviewDate = nextReviewDate ? new Date(nextReviewDate) : null;
+        if (!content || content.length > 3000) {
+            throw new Error('Add a topic or concept of 3,000 characters or fewer before scheduling its review.');
+        }
+        if (subject.length > 120) throw new Error('Subject names must be 120 characters or fewer.');
+        if (!parsedNextReviewDate || !Number.isFinite(parsedNextReviewDate.getTime())) {
             throw new Error('Choose a valid date for the next review.');
         }
 
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to schedule a review.');
 
-        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        const key = getStudyReviewDedupeKey(subject, content);
+        const existingRequest = reviewSchedulingLocksRef.current.get(key);
+        if (existingRequest) return existingRequest;
+
         const payload = {
             content,
-            subject: typeof review.subject === 'string' ? review.subject.trim() : '',
-            next_review_date: new Date(nextReviewDate).toISOString(),
-            interval_days: Math.max(1, Number(review.interval_days) || 1),
-            review_count: Math.max(0, Number(review.review_count) || 0),
+            subject,
+            next_review_date: parsedNextReviewDate.toISOString(),
+            interval_days: Math.max(1, Math.min(365, Number(review.interval_days) || 1)),
+            review_count: Math.max(0, Math.min(100000, Number(review.review_count) || 0)),
             user_id: user.id,
         };
-        setReviews(prev => [{ ...payload, id: tempId }, ...prev]);
-        try {
-            const { data, error } = await supabase
+
+        const operation = (async () => {
+            // Idempotency matters when a multi-question exam partially schedules
+            // follow-up reviews and the student retries the save.
+            const { data: matchingReviews, error: lookupError } = await supabase
                 .from('study_reviews')
-                .insert([payload])
-                .select()
-                .single();
-            if (error) throw error;
-            setReviews(prev => prev.map(item => item.id === tempId ? data : item));
-            return data;
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('subject', subject)
+                .eq('content', content)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (lookupError) throw lookupError;
+
+            const existing = matchingReviews?.[0] || null;
+            let savedReview = existing;
+            if (existing) {
+                const existingDate = new Date(existing.next_review_date);
+                const shouldBringForward = !Number.isFinite(existingDate.getTime())
+                    || parsedNextReviewDate.getTime() < existingDate.getTime();
+                if (shouldBringForward) {
+                    const { data, error } = await supabase
+                        .from('study_reviews')
+                        .update({
+                            next_review_date: payload.next_review_date,
+                            interval_days: payload.interval_days,
+                        })
+                        .eq('id', existing.id)
+                        .eq('user_id', user.id)
+                        .select()
+                        .maybeSingle();
+                    if (error) throw error;
+                    if (!data) throw new Error('The existing review could not be rescheduled. Refresh and try again.');
+                    savedReview = data;
+                }
+            } else {
+                const { data, error } = await supabase
+                    .from('study_reviews')
+                    .insert([payload])
+                    .select()
+                    .single();
+                if (error) throw error;
+                if (!data) throw new Error('The review was not confirmed as saved.');
+                savedReview = data;
+            }
+
+            setReviews(previous => [
+                savedReview,
+                ...previous.filter(item => String(item.id) !== String(savedReview.id)),
+            ]);
+            return savedReview;
+        })();
+
+        reviewSchedulingLocksRef.current.set(key, operation);
+        try {
+            return await operation;
         } catch (error) {
-            setReviews(prev => prev.filter(item => item.id !== tempId));
             console.error('Error scheduling review:', error?.code || 'unknown');
             throw error;
+        } finally {
+            if (reviewSchedulingLocksRef.current.get(key) === operation) {
+                reviewSchedulingLocksRef.current.delete(key);
+            }
         }
     };
 
