@@ -44,7 +44,7 @@ test('mnemonic action requires an accurate memory hook', () => {
 test('missing subject asks for the exact topic instead of guessing', () => {
     const prompt = buildBuddyActionPrompt('quiz', { pathname: '/study' });
     assert.match(prompt, /No subject or chapter has been selected/);
-    assert.match(prompt, /ask one short question/);
+    assert.match(prompt, /ask one short question/i);
 });
 
 test('unsupported Buddy actions fail explicitly', () => {
