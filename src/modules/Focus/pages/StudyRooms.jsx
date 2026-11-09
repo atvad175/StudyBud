@@ -263,10 +263,7 @@ const StudyRooms = () => {
                             >
                                 {room.icon}
                             </div>
-                            <div className={styles.livePill}>
-                                <span className={styles.pulseDot} />
-                                Solo environment
-                            </div>
+                            <div className={styles.livePill}>Solo environment</div>
                         </div>
                         <div>
                             <p className={styles.purpose}>{room.purpose}</p>
