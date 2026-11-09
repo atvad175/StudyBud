@@ -3,8 +3,9 @@ import { HabitsContext } from './HabitsContextCore.js';
 import { supabase } from '../supabaseClient';
 import { getLocalDateKey } from '../utils/localDateKey';
 import { buildHabitLogMap, buildHabitLogPayload } from '../modules/Habits/habitLogUtils.js';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
-export const HabitsProvider = ({ children }) => {
+export const HabitsProvider = ({ children, userId = null }) => {
     const [atoms, setAtoms] = useState([]);
     const [logs, setLogs] = useState({});
     const [loading, setLoading] = useState(true);
@@ -24,9 +25,8 @@ export const HabitsProvider = ({ children }) => {
             if (!userId || !habit) return;
 
             try {
-                const { data: { user }, error } = await supabase.auth.getUser();
-                if (error) throw error;
-                if (!active || !user || user.id !== userId) return;
+                const user = await requireExpectedAccountUser(supabase.auth, userId, 'sync your habits');
+                if (!active || user.id !== eventUserId) return;
 
                 setAtoms(current => {
                     const byId = new Map(current.map(item => [String(item.id), item]));
@@ -44,9 +44,7 @@ export const HabitsProvider = ({ children }) => {
             try {
                 setLoading(true);
                 setLoadError('');
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
-                if (!user) {
+                if (!userId) {
                     if (active) {
                         setAtoms([]);
                         setLogs({});
@@ -54,6 +52,7 @@ export const HabitsProvider = ({ children }) => {
                     }
                     return;
                 }
+                const user = await requireExpectedAccountUser(supabase.auth, userId, 'load habits');
 
                 const { data: atomsData, error: atomsError } = await supabase
                     .from('atoms')
@@ -106,8 +105,7 @@ export const HabitsProvider = ({ children }) => {
     const addAtom = async (atom) => {
         const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) throw new Error('Sign in to save habits.');
+            const user = await requireExpectedAccountUser(supabase.auth, userId, 'save habits');
 
             const payload = {
                 title: atom.title,
@@ -150,8 +148,7 @@ export const HabitsProvider = ({ children }) => {
         const previousLog = logs[today]?.[atomId];
 
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) throw new Error('Sign in to track habits.');
+            const user = await requireExpectedAccountUser(supabase.auth, userId, 'track habits');
 
             setLogs(prev => ({
                 ...prev,
@@ -218,8 +215,7 @@ export const HabitsProvider = ({ children }) => {
     };
 
     const removeAtom = async (atomId) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to remove habits.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'remove habits');
 
         const lockKey = 'atom:' + String(atomId);
         if (habitMutationLocksRef.current.has(lockKey)) {
