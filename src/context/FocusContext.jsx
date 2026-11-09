@@ -28,8 +28,8 @@ const loadActiveRuntime = (userId, accountStorageKey) => {
     if (!saved) {
         const legacy = readStoredJson(ACTIVE_FOCUS_SESSION_KEY);
         if (isFocusSessionOwnedByUser(legacy, userId)) {
-            writeStoredJson(accountStorageKey, legacy);
-            removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+            const migrated = writeStoredJson(accountStorageKey, legacy);
+            if (migrated) removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
             saved = legacy;
         }
     }
@@ -45,8 +45,8 @@ const loadPendingSessionForUser = (userId, accountStorageKey) => {
     if (!pending) {
         const legacy = readPendingFocusSession(PENDING_FOCUS_SESSION_KEY);
         if (isPendingFocusSessionOwnedByUser(legacy, userId)) {
-            writeStoredJson(accountStorageKey, legacy);
-            removeStoredValue(PENDING_FOCUS_SESSION_KEY);
+            const migrated = writeStoredJson(accountStorageKey, legacy);
+            if (migrated) removeStoredValue(PENDING_FOCUS_SESSION_KEY);
             pending = legacy;
         }
     }
