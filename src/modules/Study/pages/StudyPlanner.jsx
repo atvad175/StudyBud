@@ -222,6 +222,9 @@ const StudyPlanner = () => {
                 </div>
 
                 {studyLoading && <p className={styles.notice} role="status">Loading your saved Study data…</p>}
+                {!studyLoading && timeLoading && (
+                    <p className={styles.notice} role="status">Checking your saved Time tasks before offering to save this plan…</p>
+                )}
 
                 {!studyLoading && plan.items.length > 0 && (
                     <div className={styles.planList}>
@@ -303,7 +306,7 @@ const StudyPlanner = () => {
                         <strong>{allSaved ? 'Your plan is in Time Management' : 'Make the plan part of your schedule'}</strong>
                         <p>{allSaved ? 'Each block is saved as a task, so you can track it with the rest of your day.' : `Save ${plan.items.length - savedCount} block${plan.items.length - savedCount === 1 ? '' : 's'} as real Time tasks.`}</p>
                     </div>
-                    <button type="button" onClick={() => void handleSavePlan()} disabled={isSavingPlan || allSaved || studyLoading || plan.items.length === 0}>
+                    <button type="button" onClick={() => void handleSavePlan()} disabled={isSavingPlan || allSaved || studyLoading || timeLoading || plan.items.length === 0}>
                         {isSavingPlan ? 'Saving plan…' : allSaved ? 'Saved' : 'Save plan to Time'} <ArrowRight size={16} />
                     </button>
                 </div>
