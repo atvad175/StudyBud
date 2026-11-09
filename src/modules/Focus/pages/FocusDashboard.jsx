@@ -107,9 +107,10 @@ const FocusDashboard = () => {
                         Loading your saved focus sessions…
                     </p>
                 ) : loadError ? (
-                    <p className={styles.errorMessage} role="alert">
-                        {loadError}
-                    </p>
+                    <div className={styles.errorMessage} role="alert">
+                        <p>{loadError}</p>
+                        <button type="button" onClick={refreshSessions}>Retry loading focus history</button>
+                    </div>
                 ) : (
                     <>
                         <div className={styles.statsGrid}>
