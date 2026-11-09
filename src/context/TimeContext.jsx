@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TimeContext } from './TimeContextCore.js';
 import { supabase } from '../supabaseClient';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
 const DEFAULT_TIME_SETTINGS = { chronotype: 'Bear', peakStart: 10, peakEnd: 14 };
 const VALID_CHRONOTYPES = ['Bear', 'Wolf', 'Lion', 'Dolphin'];
@@ -51,15 +52,14 @@ export const TimeProvider = ({ children, userId = null }) => {
             setLoadError('');
         }
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError) throw authError;
-            if (!user) {
+            if (!userId) {
                 if (isActive()) {
                     setTasks([]);
                     setLoadError('');
                 }
                 return;
             }
+            const user = await requireExpectedAccountUser(supabase.auth, userId, 'load tasks');
 
             const { data, error } = await supabase
                 .from('tasks')
@@ -81,8 +81,7 @@ export const TimeProvider = ({ children, userId = null }) => {
     };
 
     const createTask = async (taskData) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save tasks.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save tasks');
 
         const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const payload = { ...taskData, user_id: user.id, status: taskData.status || 'Planned' };
@@ -107,8 +106,7 @@ export const TimeProvider = ({ children, userId = null }) => {
     };
 
     const updateTask = async (id, updates) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to update tasks.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'update tasks');
 
         const lockKey = String(id);
         if (taskMutationLocksRef.current.has(lockKey)) {
@@ -149,8 +147,7 @@ export const TimeProvider = ({ children, userId = null }) => {
     };
 
     const deleteTask = async (id) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to delete tasks.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'delete tasks');
 
         const lockKey = String(id);
         if (taskMutationLocksRef.current.has(lockKey)) {
