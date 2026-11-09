@@ -1,9 +1,35 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const asDate = value => {
+export const parseLocalDateValue = value => {
     if (!value) return null;
-    const parsed = value instanceof Date ? new Date(value) : new Date(value);
+    if (value instanceof Date) {
+        const copy = new Date(value.getTime());
+        return Number.isFinite(copy.getTime()) ? copy : null;
+    }
+
+    // HTML date inputs return YYYY-MM-DD. Parse these as local calendar dates,
+    // not UTC timestamps, so deadlines remain on the day the student selected.
+    if (typeof value === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        const parsed = new Date(year, month - 1, day);
+        if (
+            parsed.getFullYear() !== year ||
+            parsed.getMonth() !== month - 1 ||
+            parsed.getDate() !== day
+        ) return null;
+        return parsed;
+    }
+
+    const parsed = new Date(value);
     return Number.isFinite(parsed.getTime()) ? parsed : null;
+};
+
+const asDate = parseLocalDateValue;
+
+const getLocalDayNumber = value => {
+    const date = asDate(value);
+    if (!date) return null;
+    return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS);
 };
 
 const parseQuestionPayload = raw => {
@@ -151,7 +177,7 @@ export const buildDailyStudyPlan = ({
     (Array.isArray(reviews) ? reviews : []).forEach(review => {
         const dueDate = asDate(review?.next_review_date);
         if (!dueDate || dueDate.getTime() > current.getTime()) return;
-        const daysOverdue = Math.max(0, Math.floor((startOfToday.getTime() - dueDate.getTime()) / DAY_MS));
+        const daysOverdue = Math.max(0, getLocalDayNumber(startOfToday) - getLocalDayNumber(dueDate));
         candidates.push({
             id: `review:${review.id}`,
             kind: 'review',
@@ -174,7 +200,7 @@ export const buildDailyStudyPlan = ({
                 ? assignment.steps.filter(step => !step?.done).length
                 : 0;
             const daysToDue = deadline
-                ? Math.ceil((deadline.getTime() - startOfToday.getTime()) / DAY_MS)
+                ? getLocalDayNumber(deadline) - getLocalDayNumber(startOfToday)
                 : null;
             const overdue = daysToDue !== null && daysToDue < 0;
             const nearDeadline = daysToDue !== null && daysToDue <= 3;
