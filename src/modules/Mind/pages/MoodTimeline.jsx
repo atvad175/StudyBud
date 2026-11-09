@@ -171,6 +171,8 @@ const MoodTimeline = () => {
 
             {loading ? (
                 <p role="status" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading your private timeline…</p>
+            ) : entries.length === 0 && loadError ? (
+                <p role="status" style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>The timeline is unavailable until the saved entries load.</p>
             ) : entries.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '4rem 2rem', backgroundColor: 'white', borderRadius: '24px', boxShadow: 'var(--shadow-soft)' }}>
                     <p style={{ fontSize: '1.1rem', color: 'var(--color-text-secondary)' }}>Your timeline is empty. Saved reflections and check-ins will appear here.</p>
