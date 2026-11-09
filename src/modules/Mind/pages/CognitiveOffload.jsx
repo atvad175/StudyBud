@@ -109,7 +109,7 @@ const CognitiveOffload = () => {
                         <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading saved thoughts…</p>
                     ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {offloadItems.length === 0 && (
+                        {offloadItems.length === 0 && !loadError && (
                             <div style={{ padding: '3rem', textAlign: 'center', background: '#f8f9fa', borderRadius: '24px', color: '#999' }}>
                                 <Box size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
                                 <p>Your mind is clear. No offloaded thoughts yet.</p>
