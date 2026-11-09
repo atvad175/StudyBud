@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HabitsContext } from './HabitsContextCore.js';
 import { supabase } from '../supabaseClient';
 import { getLocalDateKey } from '../utils/localDateKey';
@@ -10,6 +10,7 @@ export const HabitsProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [refreshKey, setRefreshKey] = useState(0);
+    const habitMutationLocksRef = useRef(new Set());
 
     const refreshHabits = () => setRefreshKey(value => value + 1);
 
@@ -141,6 +142,11 @@ export const HabitsProvider = ({ children }) => {
 
     const updateLog = async (atomId, data) => {
         const today = getLocalDateKey();
+        const lockKey = 'atom:' + String(atomId);
+        if (habitMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This habit is already being saved. Wait for that update to finish, then try again.');
+        }
+        habitMutationLocksRef.current.add(lockKey);
         const previousLog = logs[today]?.[atomId];
 
         try {
@@ -196,6 +202,8 @@ export const HabitsProvider = ({ children }) => {
             });
             console.error('Error updating habit log:', error);
             throw error;
+        } finally {
+            habitMutationLocksRef.current.delete(lockKey);
         }
     };
 
@@ -213,7 +221,15 @@ export const HabitsProvider = ({ children }) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) throw new Error('Sign in to remove habits.');
 
+        const lockKey = 'atom:' + String(atomId);
+        if (habitMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This habit is already being saved. Wait for that update to finish, then try again.');
+        }
         const previous = atoms.find(atom => String(atom.id) === String(atomId));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That habit is not available in this account. Refresh and try again.');
+        }
+        habitMutationLocksRef.current.add(lockKey);
         setAtoms(prev => prev.filter(atom => String(atom.id) !== String(atomId)));
 
         try {
@@ -230,6 +246,8 @@ export const HabitsProvider = ({ children }) => {
             if (previous) setAtoms(prev => [...prev.filter(atom => String(atom.id) !== String(atomId)), previous]);
             console.error('Error deleting atom:', error);
             throw error;
+        } finally {
+            habitMutationLocksRef.current.delete(lockKey);
         }
     };
 
