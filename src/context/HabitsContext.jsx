@@ -1,26 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HabitsContext } from './HabitsContextCore.js';
 import { supabase } from '../supabaseClient';
 import { getLocalDateKey } from '../utils/localDateKey';
+import { buildHabitLogMap, buildHabitLogPayload } from '../modules/Habits/habitLogUtils.js';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
-export const HabitsProvider = ({ children }) => {
+export const HabitsProvider = ({ children, userId = null }) => {
     const [atoms, setAtoms] = useState([]);
     const [logs, setLogs] = useState({});
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const habitMutationLocksRef = useRef(new Set());
+
+    const refreshHabits = () => setRefreshKey(value => value + 1);
 
     // Refresh provider state when onboarding creates its optional starter habit.
     useEffect(() => {
         let active = true;
 
         const handleStarterHabitCreated = async (event) => {
-            const userId = event.detail?.userId;
+            const eventUserId = event.detail?.userId;
             const habit = event.detail?.habit;
-            if (!userId || !habit) return;
+            if (!eventUserId || !habit || eventUserId !== userId) return;
 
             try {
-                const { data: { user }, error } = await supabase.auth.getUser();
-                if (error) throw error;
-                if (!active || !user || user.id !== userId) return;
+                const user = await requireExpectedAccountUser(supabase.auth, userId, 'sync your habits');
+                if (!active || user.id !== eventUserId) return;
 
                 setAtoms(current => {
                     const byId = new Map(current.map(item => [String(item.id), item]));
@@ -37,15 +43,16 @@ export const HabitsProvider = ({ children }) => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
-                if (!user) {
+                setLoadError('');
+                if (!userId) {
                     if (active) {
                         setAtoms([]);
                         setLogs({});
+                        setLoadError('');
                     }
                     return;
                 }
+                const user = await requireExpectedAccountUser(supabase.auth, userId, 'load habits');
 
                 const { data: atomsData, error: atomsError } = await supabase
                     .from('atoms')
@@ -72,20 +79,17 @@ export const HabitsProvider = ({ children }) => {
                     .select('*')
                     .eq('user_id', user.id)
                     .order('date_logged', { ascending: false })
-                    .limit(400);
+                    .limit(1200);
 
                 if (logsError) throw logsError;
                 if (!active) return;
 
-                const logsDict = {};
-                (logsData || []).forEach(log => {
-                    const date = log.date_logged;
-                    if (!logsDict[date]) logsDict[date] = {};
-                    logsDict[date][log.atom_id] = { status: log.status, id: log.id };
-                });
-                setLogs(logsDict);
+                setLogs(buildHabitLogMap(logsData || []));
             } catch (error) {
-                if (active) console.error('Error fetching habits data:', error?.code || 'unknown');
+                if (active) {
+                    console.error('Error fetching habits data:', error?.code || 'unknown');
+                    setLoadError('Some saved habits or daily logs could not be loaded. Your existing records have not been deleted.');
+                }
             } finally {
                 if (active) setLoading(false);
             }
@@ -96,13 +100,12 @@ export const HabitsProvider = ({ children }) => {
             active = false;
             window.removeEventListener('studybud-starter-habit-created', handleStarterHabitCreated);
         };
-    }, []);
+    }, [refreshKey, userId]);
 
     const addAtom = async (atom) => {
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) throw new Error('Sign in to save habits.');
+            const user = await requireExpectedAccountUser(supabase.auth, userId, 'save habits');
 
             const payload = {
                 title: atom.title,
@@ -137,11 +140,15 @@ export const HabitsProvider = ({ children }) => {
 
     const updateLog = async (atomId, data) => {
         const today = getLocalDateKey();
+        const lockKey = 'atom:' + String(atomId);
+        if (habitMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This habit is already being saved. Wait for that update to finish, then try again.');
+        }
+        habitMutationLocksRef.current.add(lockKey);
         const previousLog = logs[today]?.[atomId];
 
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) throw new Error('Sign in to track habits.');
+            const user = await requireExpectedAccountUser(supabase.auth, userId, 'track habits');
 
             setLogs(prev => ({
                 ...prev,
@@ -151,19 +158,37 @@ export const HabitsProvider = ({ children }) => {
                 }
             }));
 
-            const { error } = await supabase
+            const payload = buildHabitLogPayload({
+                atomId,
+                date: today,
+                userId: user.id,
+                previousLog,
+                changes: data,
+            });
+            const { data: savedLog, error } = await supabase
                 .from('logs')
-                .upsert({
-                    atom_id: atomId,
-                    date_logged: today,
-                    status: data.status || (data.completed ? 'completed' : 'pending'),
-                    mood: data.mood ?? previousLog?.mood ?? null,
-                    duration: data.duration ?? previousLog?.duration ?? null,
-                    time: data.time ?? previousLog?.time ?? null,
-                    user_id: user.id,
-                }, { onConflict: 'atom_id, date_logged' });
+                .upsert(payload, { onConflict: 'atom_id, date_logged' })
+                .select('id, status, mood, duration, time')
+                .maybeSingle();
 
             if (error) throw error;
+            if (!savedLog) throw new Error('The habit update was not confirmed. Refresh and try again.');
+            setLogs(prev => ({
+                ...prev,
+                [today]: {
+                    ...(prev[today] || {}),
+                    [atomId]: {
+                        ...(prev[today]?.[atomId] || {}),
+                        ...data,
+                        status: savedLog.status,
+                        mood: savedLog.mood,
+                        duration: savedLog.duration,
+                        time: savedLog.time,
+                        completed: savedLog.status === 'completed',
+                        id: savedLog.id,
+                    }
+                }
+            }));
             return true;
         } catch (error) {
             setLogs(prev => {
@@ -174,6 +199,8 @@ export const HabitsProvider = ({ children }) => {
             });
             console.error('Error updating habit log:', error);
             throw error;
+        } finally {
+            habitMutationLocksRef.current.delete(lockKey);
         }
     };
 
@@ -188,28 +215,40 @@ export const HabitsProvider = ({ children }) => {
     };
 
     const removeAtom = async (atomId) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to remove habits.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'remove habits');
 
+        const lockKey = 'atom:' + String(atomId);
+        if (habitMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This habit is already being saved. Wait for that update to finish, then try again.');
+        }
         const previous = atoms.find(atom => String(atom.id) === String(atomId));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That habit is not available in this account. Refresh and try again.');
+        }
+        habitMutationLocksRef.current.add(lockKey);
         setAtoms(prev => prev.filter(atom => String(atom.id) !== String(atomId)));
 
         try {
-            const { error } = await supabase
+            const { data: deletedAtom, error } = await supabase
                 .from('atoms')
                 .delete()
                 .eq('id', atomId)
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .select('id')
+                .maybeSingle();
             if (error) throw error;
+            if (!deletedAtom) throw new Error('The habit was not deleted. Refresh and try again.');
         } catch (error) {
             if (previous) setAtoms(prev => [...prev.filter(atom => String(atom.id) !== String(atomId)), previous]);
             console.error('Error deleting atom:', error);
             throw error;
+        } finally {
+            habitMutationLocksRef.current.delete(lockKey);
         }
     };
 
     return (
-        <HabitsContext.Provider value={{ atoms, logs, addAtom, removeAtom, getTodayLog, updateLog, getTotalWins, loading }}>
+        <HabitsContext.Provider value={{ atoms, logs, addAtom, removeAtom, getTodayLog, updateLog, getTotalWins, loading, loadError, refreshHabits }}>
             {children}
         </HabitsContext.Provider>
     );
