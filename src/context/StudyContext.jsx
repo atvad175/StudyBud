@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { StudyContext } from './StudyContextCore.js';
+import { getNextReviewIntervalDays, getStudyReviewDedupeKey } from '../modules/Study/studyReviewUtils.js';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
-export const StudyProvider = ({ children }) => {
+export const StudyProvider = ({ children, userId = null }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshStudy = () => setRefreshKey(value => value + 1);
+    const reviewSchedulingLocksRef = useRef(new Map());
+    const studyMutationLocksRef = useRef(new Set());
 
     // State
     const [techniques, setTechniques] = useState([]);
@@ -269,10 +275,9 @@ export const StudyProvider = ({ children }) => {
     // --- Actions ---
 
     const addAssignment = async (assignment) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save assignments.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save assignments');
 
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         const payload = { ...assignment, user_id: user.id, status: assignment.status || 'not_started' };
         const optimisticAssignment = { ...payload, id: tempId, created_at: new Date() };
         setAssignments(prev => [optimisticAssignment, ...prev]);
@@ -293,36 +298,81 @@ export const StudyProvider = ({ children }) => {
     };
 
     const updateAssignment = async (id, updates) => {
-        const previous = assignments.find(item => item.id === id);
-        const safeUpdates = { ...updates };
-        delete safeUpdates.id;
-        delete safeUpdates.user_id;
-        setAssignments(prev => prev.map(item => item.id === id ? { ...item, ...safeUpdates } : item));
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'update assignments');
 
+        const lockKey = 'assignment:' + String(id);
+        if (studyMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This assignment is already being saved. Wait for that update to finish, then try again.');
+        }
+        const previous = assignments.find(item => String(item.id) === String(id));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That assignment is not available in this account. Refresh and try again.');
+        }
+
+        studyMutationLocksRef.current.add(lockKey);
         try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-            if (authError || !user) throw new Error('Sign in to update assignments.');
+            const safeUpdates = { ...updates };
+            delete safeUpdates.id;
+            delete safeUpdates.user_id;
+            setAssignments(prev => prev.map(item => String(item.id) === String(id) ? { ...item, ...safeUpdates } : item));
+
+            try {
+                const { data, error } = await supabase
+                    .from('study_assignments')
+                    .update(safeUpdates)
+                    .eq('id', id)
+                    .eq('user_id', user.id)
+                    .select('id')
+                    .maybeSingle();
+                if (error) throw error;
+                if (!data) throw new Error('The assignment was not updated. Refresh and try again.');
+            } catch (error) {
+                setAssignments(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
+                console.error('Error updating assignment:', error?.code || 'unknown');
+                throw error;
+            }
+        } finally {
+            studyMutationLocksRef.current.delete(lockKey);
+        }
+    };
+
+    const deleteAssignment = async (id) => {
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'delete assignments');
+
+        const lockKey = 'assignment:' + String(id);
+        if (studyMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This assignment is already being saved. Wait for that update to finish, then try again.');
+        }
+        const previous = assignments.find(item => String(item.id) === String(id));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That assignment is not available in this account. Refresh and try again.');
+        }
+
+        studyMutationLocksRef.current.add(lockKey);
+        setAssignments(prev => prev.filter(item => String(item.id) !== String(id)));
+        try {
             const { data, error } = await supabase
                 .from('study_assignments')
-                .update(safeUpdates)
+                .delete()
                 .eq('id', id)
                 .eq('user_id', user.id)
                 .select('id')
                 .maybeSingle();
             if (error) throw error;
-            if (!data) throw new Error('The assignment was not updated. Refresh and try again.');
+            if (!data) throw new Error('The assignment was not deleted. Refresh and try again.');
         } catch (error) {
-            if (previous) setAssignments(prev => prev.map(item => item.id === id ? previous : item));
-            console.error('Error updating assignment:', error);
+            setAssignments(prev => prev.some(item => String(item.id) === String(id)) ? prev : [previous, ...prev]);
+            console.error('Error deleting assignment:', error?.code || 'unknown');
             throw error;
+        } finally {
+            studyMutationLocksRef.current.delete(lockKey);
         }
     };
 
     const logPractice = async (log) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save practice logs.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save practice logs');
 
-        const tempId = Date.now();
+        const tempId = 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         setPracticeLogs(prev => [{ ...log, user_id: user.id, id: tempId }, ...prev]);
         try {
             const { data, error } = await supabase
@@ -340,34 +390,162 @@ export const StudyProvider = ({ children }) => {
     };
 
     const scheduleReview = async (review) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to schedule a review.');
+        const content = typeof review?.content === 'string' ? review.content.trim() : '';
+        const subject = typeof review?.subject === 'string' ? review.subject.trim() : '';
+        const nextReviewDate = review?.next_review_date;
+        const parsedNextReviewDate = nextReviewDate ? new Date(nextReviewDate) : null;
+        if (!content || content.length > 3000) {
+            throw new Error('Add a topic or concept of 3,000 characters or fewer before scheduling its review.');
+        }
+        if (subject.length > 120) throw new Error('Subject names must be 120 characters or fewer.');
+        if (!parsedNextReviewDate || !Number.isFinite(parsedNextReviewDate.getTime())) {
+            throw new Error('Choose a valid date for the next review.');
+        }
 
-        const tempId = Date.now();
-        setReviews(prev => [{ ...review, user_id: user.id, id: tempId }, ...prev]);
-        try {
-            const { data, error } = await supabase
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'schedule a review');
+
+        const key = getStudyReviewDedupeKey(subject, content);
+        const existingRequest = reviewSchedulingLocksRef.current.get(key);
+        if (existingRequest) return existingRequest;
+
+        const payload = {
+            content,
+            subject,
+            next_review_date: parsedNextReviewDate.toISOString(),
+            interval_days: Math.max(1, Math.min(365, Number(review?.interval_days) || 1)),
+            review_count: Math.max(0, Math.min(100000, Number(review?.review_count) || 0)),
+            user_id: user.id,
+        };
+
+        const operation = (async () => {
+            // Idempotency matters when a multi-question exam partially schedules
+            // follow-up reviews and the student retries the save.
+            const { data: matchingReviews, error: lookupError } = await supabase
                 .from('study_reviews')
-                .insert([{ ...review, user_id: user.id }])
-                .select()
-                .single();
-            if (error) throw error;
-            setReviews(prev => prev.map(item => item.id === tempId ? data : item));
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('subject', subject)
+                .eq('content', content)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (lookupError) throw lookupError;
+
+            const localMatch = reviews.find(item =>
+                item.user_id === user.id &&
+                getStudyReviewDedupeKey(item.subject, item.content) === key
+            );
+            const existing = localMatch || matchingReviews?.[0] || null;
+            let savedReview = existing;
+            if (existing) {
+                const existingDate = new Date(existing.next_review_date);
+                const shouldBringForward = !Number.isFinite(existingDate.getTime())
+                    || parsedNextReviewDate.getTime() < existingDate.getTime();
+                if (shouldBringForward) {
+                    const { data, error } = await supabase
+                        .from('study_reviews')
+                        .update({
+                            next_review_date: payload.next_review_date,
+                            interval_days: payload.interval_days,
+                        })
+                        .eq('id', existing.id)
+                        .eq('user_id', user.id)
+                        .select()
+                        .maybeSingle();
+                    if (error) throw error;
+                    if (!data) throw new Error('The existing review could not be rescheduled. Refresh and try again.');
+                    savedReview = data;
+                }
+            } else {
+                const { data, error } = await supabase
+                    .from('study_reviews')
+                    .insert([payload])
+                    .select()
+                    .single();
+                if (error) throw error;
+                if (!data) throw new Error('The review was not confirmed as saved.');
+                savedReview = data;
+            }
+
+            setReviews(previous => [
+                savedReview,
+                ...previous.filter(item => String(item.id) !== String(savedReview.id)),
+            ]);
+            return savedReview;
+        })();
+
+        reviewSchedulingLocksRef.current.set(key, operation);
+        try {
+            return await operation;
         } catch (error) {
-            setReviews(prev => prev.filter(item => item.id !== tempId));
-            console.error('Error scheduling review:', error);
+            console.error('Error scheduling review:', error?.code || 'unknown');
             throw error;
+        } finally {
+            if (reviewSchedulingLocksRef.current.get(key) === operation) {
+                reviewSchedulingLocksRef.current.delete(key);
+            }
+        }
+    };
+
+    const completeReview = async (id, rating = 'good') => {
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'update your review schedule');
+
+        const lockKey = 'review:' + String(id);
+        if (studyMutationLocksRef.current.has(lockKey)) {
+            throw new Error('This review is already being saved. Wait for that update to finish, then try again.');
+        }
+        const previous = reviews.find(item => String(item.id) === String(id));
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('That review is not available in this account. Refresh and try again.');
+        }
+
+        studyMutationLocksRef.current.add(lockKey);
+        try {
+            const intervalDays = getNextReviewIntervalDays(rating, previous.interval_days || 1);
+            const updated = {
+                ...previous,
+                interval_days: intervalDays,
+                review_count: Math.max(0, Number(previous.review_count) || 0) + 1,
+                next_review_date: new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000).toISOString(),
+            };
+            setReviews(prev => prev.map(item => String(item.id) === String(id) ? updated : item));
+
+            try {
+                const { data, error } = await supabase
+                    .from('study_reviews')
+                    .update({
+                        interval_days: updated.interval_days,
+                        review_count: updated.review_count,
+                        next_review_date: updated.next_review_date,
+                    })
+                    .eq('id', id)
+                    .eq('user_id', user.id)
+                    .select()
+                    .maybeSingle();
+                if (error) throw error;
+                if (!data) throw new Error('Your review was not rescheduled. Refresh and try again.');
+                setReviews(prev => prev.map(item => String(item.id) === String(id) ? data : item));
+                return data;
+            } catch (error) {
+                setReviews(prev => prev.map(item => String(item.id) === String(id) ? previous : item));
+                console.error('Error updating review schedule:', error?.code || 'unknown');
+                throw error;
+            }
+        } finally {
+            studyMutationLocksRef.current.delete(lockKey);
         }
     };
 
     // Load Data
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
             setLoading(true);
             setLoadError('');
             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
+                const user = userId
+                    ? await requireExpectedAccountUser(supabase.auth, userId, 'load Study data')
+                    : null;
+                if (!active) return;
 
                 const emptyPrivateResult = Promise.resolve({ data: [], error: null });
                 const results = await Promise.all([
@@ -384,6 +562,7 @@ export const StudyProvider = ({ children }) => {
                         : emptyPrivateResult,
                 ]);
 
+                if (!active) return;
                 const privateQueryFailed = results.slice(2).some(result => Boolean(result.error));
                 const publicQueryFailed = results.slice(0, 2).some(result => Boolean(result.error));
 
@@ -414,13 +593,14 @@ export const StudyProvider = ({ children }) => {
                 }
             } catch (error) {
                 console.error('Error fetching Study data:', error?.code || 'unknown');
-                setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
+                if (active) setLoadError('Study data could not be loaded. Your records have not been deleted; refresh to try again.');
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-        fetchData();
-    }, []);
+        void fetchData();
+        return () => { active = false; };
+    }, [refreshKey, userId]);
 
     return (
         <StudyContext.Provider value={{
@@ -431,10 +611,13 @@ export const StudyProvider = ({ children }) => {
             reviews,
             boards,
             loadError,
+            refreshStudy,
             addAssignment,
             updateAssignment,
+            deleteAssignment,
             logPractice,
             scheduleReview,
+            completeReview,
             loading
         }}>
             {children}
