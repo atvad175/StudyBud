@@ -2,12 +2,8 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
     ArrowRight,
-    Brain,
-    BookOpen,
     Eye,
     EyeOff,
-    Leaf,
-    Target,
 } from 'lucide-react';
 import { supabase, diagnoseAuthService } from '../../../supabaseClient';
 import { useToast } from '../../../context/useToast';
@@ -248,9 +244,7 @@ const LoginPage = () => {
     const brandPanel = (
         <aside className={styles.brandPanel}>
             <div className={styles.brandLockup}>
-                <span className={styles.logoMark} aria-hidden="true">
-                    <Brain size={24} strokeWidth={1.8} />
-                </span>
+                <span className={styles.logoMark} aria-hidden="true"><span>sb</span></span>
                 <span className={styles.logoText}>
                     <span className={styles.logoName}><span>Study</span><strong>Bud</strong></span>
                     <span className={styles.logoTagline}>Learn at your own pace</span>
@@ -263,22 +257,31 @@ const LoginPage = () => {
                 <p>Bring planning, focused work and active learning into one considered workspace.</p>
             </div>
 
-            <div className={styles.benefitList}>
-                <div className={styles.benefitItem}>
-                    <span className={styles.benefitIcon}><BookOpen size={18} /></span>
-                    <span><strong>Study with a plan</strong><small>Know what to focus on next.</small></span>
+            <div className={styles.brandVisual} aria-label="The StudyBud learning process">
+                <div className={styles.visualHeader}>
+                    <span>THE STUDYBUD METHOD</span>
+                    <span>01 — 03</span>
                 </div>
-                <div className={styles.benefitItem}>
-                    <span className={styles.benefitIcon}><Target size={18} /></span>
-                    <span><strong>Practise actively</strong><small>Build recall, not just reading time.</small></span>
-                </div>
-                <div className={styles.benefitItem}>
-                    <span className={styles.benefitIcon}><Leaf size={18} /></span>
-                    <span><strong>Build steady habits</strong><small>Progress without needing perfection.</small></span>
+                <div className={styles.visualFlow}>
+                    <div className={styles.visualStep}>
+                        <span className={styles.visualNumber}>01</span>
+                        <strong>Plan</strong>
+                        <small>Know what matters next.</small>
+                    </div>
+                    <div className={styles.visualStep}>
+                        <span className={styles.visualNumber}>02</span>
+                        <strong>Focus</strong>
+                        <small>Give the work your attention.</small>
+                    </div>
+                    <div className={styles.visualStep}>
+                        <span className={styles.visualNumber}>03</span>
+                        <strong>Learn</strong>
+                        <small>Practise. Review. Improve.</small>
+                    </div>
                 </div>
             </div>
 
-            <p className={styles.brandFootnote}>A workspace designed for focused progress.</p>
+            <p className={styles.brandFootnote}>One workspace. A clearer way forward.</p>
             <div className={styles.brandOrbOne} aria-hidden="true" />
             <div className={styles.brandOrbTwo} aria-hidden="true" />
         </aside>
@@ -433,7 +436,7 @@ const LoginPage = () => {
                     </p>
                 </div>
             </section>
-            <p className={styles.pageFootnote}>A steady next step is still progress.</p>
+            <p className={styles.pageFootnote}>STUDYBUD · PLAN WITH INTENTION</p>
         </main>
     );
 };
