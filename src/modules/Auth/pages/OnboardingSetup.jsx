@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, BookOpen, Activity, Wind, CheckSquare, Moon, Zap } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
@@ -58,6 +58,7 @@ const OnboardingSetup = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
 
+    const headingRef = useRef(null);
     const [step, setStep] = useState(1);
     const [stepDirection, setStepDirection] = useState('forward');
     const [name, setName] = useState(localStorage.getItem('studybud_username') || '');
@@ -75,6 +76,12 @@ const OnboardingSetup = () => {
 
     const isSchoolStudent = role === 'School student';
     const topicList = role === 'Working professional' ? PROFESSIONS : SUBJECTS;
+
+    useEffect(() => {
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+        headingRef.current?.focus({ preventScroll: true });
+    }, [step]);
 
     const toggleValue = (value, setter) => {
         setter(current => current.includes(value)
@@ -236,7 +243,7 @@ const OnboardingSetup = () => {
                     {step === 1 && (
                         <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 1 OF 4 · YOUR PROFILE</p>
-                            <h1 className="step-title">Let's make StudyBud yours.</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">Let's make StudyBud yours.</h1>
                             <p className="step-subtitle">Just the basics. You can change them later.</p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '2rem' }}>
@@ -281,7 +288,7 @@ const OnboardingSetup = () => {
                     {step === 2 && (
                         <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 2 OF 4 · YOUR LEARNING WORLD</p>
-                            <h1 className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
                             <p className="step-subtitle">This helps StudyBud tailor techniques and practice to your subjects.</p>
 
                             {isSchoolStudent && (
@@ -330,7 +337,7 @@ const OnboardingSetup = () => {
                     {step === 3 && (
                         <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 3 OF 4 · OPTIONAL PERSONALIZATION</p>
-                            <h1 className="step-title">Where should Bud help first?</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">Where should Bud help first?</h1>
                             <p className="step-subtitle">Pick any challenges that sound familiar. This step is optional.</p>
 
                             <div style={{ marginTop: '1.5rem' }}>
@@ -392,7 +399,7 @@ const OnboardingSetup = () => {
                     {step === 4 && (
                         <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 4 OF 4 · YOUR FIRST GOAL</p>
-                            <h1 className="step-title">Start small. Build momentum.</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">Start small. Build momentum.</h1>
                             <p className="step-subtitle">Set one goal if useful. Everything on this page is optional.</p>
 
                             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1.5rem' }}>
