@@ -4,9 +4,12 @@ import {
     ArrowRight,
     Brain,
     BookOpen,
+    CheckCircle2,
     Eye,
     EyeOff,
     Leaf,
+    Mail,
+    RefreshCw,
     Target,
 } from 'lucide-react';
 import { supabase, diagnoseAuthService } from '../../../supabaseClient';
@@ -52,6 +55,9 @@ const LoginPage = () => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState('');
+    const [confirmationRequired, setConfirmationRequired] = useState(false);
+    const [confirmationStatus, setConfirmationStatus] = useState('');
+    const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
 
     const switchMode = () => {
         if (isLoading) return;
@@ -60,6 +66,40 @@ const LoginPage = () => {
         setPassword('');
         setIsPasswordVisible(false);
         setFormError('');
+        setConfirmationRequired(false);
+        setConfirmationStatus('');
+    };
+
+    const handleResendConfirmation = async () => {
+        const normalizedEmail = email.trim().toLowerCase();
+        if (!/^\\S+@\\S+\\.\\S+$/.test(normalizedEmail)) {
+            setFormError('Enter your email address first, then request a new confirmation link.');
+            return;
+        }
+
+        setIsResendingConfirmation(true);
+        setConfirmationStatus('');
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: normalizedEmail,
+            });
+            if (error) throw error;
+            setConfirmationStatus('A fresh confirmation email has been requested. Check your inbox and spam folder, then return here to sign in.');
+        } catch (error) {
+            console.warn('Confirmation email resend failed:', {
+                code: error?.code || 'unknown',
+                status: error?.status || null,
+            });
+            const message = String(error?.message || '').toLowerCase();
+            setConfirmationStatus(
+                message.includes('rate limit')
+                    ? 'A confirmation email was requested recently. Wait a little before requesting another one.'
+                    : 'We could not send the confirmation email. Check the Supabase email settings and try again later.'
+            );
+        } finally {
+            setIsResendingConfirmation(false);
+        }
     };
 
     const handleSubmit = async (event) => {
@@ -86,6 +126,8 @@ const LoginPage = () => {
 
         setIsLoading(true);
         setFormError('');
+        setConfirmationRequired(false);
+        setConfirmationStatus('');
         let navigatingAway = false;
 
         try {
@@ -229,6 +271,13 @@ const LoginPage = () => {
                     setFormError('StudyBud reached its account service, but sign-in did not finish in time. The Supabase Auth logs need to be checked to find the cause.');
                 }
             } else {
+                const authMessage = String(error?.message || '').toLowerCase();
+                if (mode === 'login' && (
+                    authMessage.includes('email not confirmed') ||
+                    error?.code === 'email_not_confirmed'
+                )) {
+                    setConfirmationRequired(true);
+                }
                 setFormError(friendlyAuthError(error));
             }
         } finally {
@@ -284,8 +333,8 @@ const LoginPage = () => {
 
                 <div className={styles.formPanel}>
                     <div className={styles.formTopline}>
-                        <span className={styles.formEyebrow}>{mode === 'login' ? 'YOUR SPACE IS READY' : 'LET’S GET YOU STARTED'}</span>
-                        <span className={styles.secureLabel}><span /> Secure account</span>
+                        <span className={styles.formEyebrow}>{mode === 'login' ? 'YOUR LEARNING WORKSPACE' : 'SET UP YOUR WORKSPACE'}</span>
+                        <span className={styles.secureLabel}><span /> Protected sign-in</span>
                     </div>
 
                     <header className={styles.headingBlock}>
@@ -294,8 +343,8 @@ const LoginPage = () => {
                         </h1>
                         <p className={styles.subheading}>
                             {mode === 'login'
-                                ? 'Pick up where you left off.'
-                                : 'A few details, then we’ll set up your study space.'}
+                                ? 'Sign in to get back to your plan, practice and progress.'
+                                : 'Create your account and build a study system that works for you.'}
                         </p>
                     </header>
 
@@ -332,6 +381,8 @@ const LoginPage = () => {
                                 onChange={event => {
                                     setEmail(event.target.value);
                                     if (formError) setFormError('');
+                                    setConfirmationRequired(false);
+                                    setConfirmationStatus('');
                                 }}
                                 className={styles.input}
                                 autoComplete="email"
@@ -345,7 +396,9 @@ const LoginPage = () => {
                         <div className={styles.inputGroup}>
                             <div className={styles.labelRow}>
                                 <label className={styles.label} htmlFor="studybud-password">Password</label>
-                                <span className={styles.passwordHint}>{mode === 'signup' ? '8+ characters' : 'Your account password'}</span>
+                                {mode === 'signup'
+                                    ? <span className={styles.passwordHint}>At least 8 characters</span>
+                                    : <span className={styles.passwordHint}>Your account password</span>}
                             </div>
                             <div className={styles.passwordField}>
                                 <input
@@ -380,6 +433,36 @@ const LoginPage = () => {
                             <div className={styles.formError} role="alert" aria-live="polite">
                                 <span className={styles.errorMark}>!</span>
                                 <span>{formError}</span>
+                            </div>
+                        )}
+
+                        {confirmationRequired && mode === 'login' && (
+                            <div className={styles.resendPanel}>
+                                <div className={styles.resendCopy}>
+                                    <span className={styles.resendIcon}><Mail size={17} /></span>
+                                    <div>
+                                        <strong>Still waiting on confirmation?</strong>
+                                        <p>Request a fresh link for {email.trim() || 'your email address'}.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    className={styles.resendButton}
+                                    onClick={handleResendConfirmation}
+                                    disabled={isResendingConfirmation || isLoading}
+                                >
+                                    {isResendingConfirmation
+                                        ? <><RefreshCw size={15} className={styles.spinningIcon} /> Sending…</>
+                                        : <><Mail size={15} /> Resend confirmation</>}
+                                </button>
+                                {confirmationStatus && (
+                                    <p className={styles.confirmationStatus} role="status" aria-live="polite">
+                                        {confirmationStatus.startsWith('A fresh')
+                                            ? <CheckCircle2 size={15} />
+                                            : <span className={styles.statusDot} />}
+                                        {confirmationStatus}
+                                    </p>
+                                )}
                             </div>
                         )}
 
