@@ -234,7 +234,7 @@ const OnboardingSetup = () => {
             <main className={styles.main}>
                 <div className={styles.inner}>
                     {step === 1 && (
-                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 1 OF 4 · YOUR PROFILE</p>
                             <h1 className="step-title">Let's make StudyBud yours.</h1>
                             <p className="step-subtitle">Just the basics. You can change them later.</p>
@@ -249,7 +249,6 @@ const OnboardingSetup = () => {
                                         placeholder="Enter your name"
                                         className="hitech-input"
                                         autoComplete="name"
-                                        autoFocus
                                         required
                                     />
                                 </label>
@@ -280,7 +279,7 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 2 && (
-                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 2 OF 4 · YOUR LEARNING WORLD</p>
                             <h1 className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
                             <p className="step-subtitle">This helps StudyBud tailor techniques and practice to your subjects.</p>
@@ -329,7 +328,7 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 3 && (
-                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 3 OF 4 · OPTIONAL PERSONALIZATION</p>
                             <h1 className="step-title">Where should Bud help first?</h1>
                             <p className="step-subtitle">Pick any challenges that sound familiar. This step is optional.</p>
@@ -391,7 +390,7 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 4 && (
-                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 4 OF 4 · YOUR FIRST GOAL</p>
                             <h1 className="step-title">Start small. Build momentum.</h1>
                             <p className="step-subtitle">Set one goal if useful. Everything on this page is optional.</p>
