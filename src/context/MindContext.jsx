@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MindContext } from './MindContextCore.js';
 import { supabase } from '../supabaseClient';
+import { requireExpectedAccountUser } from '../utils/accountSession.js';
 
-export const MindProvider = ({ children }) => {
+const createOptimisticId = () => 'optimistic-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+export const MindProvider = ({ children, userId = null }) => {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
 
@@ -10,14 +13,15 @@ export const MindProvider = ({ children }) => {
     const [logs, setLogs] = useState([]); // Chat history, sessions
     const [offloadItems, setOffloadItems] = useState([]);
     const [wins, setWins] = useState([]);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshMind = () => setRefreshKey(value => value + 1);
 
     // --- Actions ---
 
     const addLog = async (logData) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save this reflection.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save this reflection');
 
-        const tempId = Date.now();
+        const tempId = createOptimisticId();
         const payload = { ...logData, user_id: user.id };
         setLogs(prev => [{ ...payload, id: tempId, created_at: new Date() }, ...prev]);
 
@@ -37,10 +41,9 @@ export const MindProvider = ({ children }) => {
     };
 
     const addOffloadItem = async (item) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save this item.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save this item');
 
-        const tempId = Date.now();
+        const tempId = createOptimisticId();
         const payload = { ...item, user_id: user.id };
         setOffloadItems(prev => [{ ...payload, id: tempId, created_at: new Date(), is_archived: false }, ...prev]);
 
@@ -60,11 +63,12 @@ export const MindProvider = ({ children }) => {
     };
 
     const deleteOffloadItem = async (itemId) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to delete this item.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'delete this item');
 
         const previous = offloadItems.find(item => String(item.id) === String(itemId));
-        if (!previous) throw new Error('This item is no longer available. Refresh and try again.');
+        if (!previous || (previous.user_id && previous.user_id !== user.id)) {
+            throw new Error('This item is not available in the current account. Refresh and try again.');
+        }
         setOffloadItems(current => current.filter(item => String(item.id) !== String(itemId)));
 
         try {
@@ -86,10 +90,9 @@ export const MindProvider = ({ children }) => {
     };
 
     const addWin = async (win) => {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) throw new Error('Sign in to save this win.');
+        const user = await requireExpectedAccountUser(supabase.auth, userId, 'save this win');
 
-        const tempId = Date.now();
+        const tempId = createOptimisticId();
         // The database uses created_at, not a separate client-supplied date column.
         const payload = {
             content: win.content,
@@ -115,45 +118,61 @@ export const MindProvider = ({ children }) => {
         }
     };
 
-    // Load Data
+    // Load each Mind collection independently. A single missing table or
+    // transient failure must not hide data from the other working collections.
     useEffect(() => {
+        let active = true;
         const fetchData = async () => {
             setLoading(true);
             setLoadError('');
             try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
-                if (!user) {
+                if (!userId) {
                     setLogs([]);
                     setOffloadItems([]);
                     setWins([]);
                     return;
                 }
+                const user = await requireExpectedAccountUser(supabase.auth, userId, 'load Mind data');
+                if (!active) return;
 
                 const results = await Promise.all([
-                    supabase.from('mind_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+                    supabase.from('mind_logs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
                     supabase.from('mind_offload_items').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
-                    supabase.from('mind_wins').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100)
+                    supabase.from('mind_wins').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100),
                 ]);
+                if (!active) return;
 
-                const failed = results.find(result => result.error);
-                if (failed?.error) throw failed.error;
-                setLogs(results[0].data || []);
-                setOffloadItems(results[1].data || []);
-                setWins(results[2].data || []);
+                const labels = ['reflections', 'brain-dump entries', 'wins'];
+                const failedCollections = [];
+                results.forEach((result, index) => {
+                    if (result.error) {
+                        failedCollections.push(labels[index]);
+                        return;
+                    }
+                    const rows = result.data || [];
+                    if (index === 0) setLogs(rows);
+                    if (index === 1) setOffloadItems(rows);
+                    if (index === 2) setWins(rows.map(item => ({ ...item, date: item.created_at })));
+                });
+
+                if (failedCollections.length) {
+                    setLoadError(
+                        'Some Mind data could not be loaded (' + failedCollections.join(', ') +
+                        '). Other available entries remain visible. Retry to load the missing sections.'
+                    );
+                }
             } catch (error) {
                 console.error('Error fetching Mind data:', error?.code || 'unknown');
-                setLoadError('Saved Mind data could not be loaded. Your entries have not been deleted; refresh to try again.');
-                setLogs([]);
-                setOffloadItems([]);
-                setWins([]);
+                if (active) {
+                    setLoadError('Saved Mind data could not be loaded. Your entries have not been deleted; retry when your connection is stable.');
+                }
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
-        fetchData();
-    }, []);
-
+        void fetchData();
+        return () => { active = false; };
+    }, [refreshKey, userId]);
 
     return (
         <MindContext.Provider value={{
@@ -165,7 +184,8 @@ export const MindProvider = ({ children }) => {
             deleteOffloadItem,
             addWin,
             loading,
-            loadError
+            loadError,
+            refreshMind
         }}>
             {children}
         </MindContext.Provider>

@@ -26,23 +26,23 @@ alter table public.user_onboarding enable row level security;
 drop policy if exists "Users can read own onboarding" on public.user_onboarding;
 create policy "Users can read own onboarding"
   on public.user_onboarding for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can insert own onboarding" on public.user_onboarding;
 create policy "Users can insert own onboarding"
   on public.user_onboarding for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can update own onboarding" on public.user_onboarding;
 create policy "Users can update own onboarding"
   on public.user_onboarding for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can delete own onboarding" on public.user_onboarding;
 create policy "Users can delete own onboarding"
   on public.user_onboarding for delete
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 
 create table if not exists public.chat_history (
@@ -57,20 +57,20 @@ alter table public.chat_history enable row level security;
 drop policy if exists "Users can read own chat history" on public.chat_history;
 create policy "Users can read own chat history"
   on public.chat_history for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can insert own chat history" on public.chat_history;
 create policy "Users can insert own chat history"
   on public.chat_history for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can update own chat history" on public.chat_history;
 create policy "Users can update own chat history"
   on public.chat_history for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can delete own chat history" on public.chat_history;
 create policy "Users can delete own chat history"
   on public.chat_history for delete
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);

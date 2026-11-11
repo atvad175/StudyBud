@@ -17,20 +17,6 @@ create table if not exists public.focus_sessions (
   duration_seconds integer,
   mode text
 );
-alter table public.focus_sessions enable row level security;
-drop policy if exists focus_sessions_select_owner on public.focus_sessions;
-create policy focus_sessions_select_owner on public.focus_sessions
-  for select using ((select auth.uid()) = user_id);
-drop policy if exists focus_sessions_insert_owner on public.focus_sessions;
-create policy focus_sessions_insert_owner on public.focus_sessions
-  for insert with check ((select auth.uid()) = user_id);
-drop policy if exists focus_sessions_update_owner on public.focus_sessions;
-create policy focus_sessions_update_owner on public.focus_sessions
-  for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
-drop policy if exists focus_sessions_delete_owner on public.focus_sessions;
-create policy focus_sessions_delete_owner on public.focus_sessions
-  for delete using ((select auth.uid()) = user_id);
-
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   first_name text,
@@ -39,17 +25,41 @@ create table if not exists public.profiles (
   age integer,
   created_at timestamptz not null default now()
 );
+
+alter table public.focus_sessions enable row level security;
 alter table public.profiles enable row level security;
-drop policy if exists profiles_select_owner on public.profiles;
+
+-- PostgreSQL combines permissive policies with OR. Remove every old policy
+-- before adding owner-only rules so no broad legacy policy survives.
+do $$
+declare
+  p record;
+begin
+  for p in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = any (array['focus_sessions', 'profiles'])
+  loop
+    execute format('drop policy if exists %I on %I.%I', p.policyname, p.schemaname, p.tablename);
+  end loop;
+end $$;
+
+create policy focus_sessions_select_owner on public.focus_sessions
+  for select using ((select auth.uid()) = user_id);
+create policy focus_sessions_insert_owner on public.focus_sessions
+  for insert with check ((select auth.uid()) = user_id);
+create policy focus_sessions_update_owner on public.focus_sessions
+  for update using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy focus_sessions_delete_owner on public.focus_sessions
+  for delete using ((select auth.uid()) = user_id);
+
 create policy profiles_select_owner on public.profiles
   for select using ((select auth.uid()) = id);
-drop policy if exists profiles_insert_owner on public.profiles;
 create policy profiles_insert_owner on public.profiles
   for insert with check ((select auth.uid()) = id);
-drop policy if exists profiles_update_owner on public.profiles;
 create policy profiles_update_owner on public.profiles
   for update using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
-drop policy if exists profiles_delete_owner on public.profiles;
 create policy profiles_delete_owner on public.profiles
   for delete using ((select auth.uid()) = id);
 

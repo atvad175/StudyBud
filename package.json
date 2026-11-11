@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "node --test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:integration:accounts": "node --test tests/accountIsolation.integration.test.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
