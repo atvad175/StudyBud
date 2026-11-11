@@ -53,6 +53,7 @@ const WorkspaceHeader = () => {
 
 const MainLayout = ({ userId = null }) => {
     const [theme, setTheme] = useState(() => readTheme(userId));
+    const location = useLocation();
 
     const toggleTheme = () => {
         const next = theme === 'dark' ? 'light' : 'dark';
@@ -70,7 +71,7 @@ const MainLayout = ({ userId = null }) => {
             <Sidebar theme={theme} onToggleTheme={toggleTheme} />
             <main className="shellMain">
                 <WorkspaceHeader />
-                <Outlet />
+                <div key={location.pathname} className="sbRouteView"><Outlet /></div>
             </main>
             <AICompanion />
             <FocusOverlay />
