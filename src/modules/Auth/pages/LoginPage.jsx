@@ -118,20 +118,45 @@ const LoginPage = () => {
 
             if (createError) {
                 let serviceMessage = '';
-                let serviceStatus = Number(createError.status || createError.context?.status || 0);
+                let serviceCode = '';
+                const serviceStatus = Number(createError.status || createError.context?.status || 0);
+
                 try {
                     if (createError.context && typeof createError.context.json === 'function') {
                         const responseBody = await createError.context.json();
-                        serviceMessage = typeof responseBody?.error === 'string' ? responseBody.error : '';
+                        serviceMessage = [
+                            responseBody?.error,
+                            responseBody?.message,
+                            responseBody?.msg,
+                        ].find(value => typeof value === 'string' && value.trim()) || '';
+                        serviceCode = String(responseBody?.code || responseBody?.error_code || '').toUpperCase();
                     }
                 } catch {
-                    // The error context might already have been consumed by supabase-js.
+                    // The response body may already have been consumed by supabase-js.
                 }
 
-                if (serviceStatus === 409 || /already has an account|already registered/i.test(serviceMessage)) {
-                    setFormError('An account already exists for this email. Select “Sign in instead” and use the password for that account.');
+                const normalizedServiceMessage = serviceMessage.toLowerCase();
+
+                if (
+                    serviceStatus === 409 ||
+                    /already has an account|already registered|email_exists/.test(normalizedServiceMessage)
+                ) {
+                    setFormError('An account already exists for this email. Choose “Sign in instead” and use that account’s password.');
+                } else if (serviceStatus === 404 || serviceCode === 'NOT_FOUND') {
+                    setFormError('StudyBud’s account-creation endpoint is not deployed for this environment. No account was created. Use Sign in if you already have an account.');
+                } else if (serviceStatus === 401 || serviceStatus === 403) {
+                    setFormError('StudyBud could not authorize the account request. Refresh the page and try again. If this continues, the app configuration needs to be corrected.');
+                } else if (serviceStatus === 429) {
+                    setFormError(serviceMessage || 'Too many account attempts were made. Wait a little before trying again.');
+                } else if (serviceStatus >= 500) {
+                    setFormError(serviceMessage || 'StudyBud’s account service is online but returned a server error. No further signup attempt is needed until the service is checked.');
+                } else if (
+                    createError.name === 'FunctionsFetchError' ||
+                    /failed to fetch|networkerror|load failed/i.test(String(createError.message || ''))
+                ) {
+                    setFormError('Your browser could not connect to StudyBud’s account service. Check your connection and try again once. If you already submitted this signup, choose Sign in before trying again.');
                 } else {
-                    setFormError(serviceMessage || 'StudyBud could not reach its account-creation service. Wait a moment and try once more. If the account was created, use “Sign in instead” rather than submitting signup repeatedly.');
+                    setFormError(serviceMessage || 'StudyBud could not complete account creation. Refresh the page and try again. If an account may already have been created, choose Sign in instead.');
                 }
                 return;
             }
