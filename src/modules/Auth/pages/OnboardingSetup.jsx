@@ -59,6 +59,7 @@ const OnboardingSetup = () => {
     const { toast } = useToast();
 
     const [step, setStep] = useState(1);
+    const [stepDirection, setStepDirection] = useState('forward');
     const [name, setName] = useState(localStorage.getItem('studybud_username') || '');
     const [role, setRole] = useState('School student');
     const [board, setBoard] = useState('');
@@ -206,6 +207,7 @@ const OnboardingSetup = () => {
     const nextStep = async () => {
         if (!isStepValid() || isSaving) return;
         if (step < 4) {
+            setStepDirection('forward');
             setStep(current => current + 1);
             return;
         }
@@ -232,7 +234,7 @@ const OnboardingSetup = () => {
             <main className={styles.main}>
                 <div className={styles.inner}>
                     {step === 1 && (
-                        <section className="fade-in-up">
+                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 1 OF 4 · YOUR PROFILE</p>
                             <h1 className="step-title">Let's make StudyBud yours.</h1>
                             <p className="step-subtitle">Just the basics. You can change them later.</p>
@@ -278,7 +280,7 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 2 && (
-                        <section className="fade-in-up">
+                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 2 OF 4 · YOUR LEARNING WORLD</p>
                             <h1 className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
                             <p className="step-subtitle">This helps StudyBud tailor techniques and practice to your subjects.</p>
@@ -327,7 +329,7 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 3 && (
-                        <section className="fade-in-up">
+                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 3 OF 4 · OPTIONAL PERSONALIZATION</p>
                             <h1 className="step-title">Where should Bud help first?</h1>
                             <p className="step-subtitle">Pick any challenges that sound familiar. This step is optional.</p>
@@ -361,8 +363,8 @@ const OnboardingSetup = () => {
                                             className={`hitech-box-choice ${learningStyle === option.id ? 'selected' : ''}`}
                                             style={{ textAlign: 'left' }}
                                         >
-                                            <div style={{ fontWeight: 600 }}>{option.label}</div>
-                                            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{option.desc}</div>
+                                            <div className={styles.learningTitle}>{option.label}</div>
+                                            <div className={styles.learningDescription}>{option.desc}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -389,7 +391,7 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 4 && (
-                        <section className="fade-in-up">
+                        <section className={'fade-in-up ' + styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 4 OF 4 · YOUR FIRST GOAL</p>
                             <h1 className="step-title">Start small. Build momentum.</h1>
                             <p className="step-subtitle">Set one goal if useful. Everything on this page is optional.</p>
@@ -444,7 +446,7 @@ const OnboardingSetup = () => {
 
                     <div className={styles.navRow}>
                         {step > 1 ? (
-                            <button type="button" onClick={() => setStep(current => current - 1)} className="nav-btn-back" disabled={isSaving}>
+                            <button type="button" onClick={() => { setStepDirection('back'); setStep(current => current - 1); }} className="nav-btn-back" disabled={isSaving}>
                                 ← Back
                             </button>
                         ) : <span />}
