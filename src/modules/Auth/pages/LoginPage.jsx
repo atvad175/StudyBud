@@ -4,12 +4,9 @@ import {
     ArrowRight,
     Brain,
     BookOpen,
-    CheckCircle2,
     Eye,
     EyeOff,
     Leaf,
-    Mail,
-    RefreshCw,
     Target,
 } from 'lucide-react';
 import { supabase, diagnoseAuthService } from '../../../supabaseClient';
@@ -28,13 +25,13 @@ const friendlyAuthError = (error) => {
         status === 504;
 
     if (timedOut) {
-        return 'StudyBud’s account service timed out. Your account may already exist, but email confirmation may not have completed. Avoid repeated signups; the account and email-delivery service need to be checked.';
+        return 'StudyBud’s account service took too long to respond. Check your connection and try again. If the issue persists, contact the StudyBud administrator.';
     }
     if (message.includes('invalid login credentials')) {
         return 'That email and password combination did not work. Check your details and try again.';
     }
     if (message.includes('email not confirmed')) {
-        return 'Please confirm your email from your inbox before signing in.';
+        return 'This account is not enabled for password sign-in yet. Contact the StudyBud administrator.';
     }
     if (message.includes('user already registered') || message.includes('already been registered')) {
         return 'An account may already use this email. Switch to Sign In instead.';
@@ -55,9 +52,6 @@ const LoginPage = () => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState('');
-    const [confirmationRequired, setConfirmationRequired] = useState(false);
-    const [confirmationStatus, setConfirmationStatus] = useState('');
-    const [isResendingConfirmation, setIsResendingConfirmation] = useState(false);
 
     const switchMode = () => {
         if (isLoading) return;
@@ -66,40 +60,6 @@ const LoginPage = () => {
         setPassword('');
         setIsPasswordVisible(false);
         setFormError('');
-        setConfirmationRequired(false);
-        setConfirmationStatus('');
-    };
-
-    const handleResendConfirmation = async () => {
-        const normalizedEmail = email.trim().toLowerCase();
-        if (!/^\\S+@\\S+\\.\\S+$/.test(normalizedEmail)) {
-            setFormError('Enter your email address first, then request a new confirmation link.');
-            return;
-        }
-
-        setIsResendingConfirmation(true);
-        setConfirmationStatus('');
-        try {
-            const { error } = await supabase.auth.resend({
-                type: 'signup',
-                email: normalizedEmail,
-            });
-            if (error) throw error;
-            setConfirmationStatus('A fresh confirmation email has been requested. Check your inbox and spam folder, then return here to sign in.');
-        } catch (error) {
-            console.warn('Confirmation email resend failed:', {
-                code: error?.code || 'unknown',
-                status: error?.status || null,
-            });
-            const message = String(error?.message || '').toLowerCase();
-            setConfirmationStatus(
-                message.includes('rate limit')
-                    ? 'A confirmation email was requested recently. Wait a little before requesting another one.'
-                    : 'We could not send the confirmation email. Check the Supabase email settings and try again later.'
-            );
-        } finally {
-            setIsResendingConfirmation(false);
-        }
     };
 
     const handleSubmit = async (event) => {
@@ -126,8 +86,6 @@ const LoginPage = () => {
 
         setIsLoading(true);
         setFormError('');
-        setConfirmationRequired(false);
-        setConfirmationStatus('');
         let navigatingAway = false;
 
         try {
@@ -300,9 +258,9 @@ const LoginPage = () => {
             </div>
 
             <div className={styles.brandStory}>
-                <span className={styles.brandEyebrow}>ONE WORKSPACE. YOUR NEXT STEP.</span>
-                <h2>Your work,<br /><em>in focus.</em></h2>
-                <p>Plan your work, practise what you learn, and build habits that support consistent progress.</p>
+                <span className={styles.brandEyebrow}>A CLEARER WAY TO LEARN</span>
+                <h2>Build a better<br /><em>study rhythm.</em></h2>
+                <p>Bring planning, focused work and active learning into one considered workspace.</p>
             </div>
 
             <div className={styles.benefitList}>
@@ -320,7 +278,7 @@ const LoginPage = () => {
                 </div>
             </div>
 
-            <p className={styles.brandFootnote}>A clearer place to learn, plan and move forward.</p>
+            <p className={styles.brandFootnote}>A workspace designed for focused progress.</p>
             <div className={styles.brandOrbOne} aria-hidden="true" />
             <div className={styles.brandOrbTwo} aria-hidden="true" />
         </aside>
@@ -333,8 +291,7 @@ const LoginPage = () => {
 
                 <div className={styles.formPanel}>
                     <div className={styles.formTopline}>
-                        <span className={styles.formEyebrow}>{mode === 'login' ? 'YOUR LEARNING WORKSPACE' : 'SET UP YOUR WORKSPACE'}</span>
-                        <span className={styles.secureLabel}><span /> Protected sign-in</span>
+                        <span className={styles.formEyebrow}>{mode === 'login' ? 'STUDYBUD / ACCOUNT' : 'CREATE YOUR ACCOUNT'}</span>
                     </div>
 
                     <header className={styles.headingBlock}>
@@ -343,8 +300,8 @@ const LoginPage = () => {
                         </h1>
                         <p className={styles.subheading}>
                             {mode === 'login'
-                                ? 'Sign in to get back to your plan, practice and progress.'
-                                : 'Create your account and build a study system that works for you.'}
+                                ? 'Sign in to continue to your workspace.'
+                                : 'Create your account to set up your learning workspace.'}
                         </p>
                     </header>
 
@@ -381,8 +338,6 @@ const LoginPage = () => {
                                 onChange={event => {
                                     setEmail(event.target.value);
                                     if (formError) setFormError('');
-                                    setConfirmationRequired(false);
-                                    setConfirmationStatus('');
                                 }}
                                 className={styles.input}
                                 autoComplete="email"
@@ -436,36 +391,6 @@ const LoginPage = () => {
                             </div>
                         )}
 
-                        {confirmationRequired && mode === 'login' && (
-                            <div className={styles.resendPanel}>
-                                <div className={styles.resendCopy}>
-                                    <span className={styles.resendIcon}><Mail size={17} /></span>
-                                    <div>
-                                        <strong>Still waiting on confirmation?</strong>
-                                        <p>Request a fresh link for {email.trim() || 'your email address'}.</p>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    className={styles.resendButton}
-                                    onClick={handleResendConfirmation}
-                                    disabled={isResendingConfirmation || isLoading}
-                                >
-                                    {isResendingConfirmation
-                                        ? <><RefreshCw size={15} className={styles.spinningIcon} /> Sending…</>
-                                        : <><Mail size={15} /> Resend confirmation</>}
-                                </button>
-                                {confirmationStatus && (
-                                    <p className={styles.confirmationStatus} role="status" aria-live="polite">
-                                        {confirmationStatus.startsWith('A fresh')
-                                            ? <CheckCircle2 size={15} />
-                                            : <span className={styles.statusDot} />}
-                                        {confirmationStatus}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
                         <button
                             type="submit"
                             disabled={isLoading}
@@ -486,7 +411,7 @@ const LoginPage = () => {
 
                         {isLoading && (
                             <p className={styles.loadingHint} role="status" aria-live="polite">
-                                Contacting the secure sign-in service. This usually takes a few seconds.
+                                Connecting to StudyBud. This usually takes a few seconds.
                             </p>
                         )}
                     </form>
@@ -504,7 +429,7 @@ const LoginPage = () => {
                     </div>
 
                     <p className={styles.legalText}>
-                        Your account keeps your StudyBud progress in one place. Never share your password with anyone.
+                        Your learning workspace, all in one place.
                     </p>
                 </div>
             </section>
