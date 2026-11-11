@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, BookOpen, Coffee, Library, Moon, LogOut, Timer } from 'lucide-react';
 import styles from './StudyRooms.module.css';
@@ -8,53 +8,48 @@ const ROOMS = [
         id: 'library',
         name: 'The Grand Library',
         icon: <Library size={22} />,
-        count: 142,
         purpose: 'Deep solo work',
-        desc: 'For when you need stillness. No chat, no noise — only the quiet signal that others are reading and writing beside you, somewhere in the world.',
+        desc: 'A quiet visual setting for exam prep, essays and proof-heavy work.',
         meaning:
-            'Psychologists call this “co-presence”: you focus better when you sense others are working too, even if you never speak. This room is for exams, essays, and proof-heavy subjects.',
+            'Use this setting to start a deliberate session for exams, essays and problem-solving.',
         color: '#C9883A',
     },
     {
         id: 'cafe',
         name: 'Lo-fi Cafe',
         icon: <Coffee size={22} />,
-        count: 328,
         purpose: 'Gentle energy',
-        desc: 'A softer rhythm — like a corner café. Good for lighter tasks, creative notes, or when silence feels too heavy.',
+        desc: 'A warmer visual setting for lighter tasks, creative notes or a change of pace.',
         meaning:
-            'Use this when you want accountability without pressure. The “cafe” idea nudges your brain toward a low-stakes but attentive state — ideal for review and ideation.',
+            'Use this setting for review, planning and low-pressure creative work.',
         color: '#E65100',
     },
     {
         id: 'group',
         name: 'Study Group Space',
         icon: <Users size={22} />,
-        count: 56,
         purpose: 'Shared momentum',
-        desc: 'Symbolic group energy: you are not performing for anyone; you are riding the same wave as people tackling hard problems.',
+        desc: 'A structured setting for planning a group project or tackling a difficult task on your own.',
         meaning:
-            'Best before a test or deadline. The room stands for mutual effort — “we are all in the grind” — which can reduce loneliness and procrastination.',
+            'Use this when you want to simulate a deliberate study-room routine without a live group.',
         color: '#4CAF50',
     },
     {
         id: 'latenight',
         name: 'Late Night Grinders',
         icon: <Moon size={22} />,
-        count: 89,
         purpose: 'Off-hours focus',
-        desc: 'For night owls and odd schedules. Dim visual tone; the point is permission to work when the world is quiet.',
+        desc: 'A quiet setting for late-hour reading and individual work.',
         meaning:
-            'If your peak hours are late, this room aligns your environment with that reality instead of fighting it — less guilt, steadier sessions.',
+            'Choose a calm visual environment when you need fewer distractions.',
         color: '#3F51B5',
     },
     {
         id: 'reading',
         name: 'Reading Room',
         icon: <BookOpen size={22} />,
-        count: 12,
         purpose: 'Long-form reading',
-        desc: 'Designed for chapters, papers, and slow absorption — not quick tasks.',
+        desc: 'Designed for chapters, papers and slower, sustained reading.',
         meaning:
             'Commit to one book or paper per session. The room is a cue: “I am here to read with intention,” which cuts skim-scrolling habits.',
         color: '#9C27B0',
@@ -67,39 +62,60 @@ const formatMmSs = (sec) => {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
+// Keep the clock read outside the React render scope; the session timer calls this
+// only in user actions and the timer effect.
+const getCurrentTimeMs = () => Date.now();
+
 const StudyRooms = () => {
     const navigate = useNavigate();
     const [activeRoom, setActiveRoom] = useState(null);
     const [intention, setIntention] = useState('');
     const [sessionSeconds, setSessionSeconds] = useState(0);
     const [running, setRunning] = useState(true);
+    const elapsedBaseRef = useRef(0);
+    const segmentStartedAtRef = useRef(null);
 
     const joinRoom = (room) => {
         setActiveRoom(room);
         setIntention('');
+        elapsedBaseRef.current = 0;
+        segmentStartedAtRef.current = getCurrentTimeMs();
         setSessionSeconds(0);
         setRunning(true);
-        window.dispatchEvent(new CustomEvent('studybud-room-joined', { detail: room.name }));
-        try {
-            const key = 'studybud_room_sessions';
-            const raw = localStorage.getItem(key);
-            const map = raw ? JSON.parse(raw) : {};
-            map[room.id] = (map[room.id] || 0) + 1;
-            localStorage.setItem(key, JSON.stringify(map));
-        } catch {
-            /* ignore */
-        }
     };
 
     const leaveRoom = () => {
+        if (running && segmentStartedAtRef.current) {
+            elapsedBaseRef.current += Math.floor((getCurrentTimeMs() - segmentStartedAtRef.current) / 1000);
+        }
+        segmentStartedAtRef.current = null;
         setActiveRoom(null);
         setRunning(false);
     };
 
+    const toggleRoomTimer = () => {
+        if (running) {
+            if (segmentStartedAtRef.current) {
+                elapsedBaseRef.current += Math.floor((getCurrentTimeMs() - segmentStartedAtRef.current) / 1000);
+            }
+            segmentStartedAtRef.current = null;
+            setSessionSeconds(elapsedBaseRef.current);
+            setRunning(false);
+            return;
+        }
+        segmentStartedAtRef.current = getCurrentTimeMs();
+        setRunning(true);
+    };
+
     useEffect(() => {
-        if (!activeRoom || !running) return undefined;
-        const id = setInterval(() => setSessionSeconds((t) => t + 1), 1000);
-        return () => clearInterval(id);
+        if (!activeRoom || !running || !segmentStartedAtRef.current) return undefined;
+        const updateElapsed = () => {
+            const liveSeconds = Math.floor((getCurrentTimeMs() - segmentStartedAtRef.current) / 1000);
+            setSessionSeconds(elapsedBaseRef.current + liveSeconds);
+        };
+        updateElapsed();
+        const id = window.setInterval(updateElapsed, 1000);
+        return () => window.clearInterval(id);
     }, [activeRoom, running]);
 
     const openFullTimer = useCallback(() => {
@@ -164,7 +180,7 @@ const StudyRooms = () => {
                                 color: running ? 'var(--color-soft-black)' : '#fff',
                                 border: '1px solid var(--color-border)',
                             }}
-                            onClick={() => setRunning((r) => !r)}
+                            onClick={toggleRoomTimer}
                         >
                             {running ? 'Pause' : 'Resume'}
                         </button>
@@ -189,33 +205,15 @@ const StudyRooms = () => {
                     </div>
 
                     <div className={styles.panel} style={{ marginTop: '2rem' }}>
-                        <h4>Room rhythm (illustrative)</h4>
-                        {[
-                            { name: 'Alex M.', action: 'started a 50m block' },
-                            { name: 'Sarah K.', action: 'marked a task done' },
-                            { name: 'David L.', action: 'entered the room' },
-                        ].map((activity, i) => (
-                            <div key={i} className={styles.activityRow}>
-                                <div
-                                    style={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: '50%',
-                                        backgroundColor: activeRoom.color,
-                                        marginTop: 6,
-                                        flexShrink: 0,
-                                        opacity: 1 - i * 0.25,
-                                    }}
-                                />
-                                <div>
-                                    <span style={{ fontWeight: 600, color: 'var(--color-soft-black)' }}>{activity.name}</span>{' '}
-                                    <span style={{ color: 'var(--color-text-secondary)' }}>{activity.action}</span>
-                                </div>
-                            </div>
-                        ))}
-                        <p style={{ margin: '1rem 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                            Live feeds will connect to real data when multiplayer sync is enabled. For now, this shows the kind of ambient activity you are opting into.
+                        <h4>About this space</h4>
+                        <p style={{ margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                            This is a solo focus environment on your device, not a live multiplayer room. No other students are connected or shown here. Your intention and session clock stay local to this browser.
                         </p>
+                        {intention.trim() && (
+                            <p style={{ margin: '0.75rem 0 0', lineHeight: 1.5 }}>
+                                <strong>Your intention:</strong> {intention.trim()}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -228,20 +226,19 @@ const StudyRooms = () => {
                 <p className={styles.eyebrow}>Focus / Study rooms</p>
                 <h1 className={styles.title}>Study rooms</h1>
                 <p className={styles.lead}>
-                    Real focus is rarely solo in feeling — libraries, cafés, and exam halls all borrow energy from other people. These rooms recreate that <em>sense</em>{' '}
-                    of shared work without turning study into a performance.
+                    Choose a visual setting for solo focus. These are local environments on your device, not live multiplayer rooms or participant counts.
                 </p>
                 <div className={styles.principles}>
                     <h3>What you are choosing</h3>
                     <ul>
                         <li>
-                            <strong>Co-presence, not chat</strong> — you will not be judged or interrupted; the “others” are a gentle cue to stay on task.
+                            <strong>Solo by design</strong> — no chat, live participant feed or public activity is shown.
                         </li>
                         <li>
-                            <strong>A ritual start</strong> — pick a room that matches your mood, name your intention, then let the session clock mark your effort.
+                            <strong>A ritual start</strong> — pick a setting, name your intention and start the local session clock.
                         </li>
                         <li>
-                            <strong>Deeper work</strong> — pair a room with the focus timer or Pomodoro when you are ready for uninterrupted blocks.
+                            <strong>Keep your progress</strong> — use the full Focus timer when you want a saved focus session in your StudyBud history.
                         </li>
                     </ul>
                 </div>
@@ -270,10 +267,7 @@ const StudyRooms = () => {
                             >
                                 {room.icon}
                             </div>
-                            <div className={styles.livePill}>
-                                <span className={styles.pulseDot} />
-                                {room.count} here now
-                            </div>
+                            <div className={styles.livePill}>Solo environment</div>
                         </div>
                         <div>
                             <p className={styles.purpose}>{room.purpose}</p>

@@ -1,38 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
 
 :root {
-  /* Colors - Night Light Palette */
+  /* Public pages retain their existing palette. The signed-in app uses scoped tokens below. */
   --color-cream: #FFFBF0;
-  /* Warm cream */
   --color-beige: #F7F3E8;
-  /* Slightly darker cream for cards/sidebars */
   --color-warm-gray: #5C5A53;
   --color-soft-black: #1A1916;
   --color-gold: #DDA85D;
-  /* Muted warm gold */
   --color-gold-light: #F2E3C9;
   --color-gold-hover: #C9964D;
   --color-border: #EBE5D5;
-
   --color-text-primary: var(--color-soft-black);
   --color-text-secondary: var(--color-warm-gray);
-
-  /* Typography */
   --font-serif: 'Playfair Display', serif;
-  --font-sans: 'Inter', sans-serif;
-
-  /* Spacing */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
   --spacing-xl: 3rem;
-
-  /* Shadows & Radius */
   --shadow-soft: 0 8px 30px rgba(100, 80, 50, 0.04);
   --shadow-card: 0 4px 12px rgba(100, 80, 50, 0.03);
   --radius-card: 24px;
   --radius-squircle: 20px;
+  --night-light-intensity: 0;
 }
 
 * {
@@ -50,18 +41,41 @@ body {
   position: relative;
 }
 
-/* Night Light Overlay */
-body::after {
+/* The signed-in product has its own neutral design tokens.
+   Keeping them scoped protects the public landing experience. */
+.studybud-shell {
+  --color-cream: #F7F8FA;
+  --color-beige: #EEF1F5;
+  --color-warm-gray: #657184;
+  --color-soft-black: #182230;
+  --color-gold: #526DFF;
+  --color-gold-light: #E9EDFF;
+  --color-gold-hover: #4059E6;
+  --color-border: #E2E7EF;
+  --color-text-primary: var(--color-soft-black);
+  --color-text-secondary: var(--color-warm-gray);
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-sans);
+  --shadow-soft: 0 8px 28px rgba(25, 38, 58, 0.06);
+  --shadow-card: 0 3px 12px rgba(25, 38, 58, 0.05);
+  --shadow-medium: 0 10px 26px rgba(25, 38, 58, 0.10);
+  --radius-card: 20px;
+  --radius-squircle: 16px;
+  min-height: 100vh;
+  background: var(--color-cream);
+  color: var(--color-text-primary);
+  position: relative;
+  isolation: isolate;
+}
+
+/* Night light is an optional preference, never a permanent tint over the app. */
+.studybud-shell::after {
   content: "";
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(255, 140, 0, var(--night-light-intensity, 0.15));
-  /* Orangey warm tint */
+  inset: 0;
+  background-color: rgba(255, 140, 0, var(--night-light-intensity, 0));
   pointer-events: none;
-  z-index: 9999;
+  z-index: 10000;
   mix-blend-mode: multiply;
 }
 
@@ -77,7 +91,7 @@ h6 {
   line-height: 1.2;
 }
 
-/* Marketing pages set their own colours on dark backgrounds */
+/* Marketing pages set their own colours on dark backgrounds. */
 .landing-root h1,
 .landing-root h2,
 .landing-root h3 {
@@ -96,7 +110,6 @@ a {
   color: inherit;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -106,12 +119,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #D9D2C0;
+  background-color: #D9DDE5;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #C0B8A5;
+  background-color: #BFC6D2;
 }
 
 .page-container {

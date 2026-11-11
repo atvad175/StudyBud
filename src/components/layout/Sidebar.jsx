@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users } from 'lucide-react';
+import { Brain, Clock, Activity, BookOpen, Layers, ChevronDown, ChevronRight, Plus, Target, Play, Headphones, Zap, Feather, Wind, Smile, Archive, Lightbulb, FileText, Flame, CheckSquare, Settings, Globe, Users, CalendarClock, BarChart3, Moon, Sun } from 'lucide-react';
 import StudyBudLogo from '../brand/StudyBudLogo';
 import styles from './Sidebar.module.css';
 
-const Sidebar = () => {
+const Sidebar = ({ theme = 'light', onToggleTheme = () => {} }) => {
   const location = useLocation();
-  const [expanded, setExpanded] = useState({
-    habits: true,
-    focus: true,
-    time: true,
-    mind: true,
-    study: true
-  });
+  const [expanded, setExpanded] = useState({});
 
-  const toggleGroup = (group) => {
-    setExpanded(prev => ({ ...prev, [group]: !prev[group] }));
+  const toggleGroup = (group, isOpenByDefault) => {
+    setExpanded(prev => ({ ...prev, [group]: !(prev[group] ?? isOpenByDefault) }));
   };
 
   const navItems = [
@@ -91,6 +85,8 @@ const Sidebar = () => {
       subtitle: 'Learning',
       children: [
         { name: 'Hub', path: '/study', exact: true, icon: BookOpen },
+        { name: 'Study plan', path: '/study/plan', icon: CalendarClock },
+        { name: 'Insights', path: '/study/insights', icon: BarChart3 },
         { name: 'Feynman', path: '/study/feynman', icon: Lightbulb },
         { name: 'Assignments', path: '/study/assignments', icon: FileText },
         { name: 'Exams', path: '/study/exams', icon: Target },
@@ -106,28 +102,62 @@ const Sidebar = () => {
         <span className={styles.brandTagline}>Your quiet space</span>
       </div>
 
+      <nav className={styles.mobileNav} aria-label="Quick navigation">
+        {[
+          { label: 'Home', path: '/', icon: Activity, exact: true },
+          { label: 'Habits', path: '/habits', icon: Layers },
+          { label: 'Focus', path: '/focus', icon: Brain },
+          { label: 'Time', path: '/time', icon: Clock },
+          { label: 'Study', path: '/study', icon: BookOpen },
+          { label: 'Mind', path: '/mind', icon: Smile },
+        ].map(item => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.exact}
+            className={({ isActive }) => `${styles.mobileNavItem} ${isActive ? styles.mobileNavActive : ''}`}
+            aria-label={item.label}
+          >
+            <item.icon size={18} aria-hidden="true" />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          className={styles.mobileNavItem}
+          onClick={onToggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-pressed={theme === 'dark'}
+        >
+          {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+          <span>Theme</span>
+        </button>
+      </nav>
+
       <nav className={styles.nav}>
         {navItems.map((item) => {
           if (item.children) {
-            const isExpanded = expanded[item.id];
             const isActiveGroup = location.pathname.startsWith(item.path);
+            const isExpanded = expanded[item.id] ?? isActiveGroup;
 
             return (
               <div key={item.name} className={styles.navGroup}>
-                <div
+                <button
+                  type="button"
                   className={`${styles.navItem} ${styles.groupHeader} ${isActiveGroup ? styles.activeGroup : ''}`}
-                  onClick={() => toggleGroup(item.id)}
+                  onClick={() => toggleGroup(item.id, isActiveGroup)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`${item.id}-subnav`}
                 >
                   <item.icon size={20} className={styles.icon} />
                   <div className={styles.text}>
                     <span className={styles.title}>{item.name}</span>
                     <span className={styles.subtitle}>{item.subtitle}</span>
                   </div>
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </div>
+                  {isExpanded ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+                </button>
 
-                {isExpanded && (
-                  <div className={styles.subNav}>
+                <div id={`${item.id}-subnav`} className={styles.subNav} hidden={!isExpanded}>
                     {item.children.map(child => (
                       <NavLink
                         key={child.path}
@@ -142,7 +172,6 @@ const Sidebar = () => {
                       </NavLink>
                     ))}
                   </div>
-                )}
               </div>
             );
           }
@@ -191,6 +220,18 @@ const Sidebar = () => {
             </div>
         </NavLink>
       </nav>
+
+      <button
+        type="button"
+        className={styles.themeToggle}
+        onClick={onToggleTheme}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        aria-pressed={theme === 'dark'}
+      >
+        <span className={styles.themeToggleIcon}>{theme === 'dark' ? <Sun size={17} aria-hidden="true" /> : <Moon size={17} aria-hidden="true" />}</span>
+        <span className={styles.themeToggleText}>{theme === 'dark' ? 'Light appearance' : 'Dark appearance'}</span>
+        <span className={styles.themeToggleState}>{theme === 'dark' ? 'On' : 'Off'}</span>
+      </button>
 
       <div className={styles.quoteContainer}>
         <h4>Today's Focus</h4>

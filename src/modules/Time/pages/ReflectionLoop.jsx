@@ -5,18 +5,19 @@ import styles from '../TimeShared.module.css';
 import { Check, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
 
 const ReflectionLoop = () => {
-    const { tasks, updateTask } = useTime();
+    const { tasks = [], updateTask, loading = false, loadError = '', refreshTasks } = useTime();
     const { toast } = useToast();
 
-    const readyTasks = tasks.filter(t => t.status === 'Planned' && t.energy_block);
-    const executedTasks = tasks.filter(t => t.status === 'Executed');
-    const reflectedTasks = tasks.filter(t => t.status === 'Reflected');
+    const getStatus = task => String(task?.status || 'Planned').trim().toLowerCase();
+    const readyTasks = tasks.filter(task => getStatus(task) === 'planned');
+    const executedTasks = tasks.filter(task => getStatus(task) === 'executed');
+    const reflectedTasks = tasks.filter(task => getStatus(task) === 'reflected');
 
     const [reflectData, setReflectData] = useState({});
     const [savingTaskId, setSavingTaskId] = useState(null);
 
     const markExecuted = async (id) => {
-        if (savingTaskId) return;
+        if (savingTaskId !== null) return;
         setSavingTaskId(id);
         try {
             await updateTask(id, { status: 'Executed' });
@@ -30,10 +31,10 @@ const ReflectionLoop = () => {
 
     const submitReflection = async (task) => {
         if (savingTaskId) return;
-        const data = reflectData[task.id] || { actual_time: task.time_estimate, mood: 'Mid', execution_quality: 'Mid' };
-        const actualTime = Number.parseInt(data.actual_time, 10);
-        if (!Number.isFinite(actualTime) || actualTime < 1) {
-            toast.error('Enter a time taken of at least one minute.');
+        const data = reflectData[task.id] || {};
+        const actualTime = Number.parseInt(data.actual_time ?? task.time_estimate, 10);
+        if (!Number.isFinite(actualTime) || actualTime < 1 || actualTime > 1440) {
+            toast.error('Enter a time taken between 1 and 1,440 minutes.');
             return;
         }
 
@@ -72,7 +73,16 @@ const ReflectionLoop = () => {
                 </div>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
+            {loadError && (
+                <div role="alert" style={{ marginBottom: '1.25rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    {loadError}
+                    <button type="button" onClick={refreshTasks} style={{ marginLeft: '0.75rem', textDecoration: 'underline' }}>Retry</button>
+                </div>
+            )}
+            {loading ? (
+                <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading your tasks…</p>
+            ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
                 {/* LEFT: Execution */}
                 <div>
                     <h2 style={sectionHeader}>Step 1: Finish Tasks</h2>
@@ -85,10 +95,10 @@ const ReflectionLoop = () => {
                                     <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#333' }}>{task.title}</h3>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                                         <span style={pill}>{task.time_estimate}m</span>
-                                        <span style={pill}>{task.energy_block} Energy</span>
+                                        <span style={pill}>{task.energy_block ? task.energy_block + ' Energy' : 'Energy not set'}</span>
                                     </div>
                                 </div>
-                                <button onClick={() => markExecuted(task.id)} disabled={savingTaskId !== null} style={{ ...checkBtn, opacity: savingTaskId !== null ? 0.55 : 1, cursor: savingTaskId !== null ? 'wait' : 'pointer' }}>
+                                <button type="button" onClick={() => markExecuted(task.id)} disabled={savingTaskId !== null} aria-label={`Mark ${task.title} as finished`} style={{ ...checkBtn, opacity: savingTaskId !== null ? 0.55 : 1, cursor: savingTaskId !== null ? 'wait' : 'pointer' }}>
                                     <Check size={20} />
                                 </button>
                             </div>
@@ -108,11 +118,10 @@ const ReflectionLoop = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                         {executedTasks.map(task => {
                             const currentData = reflectData[task.id] || {};
-                            const est = task.time_estimate;
-                            const act = currentData.actual_time || est;
+                            const est = Math.max(1, Number(task.time_estimate) || 1);
+                            const act = Math.max(0, Number(currentData.actual_time ?? est) || 0);
 
-                            // Visual bar diff
-                            const percentage = est > 0 ? Math.min((act / est) * 100, 200) : 0;
+                            const percentage = Math.min((act / est) * 100, 200);
                             const isOver = act > est;
 
                             return (
@@ -135,20 +144,25 @@ const ReflectionLoop = () => {
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
-                                            <label style={labelStyle}>Time Taken</label>
+                                            <label htmlFor={`actual-time-${task.id}`} style={labelStyle}>Time Taken (minutes)</label>
                                             <input
+                                                id={`actual-time-${task.id}`}
                                                 type="number"
-                                                defaultValue={est}
+                                                min="1"
+                                                max="1440"
+                                                step="1"
+                                                value={currentData.actual_time ?? est}
                                                 onChange={(e) => handleReflectChange(task.id, 'actual_time', e.target.value)}
                                                 style={inputStyle}
                                             />
                                         </div>
                                         <div>
-                                            <label style={labelStyle}>How was your flow?</label>
+                                            <label htmlFor={`flow-rating-${task.id}`} style={labelStyle}>How was your flow?</label>
                                             <select
+                                                id={`flow-rating-${task.id}`}
                                                 onChange={(e) => handleReflectChange(task.id, 'mood', e.target.value)}
                                                 style={inputStyle}
-                                                defaultValue="Mid"
+                                                value={currentData.mood ?? 'Mid'}
                                             >
                                                 <option value="Happy">Great (Flow)</option>
                                                 <option value="Mid">Okay (Neutral)</option>
@@ -158,15 +172,19 @@ const ReflectionLoop = () => {
                                     </div>
 
                                     <div style={{ marginTop: '1rem' }}>
-                                        <label style={labelStyle}>My Insight (What did I learn?)</label>
+                                        <label htmlFor={`task-insight-${task.id}`} style={labelStyle}>My Insight (What did I learn?)</label>
                                         <textarea
-                                            placeholder="E.g. I got distracted by my phone, or I really nailed the research phase..."
+                                            id={`task-insight-${task.id}`}
+                                            placeholder="What helped? What would you change next time?"
+                                            maxLength={1500}
+                                            value={currentData.notes ?? ''}
                                             onChange={(e) => handleReflectChange(task.id, 'notes', e.target.value)}
                                             style={{ ...inputStyle, minHeight: '80px', fontFamily: 'var(--font-sans)', resize: 'vertical' }}
                                         />
                                     </div>
 
                                     <button
+                                        type="button"
                                         onClick={() => submitReflection(task)}
                                         disabled={savingTaskId !== null}
                                         style={{ ...finishBtn, opacity: savingTaskId !== null ? 0.6 : 1, cursor: savingTaskId !== null ? 'wait' : 'pointer' }}
@@ -180,6 +198,7 @@ const ReflectionLoop = () => {
                     </div>
                 </div>
             </div>
+            )}
         </div>
     );
 };

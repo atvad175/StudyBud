@@ -22,61 +22,46 @@ const MOTIVATIONS = [
 
 // Simple SVG Line Graph for Efficiency
 const EfficiencyGraph = ({ data }) => {
-    // Generate graph from dynamic data prop
-    const points = data && data.length > 0 ? data.map(d => d.value) : [0,0,0,0,0,0,0]; 
+    const points = Array.isArray(data) && data.length
+        ? data.map(item => Math.max(0, Number(item.value) || 0))
+        : [0, 0, 0, 0, 0, 0, 0];
     const height = 150;
     const width = 1000;
-    const spacing = width / (points.length - 1);
-
-    // Create path
-    let pathD = `M 0 ${height - points[0]}`;
-    for (let i = 1; i < points.length; i++) {
-        const x = i * spacing;
-        const y = height - points[i];
-        // Simple bezier smoothing logic could go here, treating as straight lines for now for simplicity or basic curve
-        const prevX = (i - 1) * spacing;
-        const prevY = height - points[i - 1];
-        const cp1x = prevX + spacing / 2;
-        const cp1y = prevY;
-        const cp2x = x - spacing / 2;
-        const cp2y = y;
-        pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x} ${y}`;
-    }
+    const spacing = points.length > 1 ? width / (points.length - 1) : width;
+    const maximum = Math.max(1, ...points);
+    const getY = value => height - ((value / maximum) * height);
+    const pathD = points.map((value, index) => {
+        const command = index === 0 ? 'M' : 'L';
+        return `${command} ${index * spacing} ${getY(value)}`;
+    }).join(' ');
 
     return (
         <div className={styles.graphContainer}>
-            <svg viewBox={`0 0 ${width} ${height + 50}`} className={styles.svgGraph}>
-                {/* Gradient Defs */}
+            <svg viewBox={`0 0 ${width} ${height + 50}`} className={styles.svgGraph} role="img" aria-label={`Completed habits per day over the last seven days. Peak: ${maximum}.`}>
                 <defs>
-                    <linearGradient id="gradientGold" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#DDA85D" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="#DDA85D" stopOpacity="0" />
+                    <linearGradient id="habitActivityGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#526DFF" stopOpacity="0.18" />
+                        <stop offset="100%" stopColor="#526DFF" stopOpacity="0" />
                     </linearGradient>
                 </defs>
-
-                {/* Fill Area */}
-                <path d={`${pathD} L ${width} ${height + 50} L 0 ${height + 50} Z`} fill="url(#gradientGold)" />
-
-                {/* Stroke Line */}
-                <path d={pathD} fill="none" stroke="#DDA85D" strokeWidth="3" strokeLinecap="round" />
-
-                {/* Labels */}
+                <path d={`${pathD} L ${width} ${height + 50} L 0 ${height + 50} Z`} fill="url(#habitActivityGradient)" />
+                <path d={pathD} fill="none" stroke="#526DFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="#E2E7EF" strokeDasharray="5,5" />
+                <text x="10" y="18" fill="#657184" fontSize="20">{maximum}</text>
                 <g className={styles.graphLabels}>
-                    {data && data.map((item, i) => (
-                        <text key={i} x={i * spacing} y={height + 30} textAnchor="middle" fill="#5C5A53" fontSize="24">{item.label}</text>
+                    {Array.isArray(data) && data.map((item, index) => (
+                        <text key={item.label} x={index * spacing} y={height + 30} textAnchor="middle" fill="#657184" fontSize="24">
+                            {item.label}
+                        </text>
                     ))}
                 </g>
-
-                {/* Y-Axis Grid Hint */}
-                <line x1="0" y1={height - 100} x2={width} y2={height - 100} stroke="#EBE5D5" strokeDasharray="5,5" />
-                <text x="10" y={height - 105} fill="#BBB" fontSize="20">100</text>
             </svg>
         </div>
     );
 };
 
 const TrackAtom = () => {
-    const { atoms, updateLog, removeAtom, logs: contextLogs, loading } = useHabits();
+    const { atoms = [], updateLog, removeAtom, logs: contextLogs = {}, loading = false, loadError = '', refreshHabits } = useHabits();
     const { toast } = useToast();
     const todayKey = getLocalDateKey();
     const logs = contextLogs[todayKey] || {};
@@ -89,23 +74,22 @@ const TrackAtom = () => {
     const weeklyData = React.useMemo(() => {
         const last7 = [];
         const today = new Date();
-        const numAtoms = atoms?.length || 1; 
         for(let i=6; i>=0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
             const dateStr = getLocalDateKey(d);
             const logsForDay = contextLogs[dateStr] || {};
             const completedCount = Object.values(logsForDay).filter(l => l.status === 'completed' || l.completed).length;
-            const percent = Math.round((completedCount / numAtoms) * 100);
             last7.push({
-                label: d.toLocaleDateString('en-US', { weekday: 'short' }),
-                value: Math.min(100, percent)
+                label: d.toLocaleDateString(undefined, { weekday: 'short' }),
+                value: completedCount
             });
         }
         return last7;
-    }, [contextLogs, atoms]);
+    }, [contextLogs]);
 
-    const averageRate = Math.round(weeklyData.reduce((acc, curr) => acc + curr.value, 0) / 7);
+    const averageCompleted = (weeklyData.reduce((sum, day) => sum + day.value, 0) / 7).toFixed(1);
+    const peakCompleted = Math.max(0, ...weeklyData.map(day => day.value));
 
     const handleToggle = async (atomId) => {
         if (savingAtomId !== null) return;
@@ -188,7 +172,14 @@ const TrackAtom = () => {
     const completedCount = logs ? Object.values(logs).filter(l => l.status === 'completed' || l.completed).length : 0;
     const progressPercent = atoms && atoms.length > 0 ? Math.round((completedCount / atoms.length) * 100) : 0;
 
-    if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading your habits…</div>;
+    if (loading) return <div role="status" style={{ padding: '2rem', textAlign: 'center' }}>Loading your habits…</div>;
+    if (!atoms.length && loadError) return (
+        <div className="page-container" style={{ padding: '2rem', textAlign: 'center' }}>
+            <h1>Your habits could not be loaded</h1>
+            <p>{loadError}</p>
+            <button type="button" onClick={refreshHabits}>Retry</button>
+        </div>
+    );
     if (!atoms.length) return <div className="page-container" style={{ padding: '2rem', textAlign: 'center' }}><h1>No habits yet</h1><p>Create your first habit to start tracking progress.</p><a href="/habits/add">Create a habit</a></div>;
 
 
@@ -201,6 +192,12 @@ const TrackAtom = () => {
             </div>
 
             {/* Motivational Quote Banner */}
+            {loadError && (
+                <div role="alert" style={{ marginBottom: '1rem', padding: '0.9rem 1rem', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    {loadError}
+                    <button type="button" onClick={refreshHabits} style={{ marginLeft: '0.75rem', textDecoration: 'underline' }}>Retry</button>
+                </div>
+            )}
             <div className={styles.motivationBanner}>
                 <p>“{quote}”</p>
             </div>
@@ -260,16 +257,21 @@ const TrackAtom = () => {
                             return (
                                 <div key={atom.id} style={{ position: 'relative' }}>
                                     <button
+                                        type="button"
                                         onClick={() => { void handleToggle(atom.id); }}
                                         disabled={savingAtomId !== null}
+                                        aria-pressed={Boolean(isComplete)}
+                                        aria-label={`${atom.title}: ${isComplete ? 'completed' : 'pending'}. Toggle completion.`}
                                         className={`${styles.squircleBtn} ${isComplete ? styles.squircleComplete : ''}`}
                                     >
                                         <span className={styles.squircleTitle}>{(atom.title || '').substring(0, 4)}</span>
                                         {isComplete && <div className={styles.checkBadge}><Check size={12} color="white" /></div>}
                                     </button>
                                     <button 
+                                        type="button"
                                         onClick={(e) => { e.stopPropagation(); void handleRemove(atom.id); }}
                                         disabled={savingAtomId !== null}
+                                        aria-label={`Remove ${atom.title}`}
                                         style={{ position: 'absolute', top: -8, right: -8, background: '#f44336', color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
                                     >
                                         <Trash2 size={12} />
@@ -362,9 +364,12 @@ const TrackAtom = () => {
                                                 return (
                                                     <button
                                                         key={m.value}
+                                                        type="button"
                                                         onClick={() => { void handleMoodChange(atom.id, m.value); }}
                                                         disabled={savingAtomId !== null}
                                                         title={m.label}
+                                                        aria-label={m.label}
+                                                        aria-pressed={isSelected}
                                                         style={{
                                                             padding: '3px 6px',
                                                             borderRadius: '8px',
@@ -397,13 +402,13 @@ const TrackAtom = () => {
             {/* BOTTOM: Efficiency Graph */}
             <section className={styles.efficiencySection}>
                 <div className={styles.sectionHeader}>
-                    <h3>Weekly Efficiency</h3>
+                    <h3>Weekly habit completions</h3>
                     <span className={styles.dateRange}>Last 7 days</span>
                 </div>
                 <EfficiencyGraph data={weeklyData} />
                 <div className={styles.graphFooter}>
-                    <span>Average: {averageRate}% completion rate ({atoms.length} active atoms)</span>
-                    <span className={styles.positiveGrowth}>Active Tracker</span>
+                    <span>Average {averageCompleted} completed habits per day · busiest day: {peakCompleted}</span>
+                    <span className={styles.positiveGrowth}>Last 7 days</span>
                 </div>
             </section>
 

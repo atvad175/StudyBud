@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Sparkles, X, Send, ChevronDown } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { chatCompanion, getCompanionWelcome } from '../../services/aiService';
+import { BUDDY_QUICK_ACTIONS, buildBuddyActionPrompt } from './buddyActions';
 
 const PERSONAS = [
     { id: 'candid', emoji: '🤝', label: 'Candid Buddy', desc: 'Direct, honest, gets to the point', color: '#5B8DEE' },
@@ -27,7 +29,19 @@ const getCompanionProfile = () => ({
     struggles: readStoredList('studybud_struggles'),
     intention: localStorage.getItem('studybud_intention') || '',
     motivation: localStorage.getItem('studybud_motivation') || '',
+    board: localStorage.getItem('studybud_board') || '',
+    grade: localStorage.getItem('studybud_grade') || '',
 });
+
+const getSelectedBuddySubject = () => {
+    try {
+        const selected = localStorage.getItem('studybud_selected_subject');
+        if (selected && selected.trim()) return selected.trim();
+        return readStoredList('studybud_fav_subjects')[0] || '';
+    } catch {
+        return '';
+    }
+};
 
 const normalizeMessages = (messages) => {
     const normalized = [];
@@ -51,6 +65,7 @@ const normalizeMessages = (messages) => {
 };
 
 const AICompanion = () => {
+    const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -233,12 +248,17 @@ const AICompanion = () => {
         ].slice(-30));
     };
 
-    // Send a message through the same authenticated server endpoint used by the rest of StudyBud AI.
-    const handleSend = async () => {
-        const content = input.trim();
+    // Both typed chat and one-tap actions use the same authenticated Buddy endpoint.
+    // displayLabel keeps the quick action readable while its richer instruction stays in history.
+    const handleSend = async (contentOverride = input.trim(), displayLabel = '') => {
+        const content = String(contentOverride || '').trim();
         if (!content || isTyping) return;
 
-        const userMsg = { role: 'user', content: content.slice(0, 3000) };
+        const userMsg = {
+            role: 'user',
+            content: content.slice(0, 3000),
+            ...(displayLabel ? { displayContent: displayLabel } : {}),
+        };
         setMessages(previous => [...previous, userMsg].slice(-30));
         setInput('');
         setIsTyping(true);
@@ -253,8 +273,18 @@ const AICompanion = () => {
             setMessages(previous => [...previous, { role: 'model', content: message }].slice(-30));
         } finally {
             setIsTyping(false);
-            window.setTimeout(() => inputRef.current?.focus(), 100);
+            if (!displayLabel) window.setTimeout(() => inputRef.current?.focus(), 100);
         }
+    };
+
+    const handleQuickAction = (action) => {
+        const prompt = buildBuddyActionPrompt(action.id, {
+            pathname: location.pathname,
+            selectedSubject: getSelectedBuddySubject(),
+            board: getCompanionProfile().board,
+            grade: getCompanionProfile().grade,
+        });
+        void handleSend(prompt, action.label);
     };
 
     const handleKeyDown = (event) => {
@@ -267,215 +297,169 @@ const AICompanion = () => {
     const currentPersonaObj = PERSONAS.find(p => p.id === persona);
 
     return (
-        <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 1000, fontFamily: 'inherit' }}>
-
-            {/* ── Chat Panel ──────────────────────────────────────────────── */}
+        <div className="budRoot">
             {isOpen && (
-                <div style={{
-                    position: 'absolute', bottom: '5rem', right: 0,
-                    width: 340, borderRadius: 24,
-                    backgroundColor: '#fffcf5',
-                    boxShadow: '0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)',
-                    display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                    border: '1px solid var(--color-border)',
-                    animation: 'budSlideUp 0.35s cubic-bezier(0.16,1,0.3,1)',
-                    maxHeight: isMinimised ? 56 : 480,
-                    transition: 'max-height 0.3s cubic-bezier(0.16,1,0.3,1)',
-                }}>
-                    {/* Header */}
-                    <div style={{
-                        background: 'linear-gradient(135deg, #C9883A 0%, #dda85d 100%)',
-                        color: 'white', padding: '0.85rem 1rem',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        flexShrink: 0,
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <div style={{
-                                width: 32, height: 32, borderRadius: '50%',
-                                background: 'rgba(255,255,255,0.2)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                                <Sparkles size={16} fill="currentColor" />
-                            </div>
+                <section
+                    className={`budPanel ${isMinimised ? 'budPanelMinimised' : ''}`}
+                    aria-label="Buddy learning companion"
+                >
+                    <header className="budHeader">
+                        <div className="budHeaderIdentity">
+                            <span className="budAvatar"><Sparkles size={18} fill="currentColor" aria-hidden="true" /></span>
                             <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.95rem', lineHeight: 1.2 }}>Bud</div>
-                                {currentPersonaObj && (
-                                    <div style={{ fontSize: '0.68rem', opacity: 0.85, lineHeight: 1 }}>
-                                        {currentPersonaObj.emoji} {currentPersonaObj.label}
-                                    </div>
-                                )}
+                                <div className="budHeaderName">Bud</div>
+                                <div className="budHeaderPersona">
+                                    {currentPersonaObj ? `${currentPersonaObj.emoji} ${currentPersonaObj.label}` : 'Your learning companion'}
+                                </div>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 4 }}>
+                        <div className="budHeaderActions">
                             <button
-                                onClick={() => setIsMinimised(m => !m)}
-                                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                type="button"
+                                className="budHeaderButton"
+                                onClick={() => setIsMinimised(value => !value)}
+                                aria-label={isMinimised ? 'Expand Buddy' : 'Minimise Buddy'}
+                                aria-expanded={!isMinimised}
                             >
-                                <ChevronDown size={16} style={{ transform: isMinimised ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                                <ChevronDown size={17} style={{ transform: isMinimised ? 'rotate(180deg)' : 'none' }} />
                             </button>
                             <button
+                                type="button"
+                                className="budHeaderButton"
                                 onClick={() => setIsOpen(false)}
-                                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                aria-label="Close Buddy"
                             >
-                                <X size={16} />
+                                <X size={17} />
                             </button>
                         </div>
-                    </div>
+                    </header>
 
                     {!isMinimised && (
                         <>
-                            {/* Messages */}
-                            <div style={{
-                                flex: 1, overflowY: 'auto', padding: '1rem',
-                                display: 'flex', flexDirection: 'column', gap: '0.85rem',
-                                maxHeight: 300,
-                            }}>
+                            <div className="budMessages" aria-live="polite" aria-relevant="additions text">
                                 {messages.map((msg, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                                    <div
+                                        key={i}
+                                        className={`budMessageRow ${msg.role === 'user' ? 'budMessageRowUser' : ''}`}
+                                    >
                                         {msg.role === 'model' && (
-                                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#C9883A,#dda85d)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 6, marginTop: 2 }}>
-                                                <Sparkles size={12} color="white" fill="white" />
-                                            </div>
+                                            <span className="budMessageAvatar" aria-hidden="true">
+                                                <Sparkles size={12} fill="currentColor" />
+                                            </span>
                                         )}
-                                        <div style={{
-                                            maxWidth: '82%',
-                                            padding: '0.75rem 1rem',
-                                            borderRadius: 16,
-                                            borderBottomRightRadius: msg.role === 'user' ? 4 : 16,
-                                            borderBottomLeftRadius: msg.role === 'model' ? 4 : 16,
-                                            backgroundColor: msg.role === 'user' ? '#F5E6C8' : 'white',
-                                            color: 'var(--color-soft-black)',
-                                            boxShadow: msg.role === 'model' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                                            border: msg.role === 'model' ? '1px solid var(--color-border)' : 'none',
-                                            fontSize: '0.875rem', lineHeight: 1.5,
-                                        }}>
-                                            {msg.content}
+                                        <div className={`budBubble ${msg.role === 'user' ? 'budBubbleUser' : ''}`}>
+                                            {msg.displayContent || msg.content}
                                         </div>
                                     </div>
                                 ))}
 
-                                {/* Persona picker */}
                                 {showPersonaPicker && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.25rem 0' }}>
+                                    <div className="budPersonaList" aria-label="Choose Buddy's tone">
                                         {PERSONAS.map(p => (
                                             <button
+                                                type="button"
                                                 key={p.id}
+                                                className="budPersonaButton"
                                                 onClick={() => handleSelectPersona(p)}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                                    padding: '0.7rem 1rem', borderRadius: 12,
-                                                    border: `1.5px solid ${p.color}30`,
-                                                    background: `${p.color}08`,
-                                                    cursor: 'pointer', textAlign: 'left',
-                                                    transition: 'all 0.2s',
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = `${p.color}15`; e.currentTarget.style.borderColor = `${p.color}60`; }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = `${p.color}08`; e.currentTarget.style.borderColor = `${p.color}30`; }}
                                             >
-                                                <span style={{ fontSize: '1.3rem' }}>{p.emoji}</span>
-                                                <div>
-                                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-soft-black)' }}>{p.label}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{p.desc}</div>
-                                                </div>
+                                                <span className="budPersonaEmoji" aria-hidden="true">{p.emoji}</span>
+                                                <span>
+                                                    <span className="budPersonaTitle">{p.label}</span>
+                                                    <span className="budPersonaDescription">{p.desc}</span>
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
                                 )}
 
-                                {isTyping && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#C9883A,#dda85d)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <Sparkles size={12} color="white" fill="white" />
-                                        </div>
-                                        <div style={{ padding: '0.75rem 1rem', borderRadius: 16, borderBottomLeftRadius: 4, background: 'white', border: '1px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', gap: 4 }}>
-                                            {[0, 0.2, 0.4].map((delay, i) => (
-                                                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#C9883A', animation: `budBounce 1.2s ${delay}s infinite` }} />
+                                {!isHistoryHydrating && (
+                                    <div className="budQuickActions">
+                                        <span className="budQuickActionsLabel">Try a one-tap learning action</span>
+                                        <div className="budQuickActionGrid">
+                                            {BUDDY_QUICK_ACTIONS.map(action => (
+                                                <button
+                                                    type="button"
+                                                    key={action.id}
+                                                    className="budQuickAction"
+                                                    onClick={() => handleQuickAction(action)}
+                                                    disabled={isTyping}
+                                                >
+                                                    <span className="budQuickActionEmoji" aria-hidden="true">{action.emoji}</span>
+                                                    <span>{action.label}</span>
+                                                </button>
                                             ))}
                                         </div>
+                                    </div>
+                                )}
+
+                                {isTyping && (
+                                    <div className="budMessageRow" role="status" aria-label="Bud is preparing a reply">
+                                        <span className="budMessageAvatar" aria-hidden="true">
+                                            <Sparkles size={12} fill="currentColor" />
+                                        </span>
+                                        <span className="budTypingBubble">
+                                            {[0, 0.18, 0.36].map(delay => (
+                                                <span key={delay} className="budTypingDot" style={{ animationDelay: `${delay}s` }} />
+                                            ))}
+                                        </span>
                                     </div>
                                 )}
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            {/* Input */}
-                            <div style={{
-                                padding: '0.75rem', background: 'white',
-                                borderTop: '1px solid var(--color-border)',
-                                display: 'flex', gap: '0.5rem', alignItems: 'flex-end',
-                            }}>
+                            <form
+                                className="budInputBar"
+                                onSubmit={event => {
+                                    event.preventDefault();
+                                    void handleSend();
+                                }}
+                            >
                                 <textarea
                                     ref={inputRef}
+                                    className="budInput"
                                     value={input}
-                                    onChange={e => setInput(e.target.value)}
+                                    onChange={event => setInput(event.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Ask Bud anything..."
+                                    placeholder="Or ask Bud something specific…"
                                     rows={1}
-                                    style={{
-                                        flex: 1, padding: '0.6rem 1rem',
-                                        borderRadius: 100, border: '1px solid var(--color-border)',
-                                        fontSize: '0.875rem', resize: 'none', outline: 'none',
-                                        fontFamily: 'inherit', lineHeight: 1.4,
-                                        background: '#fafafa',
-                                    }}
+                                    aria-label="Message Bud"
                                 />
                                 <button
-                                    onClick={handleSend}
+                                    type="submit"
+                                    className="budSend"
                                     disabled={!input.trim() || isTyping}
-                                    style={{
-                                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                                        background: (!input.trim() || isTyping) ? '#e8e0d0' : 'linear-gradient(135deg,#C9883A,#dda85d)',
-                                        color: 'white', border: 'none',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: (!input.trim() || isTyping) ? 'default' : 'pointer',
-                                        transition: 'all 0.2s',
-                                    }}
+                                    aria-label="Send message to Bud"
                                 >
-                                    <Send size={15} />
+                                    <Send size={16} />
                                 </button>
-                            </div>
-                            <div role="note" style={{
-                                padding: '0.45rem 0.8rem 0.7rem',
-                                background: 'white',
-                                color: '#77736b',
-                                fontSize: '0.68rem',
-                                lineHeight: 1.45,
-                            }}>
-                                Bud uses Google's Gemini AI to generate replies. Recent chat history and relevant profile preferences are saved to your StudyBud account. Avoid sharing passwords or sensitive private details.
-                            </div>
+                            </form>
+                            <p className="budNote">
+                                Bud can help you learn, practise and plan. Check important answers against your course material, and never share passwords or private account details.
+                            </p>
                         </>
                     )}
-                </div>
+                </section>
             )}
 
-            {/* ── Toggle Button ────────────────────────────────────────────── */}
             <button
-                onClick={() => { setIsOpen(o => !o); setIsMinimised(false); }}
-                style={{
-                    width: 60, height: 60, borderRadius: '50%',
-                    background: 'linear-gradient(145deg, #C9883A 0%, #dda85d 100%)',
-                    color: '#fff', border: 'none',
-                    boxShadow: isOpen ? '0 6px 20px rgba(201,136,58,0.4)' : '0 10px 28px rgba(201,136,58,0.45)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s',
-                    transform: isOpen ? 'scale(0.9) rotate(10deg)' : 'scale(1)',
-                }}
+                type="button"
+                className="budFab"
+                onClick={() => { setIsOpen(open => !open); setIsMinimised(false); }}
+                aria-label={isOpen ? 'Close Buddy' : 'Open Buddy'}
+                aria-expanded={isOpen}
             >
-                {isOpen ? <X size={26} /> : <Sparkles size={26} fill="currentColor" />}
+                {isOpen ? <X size={25} /> : <Sparkles size={25} fill="currentColor" />}
             </button>
 
             <style>{`
                 @keyframes budSlideUp {
-                    from { transform: translateY(16px) scale(0.97); opacity: 0; }
+                    from { transform: translateY(12px) scale(0.985); opacity: 0; }
                     to { transform: translateY(0) scale(1); opacity: 1; }
-                }
-                @keyframes budBounce {
-                    0%, 80%, 100% { transform: scale(0.4); opacity: 0.5; }
-                    40% { transform: scale(1); opacity: 1; }
                 }
             `}</style>
         </div>
     );
+
 };
 
 export default AICompanion;

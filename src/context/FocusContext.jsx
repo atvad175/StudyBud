@@ -4,7 +4,10 @@ import { supabase } from '../supabaseClient';
 import {
     ACTIVE_FOCUS_SESSION_KEY,
     PENDING_FOCUS_SESSION_KEY,
+    getAccountScopedFocusKey,
     hydrateActiveFocusSession,
+    isFocusSessionOwnedByUser,
+    isPendingFocusSessionOwnedByUser,
     readPendingFocusSession,
     readStoredJson,
     remainingSeconds,
@@ -16,12 +19,46 @@ import {
 const DEFAULT_DURATION = 25 * 60;
 const MIN_SAVED_DURATION = 10;
 
-const loadActiveRuntime = () =>
-    hydrateActiveFocusSession(readStoredJson(ACTIVE_FOCUS_SESSION_KEY), Date.now());
+const loadActiveRuntime = (userId, accountStorageKey) => {
+    if (!userId || !accountStorageKey) return null;
+    let saved = readStoredJson(accountStorageKey);
 
-export const FocusProvider = ({ children }) => {
-    const [restoredRuntime] = useState(loadActiveRuntime);
-    const [initialPendingSession] = useState(readPendingFocusSession);
+    // Migrate a legacy tab-level timer only when its original owner is known
+    // and matches the currently authenticated account.
+    if (!saved) {
+        const legacy = readStoredJson(ACTIVE_FOCUS_SESSION_KEY);
+        if (isFocusSessionOwnedByUser(legacy, userId)) {
+            const migrated = writeStoredJson(accountStorageKey, legacy);
+            if (migrated) removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+            saved = legacy;
+        }
+    }
+
+    if (!isFocusSessionOwnedByUser(saved, userId)) return null;
+    return hydrateActiveFocusSession(saved, Date.now());
+};
+
+const loadPendingSessionForUser = (userId, accountStorageKey) => {
+    if (!userId || !accountStorageKey) return null;
+    let pending = readPendingFocusSession(accountStorageKey);
+
+    if (!pending) {
+        const legacy = readPendingFocusSession(PENDING_FOCUS_SESSION_KEY);
+        if (isPendingFocusSessionOwnedByUser(legacy, userId)) {
+            const migrated = writeStoredJson(accountStorageKey, legacy);
+            if (migrated) removeStoredValue(PENDING_FOCUS_SESSION_KEY);
+            pending = legacy;
+        }
+    }
+
+    return isPendingFocusSessionOwnedByUser(pending, userId) ? pending : null;
+};
+
+export const FocusProvider = ({ children, userId = null }) => {
+    const activeStorageKey = getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY, userId);
+    const pendingStorageKey = getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY, userId);
+    const [restoredRuntime] = useState(() => loadActiveRuntime(userId, activeStorageKey));
+    const [initialPendingSession] = useState(() => loadPendingSessionForUser(userId, pendingStorageKey));
     const [isActive, setIsActive] = useState(() => Boolean(restoredRuntime?.isActive));
     const [isPaused, setIsPaused] = useState(() => restoredRuntime?.isPaused ?? true);
     const [mode, setModeState] = useState(() =>
@@ -48,10 +85,12 @@ export const FocusProvider = ({ children }) => {
         initialPendingSession ? 'A focus session still needs saving. Retry the save before starting another session.' : ''
     );
     const [completed, setCompleted] = useState(() => initialPendingSession?.reason === 'completed');
-    const [currentUserId, setCurrentUserId] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(userId);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshSessions = () => setRefreshKey(value => value + 1);
 
     const timerRef = useRef(null);
-    const activeOwnerUserIdRef = useRef(restoredRuntime?.ownerUserId ?? null);
+    const activeOwnerUserIdRef = useRef(restoredRuntime?.ownerUserId ?? userId ?? null);
     const deadlineRef = useRef(restoredRuntime?.deadlineAt ?? null);
     const stopwatchStartedAtRef = useRef(restoredRuntime?.stopwatchStartedAt ?? null);
     const stopwatchElapsedBaseRef = useRef(
@@ -66,11 +105,12 @@ export const FocusProvider = ({ children }) => {
         let active = true;
 
         const fetchSessions = async () => {
+            setLoading(true);
             setLoadError('');
             try {
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw authError;
-                if (!user) {
+                if (!user || !userId || user.id !== userId) {
                     if (active) {
                         setCurrentUserId(null);
                         setSessions([]);
@@ -93,7 +133,7 @@ export const FocusProvider = ({ children }) => {
             } catch (error) {
                 console.error('Unable to load focus history:', error);
                 if (active) {
-                    setSessions([]);
+                    // Keep any already-loaded history visible; a network error does not mean it is empty.
                     setLoadError('Your saved focus history could not be loaded. You can still use the timer; reload this page when your connection is stable.');
                 }
             } finally {
@@ -103,7 +143,7 @@ export const FocusProvider = ({ children }) => {
 
         fetchSessions();
         return () => { active = false; };
-    }, []);
+    }, [refreshKey, userId]);
 
     const persistSessionDraft = useCallback(async (draft) => {
         if (savingRef.current) return false;
@@ -112,13 +152,13 @@ export const FocusProvider = ({ children }) => {
         setIsSavingSession(true);
         let retryDraft = draft;
         setPendingSession(draft);
-        writeStoredJson(PENDING_FOCUS_SESSION_KEY, draft);
+        writeStoredJson(pendingStorageKey, draft);
 
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError) throw authError;
             if (!user) throw new Error('SIGN_IN_REQUIRED');
-            if (draft.owner_user_id && draft.owner_user_id !== user.id) {
+            if (!userId || user.id !== userId || (draft.owner_user_id && draft.owner_user_id !== user.id)) {
                 throw new Error('WRONG_ACCOUNT');
             }
 
@@ -130,7 +170,7 @@ export const FocusProvider = ({ children }) => {
             };
             retryDraft = ownedDraft;
             setPendingSession(ownedDraft);
-            writeStoredJson(PENDING_FOCUS_SESSION_KEY, ownedDraft);
+            writeStoredJson(pendingStorageKey, ownedDraft);
 
             // If the database accepted an earlier insert but its response was lost,
             // the stable timestamp and session fields let a retry find that record.
@@ -169,14 +209,14 @@ export const FocusProvider = ({ children }) => {
             ].slice(0, 50));
             setCurrentUserId(user.id);
             setPendingSession(null);
-            removeStoredValue(PENDING_FOCUS_SESSION_KEY);
+            removeStoredValue(pendingStorageKey);
             setSaveError('');
             setCompleted(ownedDraft.reason === 'completed');
             return true;
         } catch (error) {
             console.error('Unable to save focus session:', error);
             setPendingSession(retryDraft);
-            writeStoredJson(PENDING_FOCUS_SESSION_KEY, retryDraft);
+            writeStoredJson(pendingStorageKey, retryDraft);
 
             if (error?.message === 'SIGN_IN_REQUIRED') {
                 setSaveError('Your focus session is kept in this tab, but saving requires you to sign in. Sign in to retry, or explicitly discard this session.');
@@ -190,7 +230,7 @@ export const FocusProvider = ({ children }) => {
             savingRef.current = false;
             setIsSavingSession(false);
         }
-    }, []);
+    }, [pendingStorageKey, userId]);
 
     const retryPendingSessionSave = useCallback(async () => {
         if (!pendingSession) return true;
@@ -200,12 +240,12 @@ export const FocusProvider = ({ children }) => {
     const discardPendingSession = useCallback(() => {
         if (savingRef.current) return false;
         setPendingSession(null);
-        removeStoredValue(PENDING_FOCUS_SESSION_KEY);
+        removeStoredValue(pendingStorageKey);
         setSaveError('');
         setCompleted(false);
         setTimeLeft(mode === 'TIMER' ? duration : 0);
         return true;
-    }, [duration, mode]);
+    }, [duration, mode, pendingStorageKey]);
 
     const createDraft = useCallback((actualDuration, reason, actualMode = mode) => ({
         version: 1,
@@ -226,7 +266,7 @@ export const FocusProvider = ({ children }) => {
         timerRef.current = null;
         deadlineRef.current = null;
         stopwatchStartedAtRef.current = null;
-        removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+        removeStoredValue(activeStorageKey);
 
         setIsActive(false);
         setIsPaused(true);
@@ -235,7 +275,7 @@ export const FocusProvider = ({ children }) => {
 
         const draft = createDraft(duration, 'completed', 'TIMER');
         return persistSessionDraft(draft);
-    }, [createDraft, duration, persistSessionDraft]);
+    }, [activeStorageKey, createDraft, duration, persistSessionDraft]);
 
     // The deadline is the source of truth for timers, so tab throttling and sleep
     // do not make a 25-minute session silently run longer than 25 minutes.
@@ -289,11 +329,11 @@ export const FocusProvider = ({ children }) => {
     // Keep a recoverable copy of an in-progress session across reloads in this tab.
     useEffect(() => {
         if (!isActive) {
-            removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+            removeStoredValue(activeStorageKey);
             return;
         }
 
-        writeStoredJson(ACTIVE_FOCUS_SESSION_KEY, {
+        writeStoredJson(activeStorageKey, {
             version: 1,
             isActive,
             isPaused,
@@ -306,9 +346,13 @@ export const FocusProvider = ({ children }) => {
             stopwatchStartedAt: stopwatchStartedAtRef.current,
             stopwatchElapsedBase: stopwatchElapsedBaseRef.current,
         });
-    }, [category, currentUserId, duration, isActive, isPaused, mode, timeLeft]);
+    }, [activeStorageKey, category, currentUserId, duration, isActive, isPaused, mode, timeLeft]);
 
     const startSession = useCallback(() => {
+        if (!currentUserId) {
+            setSaveError('Sign in before starting a focus session so it can be saved to the correct account.');
+            return false;
+        }
         if (isActive) return false;
         if (pendingSession || savingRef.current) {
             setSaveError('Save or explicitly discard the previous session before starting another one.');
@@ -334,7 +378,7 @@ export const FocusProvider = ({ children }) => {
 
         setIsActive(true);
         setIsPaused(false);
-        writeStoredJson(ACTIVE_FOCUS_SESSION_KEY, {
+        writeStoredJson(activeStorageKey, {
             version: 1,
             isActive: true,
             isPaused: false,
@@ -348,7 +392,7 @@ export const FocusProvider = ({ children }) => {
             stopwatchElapsedBase: 0,
         });
         return true;
-    }, [category, currentUserId, duration, isActive, mode, pendingSession]);
+    }, [activeStorageKey, category, currentUserId, duration, isActive, mode, pendingSession]);
 
     const pauseSession = useCallback(() => {
         if (!isActive || isPaused) return;
@@ -414,7 +458,7 @@ export const FocusProvider = ({ children }) => {
         timerRef.current = null;
         deadlineRef.current = null;
         stopwatchStartedAtRef.current = null;
-        removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+        removeStoredValue(activeStorageKey);
         setIsActive(false);
         setIsPaused(true);
         setCompleted(false);
@@ -426,7 +470,7 @@ export const FocusProvider = ({ children }) => {
         const saved = await persistSessionDraft(draft);
         if (!saved) setTimeLeft(actualDuration);
         return saved;
-    }, [completed, createDraft, duration, finishTimerSession, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
+    }, [activeStorageKey, completed, createDraft, duration, finishTimerSession, isActive, isPaused, mode, pendingSession, persistSessionDraft, timeLeft]);
 
     const updateDuration = useCallback((minutes) => {
         if (isActive || pendingSession || savingRef.current) return;
@@ -486,6 +530,7 @@ export const FocusProvider = ({ children }) => {
                 isSavingSession,
                 retryPendingSessionSave,
                 discardPendingSession,
+                refreshSessions,
             }}
         >
             {children}

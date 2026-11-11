@@ -3,11 +3,13 @@ import styles from '../StudyShared.module.css';
 import { FileText, Plus, Calendar, CheckSquare } from 'lucide-react';
 import { useStudy } from '../../../context/useStudy';
 import { useToast } from '../../../context/useToast';
+import { parseLocalDateValue } from '../studyPlannerUtils';
 
 const AssignmentsBreakdown = () => {
-    const { assignments, addAssignment, updateAssignment } = useStudy();
+    const { assignments = [], addAssignment, updateAssignment, deleteAssignment, loading = false, loadError = '', refreshStudy } = useStudy();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
+    const [busyAssignmentId, setBusyAssignmentId] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [newAssignment, setNewAssignment] = useState({
         title: '',
@@ -46,18 +48,61 @@ const AssignmentsBreakdown = () => {
     };
 
     const toggleStep = async (assignmentId, stepIndex) => {
-        const assignment = assignments.find(item => item.id === assignmentId);
-        if (!assignment) return;
+        const assignment = assignments.find(item => String(item.id) === String(assignmentId));
+        if (!assignment || busyAssignmentId !== null) return;
 
         const updatedSteps = (assignment.steps || []).map((step, index) =>
             index === stepIndex ? { ...step, done: !step.done } : step
         );
+        const complete = updatedSteps.length > 0 && updatedSteps.every(step => step.done);
+        setBusyAssignmentId(assignmentId);
         try {
-            await updateAssignment(assignmentId, { steps: updatedSteps });
+            await updateAssignment(assignmentId, { steps: updatedSteps, status: complete ? 'completed' : 'in_progress' });
+            if (complete) toast.success('All steps completed. Assignment marked done.');
         } catch (error) {
             toast.error(error?.message || 'Progress could not be saved. Please try again.');
+        } finally {
+            setBusyAssignmentId(null);
         }
     };
+
+    const handleMarkComplete = async assignment => {
+        if (busyAssignmentId !== null) return;
+        setBusyAssignmentId(assignment.id);
+        try {
+            const steps = Array.isArray(assignment.steps) ? assignment.steps.map(step => ({ ...step, done: true })) : [];
+            await updateAssignment(assignment.id, { status: 'completed', steps });
+            toast.success('Assignment marked complete.');
+        } catch (error) {
+            toast.error(error?.message || 'The assignment could not be completed.');
+        } finally {
+            setBusyAssignmentId(null);
+        }
+    };
+
+    const handleDeleteAssignment = async assignment => {
+        if (busyAssignmentId !== null) return;
+        const confirmed = window.confirm('Delete “' + assignment.title + '”? This cannot be undone.');
+        if (!confirmed) return;
+        setBusyAssignmentId(assignment.id);
+        try {
+            await deleteAssignment(assignment.id);
+            toast.success('Assignment deleted.');
+        } catch (error) {
+            toast.error(error?.message || 'The assignment could not be deleted.');
+        } finally {
+            setBusyAssignmentId(null);
+        }
+    };
+
+    const sortedAssignments = [...assignments].sort((a, b) => {
+        const aDone = String(a.status || '').toLowerCase() === 'completed';
+        const bDone = String(b.status || '').toLowerCase() === 'completed';
+        if (aDone !== bDone) return aDone ? 1 : -1;
+        const aDue = parseLocalDateValue(a.deadline)?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bDue = parseLocalDateValue(b.deadline)?.getTime() ?? Number.POSITIVE_INFINITY;
+        return aDue - bDue;
+    });
 
     return (
         <div className={styles.container}>
@@ -148,32 +193,73 @@ const AssignmentsBreakdown = () => {
             )}
 
             {/* Assignments List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {assignments.map(assignment => (
-                    <div key={assignment.id} style={{ background: 'white', padding: '2rem', borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                            <div>
-                                <h2 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>{assignment.title}</h2>
-                                {assignment.subject && (
-                                    <span className={styles.subjectBadge}>{assignment.subject}</span>
-                                )}
-                            </div>
-                            {assignment.deadline && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#636e72' }}>
-                                    <Calendar size={16} />
-                                    <span style={{ fontSize: '0.9rem' }}>{new Date(assignment.deadline).toLocaleDateString()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1rem', color: '#777' }}>
+                <span>{assignments.filter(item => String(item.status || '').toLowerCase() !== 'completed').length} open · {assignments.filter(item => String(item.status || '').toLowerCase() === 'completed').length} completed</span>
+                <span style={{ fontSize: '0.82rem' }}>Deadlines first · progress saves automatically</span>
+            </div>
+            {loadError && (
+                <div role="alert" style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    Assignments could not be fully loaded. Your saved records have not been deleted.
+                    <button type="button" onClick={refreshStudy} style={{ marginLeft: '0.75rem', textDecoration: 'underline' }}>Retry</button>
+                </div>
+            )}
+            {loading ? (
+                <p role="status" style={{ padding: '1.5rem', color: 'var(--color-text-secondary)' }}>Loading your assignments…</p>
+            ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {sortedAssignments.map(assignment => (
+                    <div key={assignment.id} style={{ background: 'white', padding: '1.6rem', borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid ' + (String(assignment.status || '').toLowerCase() === 'completed' ? '#cce6d0' : '#eeeae1') }}>
+                        {(() => {
+                            const steps = Array.isArray(assignment.steps) ? assignment.steps : [];
+                            const doneSteps = steps.filter(step => step.done).length;
+                            const progress = steps.length ? Math.round((doneSteps / steps.length) * 100) : (String(assignment.status || '').toLowerCase() === 'completed' ? 100 : 0);
+                            const deadlineDate = parseLocalDateValue(assignment.deadline);
+                            const todayStart = new Date();
+                            todayStart.setHours(0, 0, 0, 0);
+                            const deadlineDay = deadlineDate ? new Date(deadlineDate) : null;
+                            if (deadlineDay) deadlineDay.setHours(0, 0, 0, 0);
+                            const overdue = Boolean(deadlineDay && deadlineDay < todayStart)
+                                && String(assignment.status || '').toLowerCase() !== 'completed';
+                            return (
+                                <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' }}>
+                            <div style={{ minWidth: 0 }}>
+                                <h2 style={{ fontSize: '1.45rem', marginBottom: '0.5rem', overflowWrap: 'anywhere' }}>{assignment.title}</h2>
+                                {assignment.subject && <span className={styles.subjectBadge}>{assignment.subject}</span>}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                                    <span style={{ borderRadius: '100px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', fontWeight: 750, background: progress === 100 ? '#edf7ed' : '#f5f1e7', color: progress === 100 ? '#34683b' : '#77633a' }}>{String(assignment.status || 'not_started').replace(/_/g, ' ')}</span>
+                                    <span style={{ fontSize: '0.78rem', color: overdue ? '#b42318' : '#777' }}>{overdue ? 'Overdue' : deadlineDate ? 'Due ' + deadlineDate.toLocaleDateString() : 'No deadline'}</span>
                                 </div>
-                            )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                                {String(assignment.status || '').toLowerCase() !== 'completed' && (
+                                    <button type="button" onClick={() => void handleMarkComplete(assignment)} disabled={busyAssignmentId !== null} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', border: '1px solid #cce6d0', borderRadius: '10px', background: '#edf7ed', color: '#34683b', padding: '0.6rem 0.7rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}>
+                                        <CheckSquare size={15} /> Complete
+                                    </button>
+                                )}
+                                <button type="button" onClick={() => void handleDeleteAssignment(assignment)} disabled={busyAssignmentId !== null} aria-label={'Delete ' + assignment.title} title="Delete assignment" style={{ border: '1px solid #eee2df', borderRadius: '10px', background: '#fff8f6', color: '#a13d33', padding: '0.6rem', cursor: 'pointer' }}>
+                                    <span aria-hidden="true">×</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ marginBottom: '1.1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.78rem', color: '#777', marginBottom: '0.4rem' }}>
+                                <span>Step progress</span><strong>{progress}% · {doneSteps}/{steps.length || 0} steps</strong>
+                            </div>
+                            <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label={assignment.title + ' progress'} style={{ height: '7px', borderRadius: '20px', overflow: 'hidden', background: '#f0ede6' }}>
+                                <div style={{ width: progress + '%', height: '100%', background: progress === 100 ? '#64a46a' : '#b49a63', transition: 'width 0.2s ease' }} />
+                            </div>
                         </div>
 
-                        {assignment.steps && assignment.steps.length > 0 && (
+                        {Array.isArray(assignment.steps) && assignment.steps.length > 0 && (
                             <div className={styles.stepsList}>
                                 {assignment.steps.map((step, i) => (
                                     <div key={i} className={styles.step}>
                                         <input
                                             type="checkbox"
-                                            checked={step.done}
-                                            onChange={() => toggleStep(assignment.id, i)}
+                                            checked={Boolean(step.done)}
+                                            disabled={busyAssignmentId !== null}
+                                            onChange={() => void toggleStep(assignment.id, i)}
                                             className={styles.stepCheckbox}
                                         />
                                         <span className={step.done ? styles.stepDone : ''}>{step.name}</span>
@@ -181,16 +267,20 @@ const AssignmentsBreakdown = () => {
                                 ))}
                             </div>
                         )}
+                                </>
+                            );
+                        })()}
                     </div>
                 ))}
 
-                {assignments.length === 0 && !showForm && (
+                {assignments.length === 0 && !showForm && !loadError && (
                     <div style={{ textAlign: 'center', padding: '4rem', color: '#999' }}>
                         <FileText size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
                         <p>No assignments yet. Click "New Assignment" to get started.</p>
                     </div>
                 )}
             </div>
+            )}
         </div>
     );
 };

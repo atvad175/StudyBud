@@ -1,6 +1,31 @@
 export const ACTIVE_FOCUS_SESSION_KEY = 'studybud_active_focus_session_v1';
 export const PENDING_FOCUS_SESSION_KEY = 'studybud_pending_focus_session_v1';
 
+export const getAccountScopedFocusKey = (baseKey, userId) => {
+    if (typeof baseKey !== 'string' || !baseKey || typeof userId !== 'string' || !userId.trim()) {
+        return null;
+    }
+    return baseKey + '_' + encodeURIComponent(userId.trim());
+};
+
+export const isFocusSessionOwnedByUser = (session, userId) =>
+    Boolean(
+        session &&
+        typeof userId === 'string' &&
+        userId.trim() &&
+        typeof session.ownerUserId === 'string' &&
+        session.ownerUserId === userId
+    );
+
+export const isPendingFocusSessionOwnedByUser = (session, userId) =>
+    Boolean(
+        session &&
+        typeof userId === 'string' &&
+        userId.trim() &&
+        typeof session.owner_user_id === 'string' &&
+        session.owner_user_id === userId
+    );
+
 const MAX_DURATION_SECONDS = 12 * 60 * 60;
 
 const asNonNegativeSeconds = (value) => {
@@ -113,8 +138,8 @@ export const removeStoredValue = (key) => {
     }
 };
 
-export const readPendingFocusSession = () => {
-    const draft = readStoredJson(PENDING_FOCUS_SESSION_KEY);
+export const readPendingFocusSession = (storageKey = PENDING_FOCUS_SESSION_KEY) => {
+    const draft = readStoredJson(storageKey);
     if (!draft || draft.version !== 1) return null;
 
     const durationSeconds = Number(draft.duration_seconds);

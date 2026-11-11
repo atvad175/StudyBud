@@ -25,15 +25,33 @@ const ReflectionEngine = () => {
         { id: 'identity', label: "What story are you telling yourself about your ability?" },
     ];
 
+    const activeQuestions = mode === 'daily' ? checkinQuestions : weeklyQuestions;
+    const activeAnswers = Object.fromEntries(
+        activeQuestions
+            .map(question => [question.id, String(answers[question.id] || '').trim()])
+            .filter(([, answer]) => answer.length > 0)
+    );
+    const hasAnswers = Object.keys(activeAnswers).length > 0;
+
+    const changeMode = nextMode => {
+        if (nextMode === mode || isSaving) return;
+        setAnswers({});
+        setMode(nextMode);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSaving) return;
+        if (!hasAnswers) {
+            toast.info('Add at least one response before saving your reflection.');
+            return;
+        }
 
         setIsSaving(true);
         try {
             await addLog({
                 type: 'reflection',
-                content: { mode, answers },
+                content: { mode, answers: activeAnswers },
                 tags: [mode]
             });
             setSubmitted(true);
@@ -68,10 +86,10 @@ const ReflectionEngine = () => {
                     <h1>Reflection Engine</h1>
                 </div>
                 <div className={styles.modeSelector}>
-                    <button className={`${styles.modeBtn} ${mode === 'daily' ? styles.active : ''}`} onClick={() => setMode('daily')}>
+                    <button type="button" className={`${styles.modeBtn} ${mode === 'daily' ? styles.active : ''}`} onClick={() => changeMode('daily')} aria-pressed={mode === 'daily'}>
                         <Sun size={14} style={{ marginRight: '6px' }} /> Daily Micro
                     </button>
-                    <button className={`${styles.modeBtn} ${mode === 'weekly' ? styles.active : ''}`} onClick={() => setMode('weekly')}>
+                    <button type="button" className={`${styles.modeBtn} ${mode === 'weekly' ? styles.active : ''}`} onClick={() => changeMode('weekly')} aria-pressed={mode === 'weekly'}>
                         <Moon size={14} style={{ marginRight: '6px' }} /> Weekly Macro
                     </button>
                 </div>
@@ -91,21 +109,26 @@ const ReflectionEngine = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    {(mode === 'daily' ? checkinQuestions : weeklyQuestions).map(q => (
+                    {activeQuestions.map(q => (
                         <div key={q.id}>
-                            <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: '600', color: '#444' }}>{q.label}</label>
+                            <label htmlFor={`reflection-${q.id}`} style={{ display: 'block', marginBottom: '0.8rem', fontWeight: '600', color: '#444' }}>{q.label}</label>
                             <textarea
+                                id={`reflection-${q.id}`}
                                 className={styles.mainInput}
                                 rows={3}
-                                placeholder="..."
-                                style={{ width: '100%', resize: 'none' }}
+                                maxLength={1500}
+                                placeholder="Write as much or as little as you need…"
+                                style={{ width: '100%', resize: 'vertical' }}
                                 value={answers[q.id] || ''}
-                                onChange={e => setAnswers({ ...answers, [q.id]: e.target.value })}
+                                onChange={e => setAnswers(previous => ({ ...previous, [q.id]: e.target.value }))}
                             />
                         </div>
                     ))}
 
-                    <button type="submit" disabled={isSaving} className={styles.sendBtn} style={{ width: '100%', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', opacity: isSaving ? 0.7 : 1 }}>
+                    <p style={{ margin: '-0.75rem 0 0', color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>
+                        {Object.keys(activeAnswers).length} of {activeQuestions.length} prompts answered · At least one response is required.
+                    </p>
+                    <button type="submit" disabled={isSaving || !hasAnswers} className={styles.sendBtn} style={{ width: '100%', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', opacity: isSaving || !hasAnswers ? 0.7 : 1 }}>
                         {isSaving ? 'Saving privately…' : 'Log Reflection'}
                     </button>
                 </form>

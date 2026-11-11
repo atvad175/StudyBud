@@ -8,8 +8,12 @@ const getAccessToken = async () => {
     return accessToken;
 };
 
+const AI_REQUEST_TIMEOUT_MS = 60_000;
+
 const requestAI = async (payload) => {
     const accessToken = await getAccessToken();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
     let response;
     try {
         response = await fetch('/api/ai', {
@@ -19,16 +23,26 @@ const requestAI = async (payload) => {
                 Authorization: `Bearer ${accessToken}`,
             },
             body: JSON.stringify(payload),
+            signal: controller.signal,
         });
-    } catch {
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error?.name === 'AbortError') {
+            throw new Error('StudyBud AI took too long to respond. Try a shorter topic or try again.');
+        }
         throw new Error('StudyBud AI could not connect. Check your connection and try again.');
     }
 
     let body;
     try {
         body = await response.json();
-    } catch {
+    } catch (error) {
+        if (controller.signal.aborted || error?.name === 'AbortError') {
+            throw new Error('StudyBud AI took too long to respond. Try a shorter topic or try again.');
+        }
         throw new Error('StudyBud AI returned an unexpected response. Please try again.');
+    } finally {
+        clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
@@ -37,7 +51,10 @@ const requestAI = async (payload) => {
         throw new Error(body?.error || 'StudyBud AI could not complete that request. Please try again.');
     }
 
-    return body?.result;
+    if (!body || !Object.prototype.hasOwnProperty.call(body, 'result')) {
+        throw new Error('StudyBud AI returned an incomplete response. Please try again.');
+    }
+    return body.result;
 };
 
 // AI availability now depends on authenticated access to the server endpoint.

@@ -28,7 +28,7 @@ const MainDashboard = () => {
     const todayLogs = typeof getTodayLog === 'function' ? getTodayLog() : {};
     const completedHabits = Object.values(todayLogs || {}).filter(log => log?.status === 'completed' || log?.completed).length;
     const openAssignments = assignments.filter(item => String(item?.status || '').toLowerCase() !== 'completed');
-    const plannedTasks = tasks.filter(task => task?.status === 'Planned');
+    const plannedTasks = tasks.filter(task => String(task?.status || '').trim().toLowerCase() === 'planned');
     const dueReviewCount = reviews.filter(review => {
         const reviewDate = review?.next_review_date ? new Date(review.next_review_date) : null;
         return reviewDate && !Number.isNaN(reviewDate.getTime()) && reviewDate.getTime() <= currentTime.getTime();
@@ -38,7 +38,7 @@ const MainDashboard = () => {
     const nextAction = isActive
         ? { label: 'Continue your active focus session', detail: `${isPaused ? 'Paused' : 'In progress'} · ${formatTime(timeLeft)} remaining`, path: '/focus/active', icon: Clock }
         : dueReviewCount > 0
-            ? { label: `Review ${dueReviewCount} due topic${dueReviewCount === 1 ? '' : 's'}`, detail: 'Short retrieval practice beats leaving reviews to pile up.', path: '/study/flashcards', icon: CalendarClock }
+            ? { label: `Review ${dueReviewCount} due topic${dueReviewCount === 1 ? '' : 's'}`, detail: 'Your Study Plan brings due topics and next steps together.', path: '/study/plan', icon: CalendarClock }
             : plannedTasks.length > 0
                 ? { label: 'Choose your next planned task', detail: `${plannedTasks.length} task${plannedTasks.length === 1 ? '' : 's'} in your Time queue.`, path: '/time/tasks', icon: ListTodo }
                 : openAssignments.length > 0
@@ -57,7 +57,7 @@ const MainDashboard = () => {
             name: 'Habits',
             path: '/habits',
             icon: Layers,
-            color: '#DDA85D',
+            color: '#526DFF',
             desc: 'Small steps you repeat until they feel easy.',
         },
         {
@@ -102,9 +102,9 @@ const MainDashboard = () => {
                     <span>{welcomeMsg}, {name}</span>
                 </div>
                 <h1 className={styles.centerpiece}>
-                    Study<span>Bud</span>
+                    What’s your next <span>win?</span>
                 </h1>
-                <p className={styles.tagline}>Pick a section below to plan, focus, or study.</p>
+                <p className={styles.tagline}>Your day, your pace. Choose one useful thing and build from there.</p>
             </div>
 
             <section className={styles.quickStart} aria-labelledby="quick-start-heading">

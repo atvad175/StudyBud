@@ -57,6 +57,8 @@ import FeynmanSandbox from './modules/Study/pages/FeynmanSandbox';
 import AssignmentsBreakdown from './modules/Study/pages/AssignmentsBreakdown';
 import ExamsPrep from './modules/Study/pages/ExamsPrep';
 import Flashcards from './modules/Study/pages/Flashcards';
+import StudyPlanner from './modules/Study/pages/StudyPlanner';
+import StudyInsights from './modules/Study/pages/StudyInsights';
 
 
 
@@ -72,6 +74,7 @@ const App = () => {
   useEffect(() => {
     let active = true;
     let authGeneration = 0;
+    let currentSessionUserId = null;
     // Remove credentials written by older versions of the signup flow.
     localStorage.removeItem('studybud_password');
 
@@ -192,13 +195,16 @@ const App = () => {
     };
 
     const syncSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (!active) return;
-
+      // Claim the generation before the async lookup. Any newer auth event
+      // invalidates this lookup instead of letting stale session data win.
       const generation = ++authGeneration;
+      setLoading(true);
+      const { data, error } = await supabase.auth.getSession();
+      if (!active || generation !== authGeneration) return;
       if (error) console.error('Unable to restore authentication session:', error.code || 'unknown');
 
       const currentSession = data?.session ?? null;
+      currentSessionUserId = currentSession?.user?.id ?? null;
       setSession(currentSession);
 
       if (currentSession) {
@@ -221,6 +227,7 @@ const App = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       const generation = ++authGeneration;
+      currentSessionUserId = nextSession?.user?.id ?? null;
       setSession(nextSession ?? null);
       if (!nextSession) {
         setOnboardingCheckError('');
@@ -241,7 +248,7 @@ const App = () => {
 
     const handleOnboardingComplete = (event) => {
       const userId = event?.detail?.userId;
-      if (userId) {
+      if (userId && userId === currentSessionUserId) {
         // The explicit completion event makes any older lookup stale.
         authGeneration += 1;
         const complete = localStorage.getItem('studybud_onboarded_user_id') === userId;
@@ -251,11 +258,17 @@ const App = () => {
       }
     };
 
-    const handleStorage = async () => {
-      const { data } = await supabase.auth.getSession();
-      const userId = data?.session?.user?.id;
-      const marker = localStorage.getItem('studybud_onboarded_user_id');
-      setIsOnboarded(Boolean(userId && marker === userId));
+    const handleStorage = (event) => {
+      // The onboarding marker is device-local. Re-read the authenticated
+      // account and its server profile instead of trusting a marker alone.
+      if (event?.key !== 'studybud_onboarded_user_id' && event?.key !== null) return;
+      syncSession().catch((error) => {
+        console.error('Unable to synchronize StudyBud account state:', error?.code || 'unknown');
+        if (active) {
+          setOnboardingCheckError('We could not verify your saved setup. Check your connection and try again.');
+          setLoading(false);
+        }
+      });
     };
 
     window.addEventListener('studybud-onboarded', handleOnboardingComplete);
@@ -288,11 +301,11 @@ const App = () => {
   return (
     <AIProvider key={session?.user?.id || 'signed-out'}>
       <MusicProvider>
-        <HabitsProvider>
-          <FocusProvider>
-            <TimeProvider>
-              <MindProvider>
-                <StudyProvider>
+        <HabitsProvider key={session?.user?.id || 'signed-out'} userId={session?.user?.id || null}>
+          <FocusProvider key={session?.user?.id || 'signed-out'} userId={session?.user?.id || null}>
+            <TimeProvider key={session?.user?.id || 'signed-out'} userId={session?.user?.id || null}>
+              <MindProvider key={session?.user?.id || 'signed-out'} userId={session?.user?.id || null}>
+                <StudyProvider key={session?.user?.id || 'signed-out'} userId={session?.user?.id || null}>
                   <ToastProvider>
                   <BrowserRouter>
                     <Routes>
@@ -310,7 +323,7 @@ const App = () => {
                         element={session ? (isOnboarded ? <Navigate to="/" replace /> : <OnboardingSetup />) : <Navigate to="/login" replace />}
                       />
 
-                      <Route path="/" element={session ? (isOnboarded ? <MainLayout /> : <Navigate to="/onboarding/setup" replace />) : <Navigate to="/landing" replace />}>
+                      <Route path="/" element={session ? (isOnboarded ? <MainLayout key={session.user.id} userId={session.user.id} /> : <Navigate to="/onboarding/setup" replace />) : <Navigate to="/landing" replace />}>
                         <Route index element={<MainDashboard />} />
                         <Route path="settings" element={<SettingsPage />} />
 
@@ -356,6 +369,8 @@ const App = () => {
                           <Route index element={<UnifiedStudy />} />
                           <Route path="feynman" element={<FeynmanSandbox />} />
                           <Route path="assignments" element={<AssignmentsBreakdown />} />
+                          <Route path="plan" element={<StudyPlanner />} />
+                          <Route path="insights" element={<StudyInsights />} />
                           <Route path="exams" element={<ExamsPrep />} />
                           <Route path="flashcards" element={<Flashcards />} />
                         </Route>

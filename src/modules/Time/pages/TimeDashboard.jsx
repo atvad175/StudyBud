@@ -51,7 +51,7 @@ const getTaskPriorityScore = (task, now = new Date()) => {
 };
 
 const TimeDashboard = () => {
-    const { tasks, updateTask } = useTime();
+    const { tasks = [], updateTask, loading = false, loadError = '', refreshTasks } = useTime();
     const { toast } = useToast();
     const [savingTaskId, setSavingTaskId] = useState(null);
 
@@ -69,9 +69,10 @@ const TimeDashboard = () => {
     };
 
     // Stats
-    const planned = tasks.filter(t => t.status === 'Planned');
-    const executed = tasks.filter(t => t.status === 'Executed');
-    const reflected = tasks.filter(t => t.status === 'Reflected');
+    const getStatus = task => String(task?.status || 'Planned').trim().toLowerCase();
+    const planned = tasks.filter(task => getStatus(task) === 'planned');
+    const executed = tasks.filter(task => getStatus(task) === 'executed');
+    const reflected = tasks.filter(task => getStatus(task) === 'reflected');
 
     const totalTasks = tasks.length;
     const completedTasks = executed.length + reflected.length;
@@ -118,6 +119,13 @@ const TimeDashboard = () => {
                 </div>
             </header>
 
+            {loadError && (
+                <div role="alert" style={{ marginBottom: '1.25rem', padding: '1rem', border: '1px solid #e2b9a1', borderRadius: '12px', background: '#fff4ec', color: '#754a35' }}>
+                    {loadError}
+                    <button type="button" onClick={refreshTasks} style={{ marginLeft: '0.75rem', textDecoration: 'underline' }}>Retry</button>
+                </div>
+            )}
+
             {/* Feature 4: Fatigue Meter Gizmo */}
             <div style={{ background: 'white', padding: '1.5rem', borderRadius: '24px', marginBottom: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -135,8 +143,8 @@ const TimeDashboard = () => {
             {/* Metrics Row */}
             <div className={styles.statGrid}>
                 <div className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Daily Progress</span>
-                    <span className={styles.metricValue}>{efficiency}%</span>
+                    <span className={styles.metricLabel}>Overall completion</span>
+                    <span className={styles.metricValue}>{loading ? '—' : efficiency + '%'}</span>
                     <div className={styles.progressContainer}>
                         <div className={styles.barFill} style={{ width: `${efficiency}%` }}></div>
                     </div>
@@ -144,14 +152,14 @@ const TimeDashboard = () => {
 
                 <div className={styles.metricCard}>
                     <span className={styles.metricLabel}>Pending Tasks</span>
-                    <span className={styles.metricValue}>{planned.length}</span>
+                    <span className={styles.metricValue}>{loading ? '—' : planned.length}</span>
                     <span className={styles.metricTrend}><Clock size={16} /> Awaiting Energy</span>
                 </div>
 
                 <div className={styles.metricCard}>
-                    <span className={styles.metricLabel}>Done</span>
-                    <span className={styles.metricValue}>{reflected.length}</span>
-                    <span className={styles.metricTrend} style={{ color: 'var(--color-gold)' }}><CheckCircle size={16} /> Reflected</span>
+                    <span className={styles.metricLabel}>Completed</span>
+                    <span className={styles.metricValue}>{loading ? '—' : completedTasks}</span>
+                    <span className={styles.metricTrend} style={{ color: 'var(--color-gold)' }}><CheckCircle size={16} /> Executed or reflected</span>
                 </div>
             </div>
 
@@ -162,16 +170,24 @@ const TimeDashboard = () => {
                         YOUR NEXT STEP
                     </span>
                     <h2 id="suggested-tasks-title" style={{ margin: '0 0 0.5rem', fontSize: '1.65rem', fontFamily: 'var(--font-serif)' }}>
-                        {topTasks.length ? 'A few tasks to consider' : 'Add your first task'}
+                        {loading ? 'Loading your tasks' : topTasks.length ? 'A few tasks to consider' : 'Add your first task'}
                     </h2>
                     <p style={{ margin: '0 0 1.25rem', maxWidth: 620, color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, fontSize: '0.9rem' }}>
-                        {higherDemandTasks.length
-                            ? 'These planned tasks are marked high-energy or hard. Choose the one that fits how you feel right now.'
-                            : topTasks.length
-                                ? 'These are your next planned tasks. Choose one manageable step and adjust the plan as needed.'
-                                : 'Break down an assignment or task so you have a clear next action.'}
+                        {loading
+                            ? 'Your saved tasks are being loaded.'
+                            : higherDemandTasks.length
+                                ? 'These planned tasks are marked high-energy or hard. Choose the one that fits how you feel right now.'
+                                : topTasks.length
+                                    ? 'These are your next planned tasks. Choose one manageable step and adjust the plan as needed.'
+                                    : loadError
+                                        ? 'The task queue could not be loaded. Retry above before changing your plan.'
+                                        : 'Break down an assignment or task so you have a clear next action.'}
                     </p>
-                    {topTasks.length > 0 ? (
+                    {loading ? (
+                        <p role="status" className={styles.taskQueueEmpty}>Loading your saved tasks…</p>
+                    ) : loadError && tasks.length === 0 ? (
+                        <p className={styles.taskQueueEmpty}>The task queue is unavailable until the saved tasks load successfully.</p>
+                    ) : topTasks.length > 0 ? (
                         <div style={{ display: 'grid', gap: '0.65rem', maxWidth: 760 }}>
                             {topTasks.map((task, index) => {
                                 const deadlineLabel = getTaskDeadlineLabel(task);
@@ -204,7 +220,7 @@ const TimeDashboard = () => {
                         <p className={styles.taskQueueEmpty}>No planned tasks in your queue. Add one to get a prioritized next step here.</p>
                     )}
                     <NavLink to="tasks" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', marginTop: '1.2rem', padding: '0.7rem 0.95rem', borderRadius: '10px', background: '#f0edff', color: '#403783', textDecoration: 'none', fontWeight: 750, fontSize: '0.85rem' }}>
-                        {topTasks.length ? 'Review task plan' : 'Create a task'} <TrendingUp size={15} />
+                        {topTasks.length ? 'Review task plan' : 'Open task list'} <TrendingUp size={15} />
                     </NavLink>
                     <p style={{ margin: '0.9rem 0 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)' }}>
                         Suggestions use your task labels, not a measurement of your attention or energy.
