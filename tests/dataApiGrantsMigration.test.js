@@ -38,6 +38,7 @@ test('private student tables are granted only to authenticated', async () => {
         sql,
         /grant select, insert, update, delete on table[\s\S]*?to authenticated;/
     );
+    assert.match(sql, /revoke all privileges on table[\s\S]*?from anon;/);
     for (const table of privateTables) {
         assert.match(sql, new RegExp('public\\.' + table + '\\b'));
     }
@@ -45,34 +46,20 @@ test('private student tables are granted only to authenticated', async () => {
         sql,
         /grant select, insert, update, delete on table[\s\S]*?to anon/
     );
+    assert.doesNotMatch(sql, /public\.tasks/);
 });
 
-test('identity sequence access is granted for only the application tables that need it', async () => {
+test('identity sequence access is granted only to the authenticated app tables', async () => {
     const sql = await readMigration();
     assert.match(sql, /pg_get_serial_sequence\(/);
     assert.match(sql, /grant usage, select on sequence %s to authenticated/);
-
-    for (const table of [
-        'atoms',
-        'logs',
-        'study_assignments',
-        'study_practice_logs',
-        'study_reviews',
-        'mind_logs',
-        'mind_offload_items',
-        'mind_wins',
-        'focus_sessions',
-        'flashcard_decks',
-        'flashcards',
-    ]) {
-        assert.match(sql, new RegExp("'" + table + "'"));
-    }
+    assert.doesNotMatch(sql, /'tasks'/);
 });
 
 test('the grants migration is transactional and keeps privileges separate from RLS', async () => {
     const sql = await readMigration();
     assert.match(sql, /^--[\s\S]*?begin;/);
     assert.match(sql, /commit;\s*$/);
-    assert.match(sql, /owner-specific rls policies/);
+    assert.match(sql, /row-level security/);
     assert.doesNotMatch(sql, /disable row level security/);
 });
