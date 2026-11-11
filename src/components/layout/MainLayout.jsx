@@ -24,7 +24,7 @@ const getWorkspaceSection = (pathname) => {
     return 'Workspace';
 };
 
-const WorkspaceHeader = ({ userId }) => {
+const WorkspaceHeader = () => {
     const location = useLocation();
     const section = getWorkspaceSection(location.pathname);
     const dateLabel = new Intl.DateTimeFormat('en-IN', {
@@ -69,7 +69,7 @@ const MainLayout = ({ userId = null }) => {
         <div className="studybud-shell" data-theme={theme}>
             <Sidebar theme={theme} onToggleTheme={toggleTheme} />
             <main className="shellMain">
-                <WorkspaceHeader userId={userId} />
+                <WorkspaceHeader />
                 <Outlet />
             </main>
             <AICompanion />
