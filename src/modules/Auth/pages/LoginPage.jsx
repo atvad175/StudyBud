@@ -300,9 +300,9 @@ const LoginPage = () => {
             </div>
 
             <div className={styles.brandStory}>
-                <span className={styles.brandEyebrow}>A LITTLE MORE CLARITY. A LITTLE LESS CHAOS.</span>
-                <h2>Make progress,<br /><em>one session</em> at a time.</h2>
-                <p>A calmer space to plan your work, practise what you learn, and build habits that last.</p>
+                <span className={styles.brandEyebrow}>ONE WORKSPACE. YOUR NEXT STEP.</span>
+                <h2>Your work,<br /><em>in focus.</em></h2>
+                <p>Plan your work, practise what you learn, and build habits that support consistent progress.</p>
             </div>
 
             <div className={styles.benefitList}>
@@ -320,7 +320,7 @@ const LoginPage = () => {
                 </div>
             </div>
 
-            <p className={styles.brandFootnote}>Your pace. Your plan. Your progress.</p>
+            <p className={styles.brandFootnote}>A clearer place to learn, plan and move forward.</p>
             <div className={styles.brandOrbOne} aria-hidden="true" />
             <div className={styles.brandOrbTwo} aria-hidden="true" />
         </aside>
