@@ -706,6 +706,19 @@
   --study-surface: var(--sb-surface-muted);
   --study-border: var(--sb-border);
 }
+.studybud-shell[data-theme="light"],
+.studybud-shell[data-theme="dark"] {
+  --primary-mind: var(--sb-accent);
+  --accent-mind: var(--sb-sky);
+  --text-dark: var(--sb-text);
+  --glass-surface: var(--sb-surface);
+  --glass-border: var(--sb-border);
+  --study-primary: var(--sb-text);
+  --study-secondary: var(--sb-text-muted);
+  --study-accent: var(--sb-accent);
+  --study-surface: var(--sb-surface-muted);
+  --study-border: var(--sb-border);
+}
 .studybud-shell .shellMain [class*="breadcrumb"],
 .studybud-shell .shellMain [class*="eyebrow"] {
   color: var(--sb-accent);
