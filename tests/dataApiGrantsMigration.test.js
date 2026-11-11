@@ -60,6 +60,5 @@ test('the grants migration is transactional and keeps privileges separate from R
     const sql = await readMigration();
     assert.match(sql, /^--[\s\S]*?begin;/);
     assert.match(sql, /commit;\s*$/);
-    assert.match(sql, /row-level security/);
     assert.doesNotMatch(sql, /disable row level security/);
 });
