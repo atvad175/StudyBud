@@ -809,3 +809,16 @@
   background: #202944;
   border-color: #3A4B7A;
 }
+
+
+/* Route-level transitions stay subtle and respect reduced-motion preferences. */
+.sbRouteView {
+  animation: sbRouteEnter 300ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+}
+@keyframes sbRouteEnter {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sbRouteView { animation: none; }
+}
