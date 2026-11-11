@@ -1,20 +1,20 @@
 /* StudyBud workspace visual refresh — shared by every signed-in screen. */
 .studybud-shell {
-  --sb-bg: #F4F6F3;
+  --sb-bg: #F4F6FB;
   --sb-surface: rgba(255, 255, 255, 0.92);
   --sb-surface-solid: #FFFFFF;
-  --sb-surface-muted: #EEF2ED;
-  --sb-border: #E0E7DF;
-  --sb-text: #172721;
-  --sb-text-muted: #718078;
-  --sb-accent: #216B57;
-  --sb-accent-hover: #185542;
-  --sb-accent-soft: #E5F1EA;
-  --sb-violet: #7478B8;
-  --sb-coral: #D78368;
-  --sb-mint: #42A888;
-  --sb-lime: #D5E9A7;
-  --sb-sky: #78AFC2;
+  --sb-surface-muted: #EDF0F8;
+  --sb-border: #E3E8F2;
+  --sb-text: #182338;
+  --sb-text-muted: #536078;
+  --sb-accent: #4F63E8;
+  --sb-accent-hover: #3348C9;
+  --sb-accent-soft: #E9EDFF;
+  --sb-violet: #8B78F6;
+  --sb-coral: #FF826F;
+  --sb-mint: #35BFA5;
+  --sb-lime: #C9EF68;
+  --sb-sky: #65BDF7;
   --sb-shadow: 0 14px 38px rgba(31, 53, 42, 0.065);
   --sb-shadow-hover: 0 20px 48px rgba(31, 53, 42, 0.11);
   --sb-radius-xl: 26px;
@@ -38,30 +38,30 @@
   --radius-card: var(--sb-radius-lg);
   --radius-squircle: 17px;
   background:
-    radial-gradient(ellipse at 88% 0%, rgba(113, 171, 139, 0.11), transparent 31%),
-    radial-gradient(ellipse at 12% 7%, rgba(203, 220, 192, 0.16), transparent 28%),
+    radial-gradient(ellipse at 88% 0%, rgba(79, 99, 232, 0.09), transparent 31%),
+    radial-gradient(ellipse at 12% 7%, rgba(137, 152, 232, 0.07), transparent 28%),
     var(--sb-bg);
 }
 
 .studybud-shell[data-theme="dark"] {
-  --sb-bg: #111A16;
-  --sb-surface: rgba(26, 38, 32, 0.94);
-  --sb-surface-solid: #1A2821;
-  --sb-surface-muted: #202F27;
-  --sb-border: #33463B;
-  --sb-text: #EDF4EE;
-  --sb-text-muted: #A4B4A9;
-  --sb-accent: #8CC8A5;
-  --sb-accent-hover: #A8D8B8;
-  --sb-accent-soft: #263E31;
-  --sb-violet: #A2A5D5;
-  --sb-coral: #E7A18A;
-  --sb-mint: #70C9A7;
-  --sb-lime: #D5E9A7;
-  --sb-sky: #8BBFD0;
+  --sb-bg: #111521;
+  --sb-surface: rgba(27, 34, 49, 0.94);
+  --sb-surface-solid: #1B2231;
+  --sb-surface-muted: #222B3C;
+  --sb-border: #303A4E;
+  --sb-text: #F0F3FA;
+  --sb-text-muted: #AEB9CD;
+  --sb-accent: #9794FF;
+  --sb-accent-hover: #B0AEFF;
+  --sb-accent-soft: #292947;
+  --sb-violet: #A99BFF;
+  --sb-coral: #FF9587;
+  --sb-mint: #5ED7BF;
+  --sb-lime: #C9EF68;
+  --sb-sky: #83CEFF;
   background:
-    radial-gradient(ellipse at 88% 0%, rgba(90, 142, 112, 0.13), transparent 31%),
-    radial-gradient(ellipse at 12% 7%, rgba(99, 127, 88, 0.1), transparent 28%),
+    radial-gradient(ellipse at 88% 0%, rgba(112, 105, 238, 0.12), transparent 31%),
+    radial-gradient(ellipse at 12% 7%, rgba(52, 142, 190, 0.09), transparent 28%),
     var(--sb-bg);
 }
 
@@ -260,18 +260,18 @@
 }
 
 .studybud-shell .budHeader {
-  background: linear-gradient(112deg, #1D5948 0%, #28745B 58%, #4A9879 100%);
+  background: linear-gradient(112deg, #26345B 0%, #4055D6 58%, #6577F3 100%);
 }
 .studybud-shell .budFab {
   border-radius: 18px;
-  background: linear-gradient(145deg, #1D5948, #4C9877);
-  box-shadow: 0 13px 34px rgba(33, 107, 87, 0.28);
+  background: linear-gradient(145deg, #4055D6, #7A85F3);
+  box-shadow: 0 13px 34px rgba(79, 99, 232, 0.28);
 }
 .studybud-shell .budFab:hover {
-  box-shadow: 0 17px 40px rgba(33, 107, 87, 0.34);
+  box-shadow: 0 17px 40px rgba(79, 99, 232, 0.34);
 }
 .studybud-shell .budSend {
-  background: linear-gradient(135deg, #216B57, #4A9879);
+  background: linear-gradient(135deg, #4F63E8, #8B78F6);
 }
 
 /* Dashboard: give the home screen a clear hierarchy and a practical first action. */
@@ -326,11 +326,11 @@
   border-radius: 24px;
   background:
     radial-gradient(circle at 92% 7%, rgba(132, 194, 156, 0.22), transparent 34%),
-    linear-gradient(118deg, #183D32 0%, #205743 58%, #2C6B52 100%);
+    linear-gradient(118deg, #1D2845 0%, #2F428F 58%, #4358E8 100%);
   box-shadow: 0 18px 38px rgba(25, 72, 51, 0.16);
 }
 .studybud-shell .shellMain .sb-dashboard [class*="quickStartEyebrow"] {
-  color: #A9D5B7;
+  color: #C3CBFF;
   font-size: 0.68rem;
   letter-spacing: 0.14em;
 }
@@ -359,8 +359,8 @@
 }
 .studybud-shell .shellMain .sb-dashboard [class*="primaryAction"] {
   border-color: #E0F0E5;
-  background: #E8F3EA;
-  color: #194333;
+  background: #E9EDFF;
+  color: #263A9C;
 }
 .studybud-shell .shellMain .sb-dashboard [class*="primaryAction"]:hover {
   background: #FFFFFF;
@@ -372,8 +372,8 @@
   color: #557166;
 }
 .studybud-shell .shellMain .sb-dashboard [class*="quickStartIcon"] {
-  color: #216B57;
-  background: #D8EADF;
+  color: #4F63E8;
+  background: #DDE3FF;
 }
 .studybud-shell .shellMain .sb-dashboard [class*="dailyPulse"] {
   border: 1px solid var(--sb-border);
@@ -424,15 +424,15 @@
 }
 .studybud-shell .shellMain .sb-dashboard [class*="dailyPulseNext"] {
   border-radius: 17px;
-  background: linear-gradient(110deg, #1B3F34, #244D3E);
+  background: linear-gradient(110deg, #202A4A, #3348C9);
 }
 .studybud-shell .shellMain .sb-dashboard [class*="dailyPulseNextCopy"] > span {
-  color: #B7DCC0;
+  color: #C9CEFF;
 }
 .studybud-shell .shellMain .sb-dashboard [class*="dailyPulseNextLink"] {
   border-radius: 11px;
   color: #193B2E;
-  background: #D5E9A7;
+  background: #C9EF68;
   font-weight: 760;
 }
 .studybud-shell .shellMain .sb-dashboard [class*="dailyPulseNextLink"]:hover {
@@ -557,4 +557,137 @@
   .studybud-shell .shellMain .sb-dashboard [class*="centerpiece"] {
     animation: none;
   }
+}
+
+
+/* Palette A integration — consistent cobalt, porcelain and ink across modules. */
+.studybud-shell {
+  color: var(--sb-text);
+  background:
+    radial-gradient(ellipse at 8% 0%, rgba(79, 99, 232, 0.055), transparent 31rem),
+    radial-gradient(ellipse at 94% 12%, rgba(101, 189, 247, 0.055), transparent 29rem),
+    var(--sb-bg);
+}
+.studybud-shell .shellMain {
+  background: transparent;
+}
+.studybud-shell .sbWorkspaceHeader {
+  border-bottom-color: var(--sb-border);
+  background: color-mix(in srgb, var(--sb-bg) 90%, transparent);
+}
+.studybud-shell .sbWorkspaceEyebrow {
+  color: #536078;
+}
+.studybud-shell .sbWorkspaceTitle {
+  color: var(--sb-text);
+}
+.studybud-shell .sbWorkspaceAvatar {
+  border-color: color-mix(in srgb, var(--sb-accent) 24%, var(--sb-border));
+  color: #3348C9;
+  background: #E9EDFF;
+}
+.studybud-shell aside[class*="sidebar"] {
+  background: var(--sb-surface-solid);
+  border-right-color: var(--sb-border);
+}
+.studybud-shell aside[class*="sidebar"] [class*="active"] {
+  color: #3348C9;
+  background: #E9EDFF;
+}
+.studybud-shell aside[class*="sidebar"] [class*="active"]::before {
+  background: var(--sb-accent);
+}
+.studybud-shell .budHeader {
+  background: linear-gradient(112deg, #26345B 0%, #4055D6 58%, #6577F3 100%);
+}
+.studybud-shell .budFab {
+  background: linear-gradient(145deg, #4055D6, #7A85F3);
+  box-shadow: 0 13px 34px rgba(79, 99, 232, 0.25);
+}
+.studybud-shell .budSend {
+  background: linear-gradient(135deg, #4F63E8, #8B78F6);
+}
+.studybud-shell .shellMain :is(h1, h2, h3, h4) {
+  color: var(--sb-text);
+  letter-spacing: -0.045em;
+}
+.studybud-shell .shellMain :is(p, label, small, li) {
+  color: inherit;
+}
+.studybud-shell .shellMain :is(input, textarea, select) {
+  color: #26334B;
+  background: #FFFFFF;
+  border-color: #D9E0EC;
+}
+.studybud-shell .shellMain :is(input, textarea, select)::placeholder {
+  color: #64718A;
+  opacity: 1;
+}
+.studybud-shell .shellMain :is(input, textarea, select):focus {
+  border-color: #6476EA;
+  box-shadow: 0 0 0 4px rgba(79, 99, 232, 0.12);
+}
+.studybud-shell .shellMain :is(button, a, input, textarea, select):focus-visible {
+  outline-color: rgba(79, 99, 232, 0.72);
+}
+.studybud-shell .shellMain :is([class*="card"], [class*="Card"], [class*="panel"], [class*="Panel"], [class*="statCard"]) {
+  border-color: var(--sb-border);
+}
+.studybud-shell .shellMain :is([class*="statLabel"], [class*="breadcrumb"], [class*="sectionTitle"], [class*="muted"], [class*="subtitle"]) {
+  color: #536078;
+}
+.studybud-shell .shellMain :is([class*="metricLabel"], [class*="statLabel"]) {
+  font-weight: 680;
+}
+.studybud-shell .shellMain :is([class*="container"], [class*="pageContainer"]) {
+  scroll-margin-top: 94px;
+}
+
+/* Dashboard's signature surfaces use the same palette as the rest of the workspace. */
+.studybud-shell .sb-dashboard [class*="quickStart"] {
+  background:
+    radial-gradient(circle at 95% 0%, rgba(139, 120, 246, 0.24), transparent 37%),
+    linear-gradient(118deg, #1D2845 0%, #2F428F 58%, #4358E8 100%);
+  box-shadow: 0 18px 38px rgba(45, 60, 136, 0.16);
+}
+.studybud-shell .sb-dashboard [class*="quickStartEyebrow"] { color: #D7DCFF; }
+.studybud-shell .sb-dashboard [class*="quickStartCopy"] h2 { color: #FFFFFF; }
+.studybud-shell .sb-dashboard [class*="quickStartCopy"] > p:last-child { color: #E3E7FF; }
+.studybud-shell .sb-dashboard [class*="primaryAction"] {
+  border-color: #E5E9FF;
+  color: #25365F;
+  background: #F1F3FF;
+}
+.studybud-shell .sb-dashboard [class*="primaryAction"] [class*="quickStartActionText"] small { color: #536078; }
+.studybud-shell .sb-dashboard [class*="quickStartIcon"] {
+  color: #3348C9;
+  background: #E2E7FF;
+}
+.studybud-shell .sb-dashboard [class*="dailyPulseNext"] {
+  background: linear-gradient(110deg, #202A4A, #3348C9);
+}
+.studybud-shell .sb-dashboard [class*="dailyPulseNextCopy"] > span { color: #D1D6FF; }
+.studybud-shell .sb-dashboard [class*="dailyPulseNextLink"] {
+  color: #25365F;
+  background: #C9EF68;
+}
+
+/* Dark appearance remains available; contrast is intentionally stronger than before. */
+.studybud-shell[data-theme="dark"] .sbWorkspaceEyebrow { color: #B6C1D8; }
+.studybud-shell[data-theme="dark"] .sbWorkspaceAvatar { color: #D0D2FF; background: #292947; }
+.studybud-shell[data-theme="dark"] .shellMain :is(input, textarea, select) {
+  color: #F0F3FA;
+  background: #151B28;
+  border-color: var(--sb-border);
+}
+.studybud-shell[data-theme="dark"] .shellMain :is(input, textarea, select)::placeholder { color: #AEB9CD; }
+.studybud-shell[data-theme="dark"] aside[class*="sidebar"] [class*="active"] {
+  color: #D0D2FF;
+  background: #292947;
+}
+.studybud-shell[data-theme="dark"] .sb-dashboard [class*="quickStart"] {
+  background: linear-gradient(118deg, #1C2440, #303F90 65%, #414FC1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .studybud-shell * , .studybud-shell *::before, .studybud-shell *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
