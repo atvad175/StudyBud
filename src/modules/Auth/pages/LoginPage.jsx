@@ -225,13 +225,6 @@ const LoginPage = () => {
                     setFormError('StudyBud reached its account service, but sign-in did not finish in time. The Supabase Auth logs need to be checked to find the cause.');
                 }
             } else {
-                const authMessage = String(error?.message || '').toLowerCase();
-                if (mode === 'login' && (
-                    authMessage.includes('email not confirmed') ||
-                    error?.code === 'email_not_confirmed'
-                )) {
-                    setConfirmationRequired(true);
-                }
                 setFormError(friendlyAuthError(error));
             }
         } finally {
