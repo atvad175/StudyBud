@@ -466,11 +466,6 @@ const OnboardingSetup = () => {
                             {isSaving ? 'Saving…' : step === 4 ? 'Finish setup' : 'Continue →'}
                         </button>
                     </div>
-                    {step >= 3 && step < 4 && (
-                        <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '1rem', opacity: 0.7 }}>
-                            Optional — you can continue without answering these questions.
-                        </p>
-                    )}
                 </div>
             </main>
         </div>
