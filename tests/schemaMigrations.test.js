@@ -51,3 +51,10 @@ test('onboarding and server chat-history tables are protected by RLS', async () 
         assert.match(sql, new RegExp('on public\\.' + table + ' for delete', 'i'));
     }
 });
+
+test('the shared legacy tasks table is deferred until its unowned record has an explicit owner decision', async () => {
+    const sql = await readSql('../supabase/migrations/20261017130100_private_data_rls.sql');
+    assert.doesNotMatch(sql, /alter\s+table\s+public\.tasks\s+enable\s+row level security/i);
+    assert.doesNotMatch(sql, /create\s+policy\s+["']?tasks_/i);
+    assert.doesNotMatch(sql, /drop\s+policy\s+[^\n]*\s+on\s+public\.tasks/i);
+});
