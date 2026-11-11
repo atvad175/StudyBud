@@ -57,7 +57,7 @@ const MainDashboard = () => {
             name: 'Habits',
             path: '/habits',
             icon: Layers,
-            color: '#526DFF',
+            color: '#4055D6',
             desc: 'Small steps you repeat until they feel easy.',
         },
         {
@@ -65,7 +65,7 @@ const MainDashboard = () => {
             name: 'Focus',
             path: '/focus',
             icon: Brain,
-            color: '#60A5FA',
+            color: '#2879B8',
             desc: 'Timers and rooms to help you stay on task.',
         },
         {
@@ -73,7 +73,7 @@ const MainDashboard = () => {
             name: 'Time',
             path: '/time',
             icon: Clock,
-            color: '#FB923C',
+            color: '#C95F45',
             desc: 'Tasks and reviews that match your energy.',
         },
         {
@@ -81,7 +81,7 @@ const MainDashboard = () => {
             name: 'Mind',
             path: '/mind',
             icon: Activity,
-            color: '#4ADE80',
+            color: '#6552C7',
             desc: 'Notes and calm tools when studying feels heavy.',
         },
         {
@@ -89,7 +89,7 @@ const MainDashboard = () => {
             name: 'Study',
             path: '/study',
             icon: BookOpen,
-            color: '#A78BFA',
+            color: '#1F887B',
             desc: 'Flashcards, exams, and your courses in one place.',
         },
     ];
