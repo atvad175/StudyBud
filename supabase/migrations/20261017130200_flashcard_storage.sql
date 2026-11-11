@@ -41,41 +41,41 @@ alter table public.flashcards enable row level security;
 drop policy if exists "Users can read own flashcard decks" on public.flashcard_decks;
 create policy "Users can read own flashcard decks"
   on public.flashcard_decks for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can insert own flashcard decks" on public.flashcard_decks;
 create policy "Users can insert own flashcard decks"
   on public.flashcard_decks for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can update own flashcard decks" on public.flashcard_decks;
 create policy "Users can update own flashcard decks"
   on public.flashcard_decks for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can delete own flashcard decks" on public.flashcard_decks;
 create policy "Users can delete own flashcard decks"
   on public.flashcard_decks for delete
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can read own flashcards" on public.flashcards;
 create policy "Users can read own flashcards"
   on public.flashcards for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can insert own flashcards" on public.flashcards;
 create policy "Users can insert own flashcards"
   on public.flashcards for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can update own flashcards" on public.flashcards;
 create policy "Users can update own flashcards"
   on public.flashcards for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can delete own flashcards" on public.flashcards;
 create policy "Users can delete own flashcards"
   on public.flashcards for delete
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
