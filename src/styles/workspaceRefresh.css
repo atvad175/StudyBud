@@ -691,3 +691,121 @@
 @media (prefers-reduced-motion: reduce) {
   .studybud-shell * , .studybud-shell *::before, .studybud-shell *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+
+/* Shared module surfaces: no isolated legacy green, pale-grey or low-contrast themes. */
+.studybud-shell {
+  --primary-mind: var(--sb-accent);
+  --accent-mind: var(--sb-sky);
+  --text-dark: var(--sb-text);
+  --glass-surface: var(--sb-surface);
+  --glass-border: var(--sb-border);
+  --study-primary: var(--sb-text);
+  --study-secondary: var(--sb-text-muted);
+  --study-accent: var(--sb-accent);
+  --study-surface: var(--sb-surface-muted);
+  --study-border: var(--sb-border);
+}
+.studybud-shell .shellMain [class*="breadcrumb"],
+.studybud-shell .shellMain [class*="eyebrow"] {
+  color: var(--sb-accent);
+  font-weight: 780;
+}
+.studybud-shell .shellMain [class*="header"] h1,
+.studybud-shell .shellMain [class*="Header"] h1 {
+  color: var(--sb-text);
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  font-family: var(--font-sans);
+  font-weight: 770;
+  letter-spacing: -0.065em;
+  line-height: 1.06;
+}
+.studybud-shell .shellMain [class*="header"] p,
+.studybud-shell .shellMain [class*="Header"] p,
+.studybud-shell .shellMain [class*="description"],
+.studybud-shell .shellMain [class*="Description"] {
+  color: #536078;
+  line-height: 1.6;
+}
+.studybud-shell .shellMain [class*="ctaBtn"],
+.studybud-shell .shellMain [class*="primaryButton"],
+.studybud-shell .shellMain [class*="primaryBtn"] {
+  border-color: #394FD5;
+  color: #FFFFFF;
+  background: linear-gradient(110deg, #5266EA, #4055D6);
+  box-shadow: 0 7px 16px rgba(67, 85, 214, 0.18);
+}
+.studybud-shell .shellMain [class*="ctaBtn"]:hover,
+.studybud-shell .shellMain [class*="primaryButton"]:hover,
+.studybud-shell .shellMain [class*="primaryBtn"]:hover {
+  background: #3348C9;
+}
+.studybud-shell .shellMain [class*="statCard"],
+.studybud-shell .shellMain [class*="metricCard"],
+.studybud-shell .shellMain [class*="navCard"],
+.studybud-shell .shellMain [class*="techniqueCard"],
+.studybud-shell .shellMain [class*="subjectCard"] {
+  border-color: var(--sb-border);
+  border-radius: 18px;
+  background: var(--sb-surface-solid);
+  box-shadow: 0 6px 20px rgba(35, 45, 76, 0.045);
+}
+.studybud-shell .shellMain [class*="statLabel"],
+.studybud-shell .shellMain [class*="metricLabel"],
+.studybud-shell .shellMain [class*="statFooter"],
+.studybud-shell .shellMain [class*="sectionTitle"],
+.studybud-shell .shellMain [class*="unit"],
+.studybud-shell .shellMain [class*="progressText"] {
+  color: #536078;
+  font-weight: 620;
+}
+.studybud-shell .shellMain [class*="iconCircle"],
+.studybud-shell .shellMain [class*="iconBox"] {
+  background: #E9EDFF;
+  color: #4055D6;
+}
+.studybud-shell .shellMain [class*="navCard"]:hover,
+.studybud-shell .shellMain [class*="techniqueCard"]:hover,
+.studybud-shell .shellMain [class*="subjectCard"]:hover {
+  border-color: color-mix(in srgb, var(--sb-accent) 40%, var(--sb-border));
+  box-shadow: 0 16px 36px rgba(35, 45, 76, 0.09);
+}
+.studybud-shell .shellMain [class*="empty"],
+.studybud-shell .shellMain [class*="statusMessage"] {
+  color: #45536D;
+  background: #F0F3FF;
+  border-color: #D7DFF9;
+}
+.studybud-shell[data-theme="dark"] .shellMain [class*="header"] p,
+.studybud-shell[data-theme="dark"] .shellMain [class*="Header"] p,
+.studybud-shell[data-theme="dark"] .shellMain [class*="description"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="Description"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="statLabel"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="metricLabel"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="statFooter"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="sectionTitle"] {
+  color: #B6C1D8;
+}
+.studybud-shell[data-theme="dark"] .shellMain [class*="statCard"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="metricCard"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="navCard"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="techniqueCard"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="subjectCard"] {
+  color: var(--sb-text);
+  background: var(--sb-surface);
+  border-color: var(--sb-border);
+}
+.studybud-shell[data-theme="dark"] .shellMain [class*="iconCircle"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="iconBox"] {
+  background: #292947;
+  color: #B4B2FF;
+}
+.studybud-shell[data-theme="dark"] .shellMain [class*="empty"],
+.studybud-shell[data-theme="dark"] .shellMain [class*="statusMessage"] {
+  color: #D1D8E8;
+  background: #202944;
+  border-color: #3A4B7A;
+}
