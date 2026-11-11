@@ -95,7 +95,7 @@ const MainDashboard = () => {
     ];
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} sb-dashboard`}>
             <div className={styles.hero}>
                 <div className={styles.badge}>
                     <Sparkles size={14} />
@@ -104,7 +104,7 @@ const MainDashboard = () => {
                 <h1 className={styles.centerpiece}>
                     What’s your next <span>win?</span>
                 </h1>
-                <p className={styles.tagline}>Your day, your pace. Choose one useful thing and build from there.</p>
+                <p className={styles.tagline}>A calmer, clearer way to plan your day, build momentum, and keep learning.</p>
             </div>
 
             <section className={styles.quickStart} aria-labelledby="quick-start-heading">
