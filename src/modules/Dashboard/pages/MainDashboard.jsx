@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Layers, Brain, Clock, Activity, BookOpen, Sparkles, ArrowRight, CalendarClock, ListTodo, Flame } from 'lucide-react';
+import { Clock, BookOpen, Sparkles, ArrowRight, CalendarClock, ListTodo, Flame } from 'lucide-react';
 import { useFocus } from '../../../context/useFocus';
 import { useStudy } from '../../../context/useStudy';
 import { useTime } from '../../../context/useTime';
@@ -51,48 +51,7 @@ const MainDashboard = () => {
         }
     }, []);
 
-    const modules = [
-        {
-            title: 'Daily habits',
-            name: 'Habits',
-            path: '/habits',
-            icon: Layers,
-            color: '#4055D6',
-            desc: 'Small steps you repeat until they feel easy.',
-        },
-        {
-            title: 'Focus time',
-            name: 'Focus',
-            path: '/focus',
-            icon: Brain,
-            color: '#2879B8',
-            desc: 'Timers and rooms to help you stay on task.',
-        },
-        {
-            title: 'Plan your time',
-            name: 'Time',
-            path: '/time',
-            icon: Clock,
-            color: '#C95F45',
-            desc: 'Tasks and reviews that match your energy.',
-        },
-        {
-            title: 'Mind and mood',
-            name: 'Mind',
-            path: '/mind',
-            icon: Activity,
-            color: '#6552C7',
-            desc: 'Notes and calm tools when studying feels heavy.',
-        },
-        {
-            title: 'Subjects and practice',
-            name: 'Study',
-            path: '/study',
-            icon: BookOpen,
-            color: '#1F887B',
-            desc: 'Flashcards, exams, and your courses in one place.',
-        },
-    ];
+
 
     return (
         <div className={`${styles.container} sb-dashboard`}>
@@ -180,26 +139,7 @@ const MainDashboard = () => {
                 <p className={styles.dailyPulseFootnote}>Overview uses saved records from this account. Focus totals reflect the latest 50 sessions available in history.</p>
             </section>
 
-            <div className={styles.grid}>
-                {modules.map((m) => (
-                    <NavLink to={m.path} key={m.name} className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <div className={styles.iconBox} style={{ backgroundColor: `${m.color}15`, color: m.color }}>
-                                <m.icon size={24} />
-                            </div>
-                            <span className={styles.moduleTitle}>{m.title}</span>
-                        </div>
-                        <div className={styles.cardBody}>
-                            <h2>{m.name}</h2>
-                            <p>{m.desc}</p>
-                        </div>
-                        <div className={styles.cardFooter}>
-                            <span>Open</span>
-                            <ArrowRight size={16} />
-                        </div>
-                    </NavLink>
-                ))}
-            </div>
+
 
             <footer className={styles.footer}>
                 <p>One habit at a time. You’ve got this.</p>
