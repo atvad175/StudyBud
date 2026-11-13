@@ -215,8 +215,8 @@
     width: 100%;
     min-height: 76px;
     padding: 1rem 1.1rem;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 18px;
+    border: 0;
+    border-radius: 16px;
     text-decoration: none;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -268,7 +268,7 @@
 .dailyPulseHeader p { margin: 0; max-width: 43rem; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.55; }
 .dailyPulseDate { padding: 0.5rem 0.75rem; border-radius: 999px; background: #EEF1FF; color: #52618A; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
 .dailyPulseGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7rem; }
-.pulseMetric { display: flex; align-items: flex-start; gap: 0.65rem; min-width: 0; padding: 0.9rem 0.75rem; border: 1px solid #eee9e1; border-radius: 16px; background: #fcfbf8; }
+.pulseMetric { display: flex; align-items: flex-start; gap: 0.65rem; min-width: 0; padding: 0.9rem 0.75rem; border: 0; border-radius: 16px; background: #fcfbff; }
 .pulseMetricIcon { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 10px; background: rgba(221,168,93,0.15); color: #526DFF; }
 .pulseMetric > div { min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .pulseMetric strong { color: var(--color-soft-black); font-size: 1.35rem; line-height: 1.15; overflow-wrap: anywhere; }
@@ -304,7 +304,7 @@
 
 .badge {
     padding: 0.42rem 0.8rem;
-    border: 1px solid color-mix(in srgb, var(--sb-accent) 16%, transparent);
+    border: 0;
     border-radius: 999px;
     background: var(--sb-accent-soft);
     color: var(--sb-accent);
@@ -345,8 +345,8 @@
 .quickStart {
     gap: 1.35rem;
     padding: clamp(1.2rem, 2.6vw, 2rem);
-    border: 1px solid color-mix(in srgb, var(--sb-accent) 15%, var(--sb-border));
-    border-radius: var(--sb-radius-xl);
+    border: 0;
+    border-radius: 24px;
     background:
         radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--sb-violet) 12%, transparent), transparent 42%),
         linear-gradient(120deg, var(--sb-accent-soft), var(--sb-surface-solid) 64%);
