@@ -2,14 +2,14 @@
 
 :root {
   /* Public pages retain their existing palette. The signed-in app uses scoped tokens below. */
-  --color-cream: #FFFBF0;
-  --color-beige: #F7F3E8;
-  --color-warm-gray: #5C5A53;
-  --color-soft-black: #1A1916;
-  --color-gold: #DDA85D;
-  --color-gold-light: #F2E3C9;
-  --color-gold-hover: #C9964D;
-  --color-border: #EBE5D5;
+  --color-cream: #F4F6FB;
+  --color-beige: #EDF0F8;
+  --color-warm-gray: #536078;
+  --color-soft-black: #1B2438;
+  --color-gold: #4F63E8;
+  --color-gold-light: #E9EDFF;
+  --color-gold-hover: #3348C9;
+  --color-border: #DFE4EF;
   --color-text-primary: var(--color-soft-black);
   --color-text-secondary: var(--color-warm-gray);
   --font-serif: 'Playfair Display', serif;
@@ -19,8 +19,8 @@
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
   --spacing-xl: 3rem;
-  --shadow-soft: 0 8px 30px rgba(100, 80, 50, 0.04);
-  --shadow-card: 0 4px 12px rgba(100, 80, 50, 0.03);
+  --shadow-soft: 0 14px 38px rgba(35, 45, 76, 0.07);
+  --shadow-card: 0 5px 18px rgba(35, 45, 76, 0.045);
   --radius-card: 24px;
   --radius-squircle: 20px;
   --night-light-intensity: 0;
@@ -44,14 +44,14 @@ body {
 /* The signed-in product has its own neutral design tokens.
    Keeping them scoped protects the public landing experience. */
 .studybud-shell {
-  --color-cream: #F7F8FA;
-  --color-beige: #EEF1F5;
-  --color-warm-gray: #657184;
-  --color-soft-black: #182230;
-  --color-gold: #526DFF;
+  --color-cream: #F4F6FB;
+  --color-beige: #EDF0F8;
+  --color-warm-gray: #536078;
+  --color-soft-black: #1B2438;
+  --color-gold: #4F63E8;
   --color-gold-light: #E9EDFF;
-  --color-gold-hover: #4059E6;
-  --color-border: #E2E7EF;
+  --color-gold-hover: #3348C9;
+  --color-border: #DFE4EF;
   --color-text-primary: var(--color-soft-black);
   --color-text-secondary: var(--color-warm-gray);
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

@@ -99,7 +99,7 @@ const Sidebar = ({ theme = 'light', onToggleTheme = () => {} }) => {
     <aside className={styles.sidebar}>
       <div className={styles.brandBlock}>
         <StudyBudLogo variant="onLight" size="sm" showTagline={false} />
-        <span className={styles.brandTagline}>Your quiet space</span>
+        <span className={styles.brandTagline}>A clearer way to learn</span>
       </div>
 
       <nav className={styles.mobileNav} aria-label="Quick navigation">

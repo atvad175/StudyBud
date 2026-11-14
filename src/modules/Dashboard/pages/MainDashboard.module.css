@@ -215,8 +215,8 @@
     width: 100%;
     min-height: 76px;
     padding: 1rem 1.1rem;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 18px;
+    border: 0;
+    border-radius: 16px;
     text-decoration: none;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -268,7 +268,7 @@
 .dailyPulseHeader p { margin: 0; max-width: 43rem; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.55; }
 .dailyPulseDate { padding: 0.5rem 0.75rem; border-radius: 999px; background: #EEF1FF; color: #52618A; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
 .dailyPulseGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7rem; }
-.pulseMetric { display: flex; align-items: flex-start; gap: 0.65rem; min-width: 0; padding: 0.9rem 0.75rem; border: 1px solid #eee9e1; border-radius: 16px; background: #fcfbf8; }
+.pulseMetric { display: flex; align-items: flex-start; gap: 0.65rem; min-width: 0; padding: 0.9rem 0.75rem; border: 0; border-radius: 16px; background: #fcfbff; }
 .pulseMetricIcon { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 10px; background: rgba(221,168,93,0.15); color: #526DFF; }
 .pulseMetric > div { min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .pulseMetric strong { color: var(--color-soft-black); font-size: 1.35rem; line-height: 1.15; overflow-wrap: anywhere; }
@@ -304,7 +304,7 @@
 
 .badge {
     padding: 0.42rem 0.8rem;
-    border: 1px solid color-mix(in srgb, var(--sb-accent) 16%, transparent);
+    border: 0;
     border-radius: 999px;
     background: var(--sb-accent-soft);
     color: var(--sb-accent);
@@ -345,8 +345,8 @@
 .quickStart {
     gap: 1.35rem;
     padding: clamp(1.2rem, 2.6vw, 2rem);
-    border: 1px solid color-mix(in srgb, var(--sb-accent) 15%, var(--sb-border));
-    border-radius: var(--sb-radius-xl);
+    border: 0;
+    border-radius: 24px;
     background:
         radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--sb-violet) 12%, transparent), transparent 42%),
         linear-gradient(120deg, var(--sb-accent-soft), var(--sb-surface-solid) 64%);
@@ -365,9 +365,9 @@
 .quickStartAction {
     min-height: 70px;
     padding: 0.85rem 1rem;
-    border: 1px solid var(--sb-border);
-    border-radius: 17px;
-    box-shadow: 0 3px 10px rgba(30, 42, 74, 0.035);
+    border: 0;
+    border-radius: 16px;
+    box-shadow: none;
 }
 .quickStartAction:hover { transform: translateY(-2px); box-shadow: var(--sb-shadow-hover); }
 .primaryAction {
@@ -392,7 +392,7 @@
 
 .dailyPulse {
     padding: clamp(1.1rem, 2.5vw, 1.7rem);
-    border: 1px solid var(--sb-border);
+    border: 0;
     border-radius: var(--sb-radius-xl);
     background: var(--sb-surface);
     box-shadow: var(--sb-shadow);
@@ -414,7 +414,7 @@
 .pulseMetric {
     padding: 0.82rem;
     gap: 0.58rem;
-    border: 1px solid var(--sb-border);
+    border: 0;
     border-radius: 16px;
     background: var(--sb-surface-solid);
 }
@@ -498,3 +498,33 @@
     .dailyPulseNextLink { margin-left: 3.2rem; }
     .card { min-height: 160px; padding: 1.05rem; }
 }
+
+
+/* Final dashboard cleanup: quiet surfaces, no decorative outlines. */
+.quickStart,
+.quickStartAction,
+.dailyPulse,
+.pulseMetric,
+.dailyPulseNext,
+.badge {
+  border: 0 !important;
+  outline: 0 !important;
+}
+.quickStart {
+  background: linear-gradient(120deg, #e9efff 0%, #f2f5ff 55%, #f8faff 100%);
+  box-shadow: none;
+}
+.quickStartCopy h2,
+.quickStartCopy > p:last-child { color: #1c2b50; }
+.quickStartEyebrow { color: #405bc4; }
+.quickStartAction { box-shadow: none !important; }
+.primaryAction { background: #4668dc; color: #fff; }
+.primaryAction .quickStartActionText strong,
+.primaryAction .quickStartActionText small { color: #fff; }
+.secondaryAction { background: #fff; color: #1c2b50; }
+.secondaryAction .quickStartActionText strong,
+.secondaryAction .quickStartActionText small { color: #1c2b50; }
+.dailyPulse { box-shadow: none; background: #fff; }
+.pulseMetric { background: #f5f7fc; }
+.dailyPulseNext { background: #202b49; }
+@media (max-width: 760px) { .quickStart { padding: 1.1rem; } }

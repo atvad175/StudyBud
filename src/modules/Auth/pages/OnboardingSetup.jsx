@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, BookOpen, Activity, Wind, CheckSquare, Moon, Zap } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
@@ -58,7 +58,9 @@ const OnboardingSetup = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
 
+    const headingRef = useRef(null);
     const [step, setStep] = useState(1);
+    const [stepDirection, setStepDirection] = useState('forward');
     const [name, setName] = useState(localStorage.getItem('studybud_username') || '');
     const [role, setRole] = useState('School student');
     const [board, setBoard] = useState('');
@@ -74,6 +76,12 @@ const OnboardingSetup = () => {
 
     const isSchoolStudent = role === 'School student';
     const topicList = role === 'Working professional' ? PROFESSIONS : SUBJECTS;
+
+    useEffect(() => {
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+        headingRef.current?.focus({ preventScroll: true });
+    }, [step]);
 
     const toggleValue = (value, setter) => {
         setter(current => current.includes(value)
@@ -206,6 +214,7 @@ const OnboardingSetup = () => {
     const nextStep = async () => {
         if (!isStepValid() || isSaving) return;
         if (step < 4) {
+            setStepDirection('forward');
             setStep(current => current + 1);
             return;
         }
@@ -232,9 +241,9 @@ const OnboardingSetup = () => {
             <main className={styles.main}>
                 <div className={styles.inner}>
                     {step === 1 && (
-                        <section className="fade-in-up">
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 1 OF 4 · YOUR PROFILE</p>
-                            <h1 className="step-title">Let's make StudyBud yours.</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">Let's make StudyBud yours.</h1>
                             <p className="step-subtitle">Just the basics. You can change them later.</p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '2rem' }}>
@@ -247,7 +256,6 @@ const OnboardingSetup = () => {
                                         placeholder="Enter your name"
                                         className="hitech-input"
                                         autoComplete="name"
-                                        autoFocus
                                         required
                                     />
                                 </label>
@@ -278,9 +286,9 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 2 && (
-                        <section className="fade-in-up">
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 2 OF 4 · YOUR LEARNING WORLD</p>
-                            <h1 className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">{isSchoolStudent ? 'What are you studying?' : 'What do you want to work on?'}</h1>
                             <p className="step-subtitle">This helps StudyBud tailor techniques and practice to your subjects.</p>
 
                             {isSchoolStudent && (
@@ -327,9 +335,9 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 3 && (
-                        <section className="fade-in-up">
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 3 OF 4 · OPTIONAL PERSONALIZATION</p>
-                            <h1 className="step-title">Where should Bud help first?</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">Where should Bud help first?</h1>
                             <p className="step-subtitle">Pick any challenges that sound familiar. This step is optional.</p>
 
                             <div style={{ marginTop: '1.5rem' }}>
@@ -361,8 +369,8 @@ const OnboardingSetup = () => {
                                             className={`hitech-box-choice ${learningStyle === option.id ? 'selected' : ''}`}
                                             style={{ textAlign: 'left' }}
                                         >
-                                            <div style={{ fontWeight: 600 }}>{option.label}</div>
-                                            <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{option.desc}</div>
+                                            <div className={styles.learningTitle}>{option.label}</div>
+                                            <div className={styles.learningDescription}>{option.desc}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -389,9 +397,9 @@ const OnboardingSetup = () => {
                     )}
 
                     {step === 4 && (
-                        <section className="fade-in-up">
+                        <section className={styles.stepPanel + ' ' + (stepDirection === 'back' ? styles.enterFromLeft : styles.enterFromRight)}>
                             <p className="step-subtitle">STEP 4 OF 4 · YOUR FIRST GOAL</p>
-                            <h1 className="step-title">Start small. Build momentum.</h1>
+                            <h1 ref={headingRef} tabIndex="-1" className="step-title">Start small. Build momentum.</h1>
                             <p className="step-subtitle">Set one goal if useful. Everything on this page is optional.</p>
 
                             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1.5rem' }}>
@@ -444,7 +452,7 @@ const OnboardingSetup = () => {
 
                     <div className={styles.navRow}>
                         {step > 1 ? (
-                            <button type="button" onClick={() => setStep(current => current - 1)} className="nav-btn-back" disabled={isSaving}>
+                            <button type="button" onClick={() => { setStepDirection('back'); setStep(current => current - 1); }} className="nav-btn-back" disabled={isSaving}>
                                 ← Back
                             </button>
                         ) : <span />}
@@ -458,11 +466,6 @@ const OnboardingSetup = () => {
                             {isSaving ? 'Saving…' : step === 4 ? 'Finish setup' : 'Continue →'}
                         </button>
                     </div>
-                    {step >= 3 && step < 4 && (
-                        <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '1rem', opacity: 0.7 }}>
-                            Optional — you can continue without answering these questions.
-                        </p>
-                    )}
                 </div>
             </main>
         </div>
