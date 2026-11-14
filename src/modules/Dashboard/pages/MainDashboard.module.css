@@ -498,3 +498,33 @@
     .dailyPulseNextLink { margin-left: 3.2rem; }
     .card { min-height: 160px; padding: 1.05rem; }
 }
+
+
+/* Final dashboard cleanup: quiet surfaces, no decorative outlines. */
+.quickStart,
+.quickStartAction,
+.dailyPulse,
+.pulseMetric,
+.dailyPulseNext,
+.badge {
+  border: 0 !important;
+  outline: 0 !important;
+}
+.quickStart {
+  background: linear-gradient(120deg, #e9efff 0%, #f2f5ff 55%, #f8faff 100%);
+  box-shadow: none;
+}
+.quickStartCopy h2,
+.quickStartCopy > p:last-child { color: #1c2b50; }
+.quickStartEyebrow { color: #405bc4; }
+.quickStartAction { box-shadow: none !important; }
+.primaryAction { background: #4668dc; color: #fff; }
+.primaryAction .quickStartActionText strong,
+.primaryAction .quickStartActionText small { color: #fff; }
+.secondaryAction { background: #fff; color: #1c2b50; }
+.secondaryAction .quickStartActionText strong,
+.secondaryAction .quickStartActionText small { color: #1c2b50; }
+.dailyPulse { box-shadow: none; background: #fff; }
+.pulseMetric { background: #f5f7fc; }
+.dailyPulseNext { background: #202b49; }
+@media (max-width: 760px) { .quickStart { padding: 1.1rem; } }
