@@ -8,7 +8,7 @@ This document is the single source of truth for what we are fixing, why we are f
 2. **One issue, one outcome.** Each task should describe a user problem, expected behaviour, acceptance checks, and any data/security impact.
 3. **Preview before release.** Every pull request should have a Vercel preview. Test the actual student flow in that preview, on a desktop-sized and mobile-sized viewport.
 4. **Database changes are migrations.** Apply migrations to a separate Supabase test project first. Inspect the existing schema, policies and data before applying them to production. Take a backup first.
-5. **Never put secrets in Git or browser code.** Do not commit `.env` files or use `VITE_` variables for private AI keys. Do not paste credentials into ChatGPT, GitHub issues, screenshots or logs.
+5. **Never put secrets in Git or browser code.** Do not commit `.env` files or use `NEXT_PUBLIC_` variables for private AI keys. Do not paste credentials into ChatGPT, GitHub issues, screenshots or logs.
 6. **Security decisions are tested at the database.** A student must not be able to read or change another student's private records by calling Supabase directly.
 7. **Do not merge on appearance alone.** CI must pass, the preview must pass the checklist, and failures must have an owner and a tracked issue.
 
