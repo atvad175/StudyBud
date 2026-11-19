@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { hasSupabaseEnv, SUPABASE_SETUP_HINT } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 import { ensureProfile } from '@/lib/session'
 import type { ActionResult } from '@/lib/types'
@@ -26,6 +27,10 @@ export async function joinHouse(
   const parsed = joinHouseSchema.safeParse(input)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Pick a house first.' }
+  }
+
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
   }
 
   const supabase = await createClient()

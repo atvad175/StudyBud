@@ -1,16 +1,27 @@
 import { redirect } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
+import { hasSupabaseEnv } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 import type { ProfileRow } from '@/types/database'
 
 export type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
-/** Sends unauthenticated visitors to the login screen. */
+/**
+ * Sends unauthenticated visitors to the login screen.
+ *
+ * A deployment without Supabase credentials goes to the same screen with a
+ * setup flag, so an unconfigured dashboard renders an explanation instead of
+ * throwing a server-side exception.
+ */
 export async function requireUser(): Promise<{
   supabase: SupabaseServerClient
   user: User
 }> {
+  if (!hasSupabaseEnv()) {
+    redirect('/login?error=unconfigured')
+  }
+
   const supabase = await createClient()
   const {
     data: { user },

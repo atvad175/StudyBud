@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
+import { getSupabaseEnv, hasSupabaseEnv, SUPABASE_SETUP_HINT } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseServerClient } from '@/lib/session'
 import type { ActionResult } from '@/lib/types'
@@ -79,6 +80,17 @@ export async function signIn(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Check your sign-in details.' }
   }
 
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  // A malformed URL would throw before Supabase can answer; report it instead.
+  try {
+    getSupabaseEnv()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
 
@@ -99,11 +111,21 @@ export async function signUp(
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Check your account details.' }
   }
 
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
   const headerStore = await headers()
   const origin =
     headerStore.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-  const supabase = await createClient()
+  let supabase: SupabaseServerClient
+  try {
+    supabase = await createClient()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
   const house = await resolveSchoolHouse(supabase, parsed.data.schoolHouse)
   if (!house.ok) {
     return { ok: false, error: house.error }
@@ -132,6 +154,10 @@ export async function signUp(
 }
 
 export async function signOut(): Promise<void> {
+  if (!hasSupabaseEnv()) {
+    redirect('/login')
+  }
+
   const supabase = await createClient()
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')

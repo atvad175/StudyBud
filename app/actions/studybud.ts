@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { AIUnavailableError, generateFlashcards } from '@/lib/ai'
 import { currentStreak, todayKey } from '@/lib/dates'
+import { hasSupabaseEnv, SUPABASE_SETUP_HINT } from '@/lib/env'
 import { focusPoints } from '@/lib/houses'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseServerClient } from '@/lib/session'
@@ -58,7 +59,16 @@ async function authenticated(): Promise<
   | { ok: true; supabase: SupabaseServerClient; userId: string }
   | { ok: false; error: string }
 > {
-  const supabase = await createClient()
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  let supabase: SupabaseServerClient
+  try {
+    supabase = await createClient()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
   const {
     data: { user },
     error,
