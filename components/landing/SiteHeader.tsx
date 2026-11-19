@@ -1,11 +1,10 @@
 import Link from 'next/link'
 
-import { SHOW_HOUSES } from '@/lib/features'
-
 const LINKS = [
-  { href: '#product', label: 'The app' },
-  { href: '#pillars', label: 'What you get' },
-  ...(SHOW_HOUSES ? [{ href: '#house', label: 'House Clash' }] : []),
+  { href: '/features', label: 'Features' },
+  { href: '/mission', label: 'Our Mission' },
+  { href: '/about', label: 'Our Story' },
+  { href: '/community', label: 'Community' },
 ]
 
 export default function SiteHeader() {
@@ -21,13 +20,13 @@ export default function SiteHeader() {
 
         <nav aria-label="Sections" className="hidden items-center gap-7 md:flex">
           {LINKS.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="text-[13px] font-medium text-espresso-500 transition-colors hover:text-espresso"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -42,7 +41,7 @@ export default function SiteHeader() {
             href="/login?mode=signup"
             className="rounded-full bg-espresso px-4 py-2 text-[13px] font-medium text-paper-50 transition-colors hover:bg-espresso-800"
           >
-            Start free
+            Get started
           </Link>
         </div>
       </div>

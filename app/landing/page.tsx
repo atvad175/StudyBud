@@ -5,7 +5,7 @@ import LandingPage from '@/app/page'
 export const metadata: Metadata = {
   title: 'StudyBud — Build discipline. Excel in your studies.',
   description:
-    'StudyBud turns your notes into recall cards and keeps your habits, focus blocks and streaks on the record — in one quiet workspace.',
+    'Study, focus, and build better routines in one place. StudyBud brings together study strategies, flashcards, exam practice, focus tools and small habits.',
 }
 
 /**
