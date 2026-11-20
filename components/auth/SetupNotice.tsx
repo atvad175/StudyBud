@@ -34,7 +34,9 @@ export default function SetupNotice() {
 
       <p className="mt-4 text-[12px] leading-relaxed text-espresso-400">
         Both values come from your Supabase project under Project Settings → API. The anon /
-        publishable key is safe in the browser; never use the service-role key here.
+        publishable key is safe in the browser; never use the service-role key here. If this project
+        still uses the older Vite names, <code className="font-mono">VITE_SUPABASE_URL</code> and{' '}
+        <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> work too.
       </p>
 
       <Link

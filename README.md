@@ -44,6 +44,8 @@ cp .env.example .env.local
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | public | yes | Supabase project URL. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | yes | Supabase publishable/anon key. Never a service-role key. |
+| `VITE_SUPABASE_URL` | public | fallback | Older name for `NEXT_PUBLIC_SUPABASE_URL`; used only when it is missing. |
+| `VITE_SUPABASE_ANON_KEY` | public | fallback | Older name for `NEXT_PUBLIC_SUPABASE_ANON_KEY`; used only when it is missing. |
 | `GEMINI_API_KEY` | server only | for AI | Enables AI flashcard generation. Never prefix with `NEXT_PUBLIC_`. |
 | `NEXT_PUBLIC_SITE_URL` | public | optional | Absolute origin used for Supabase email-confirmation links when a request has no `Origin` header. |
 
@@ -112,7 +114,7 @@ Migration highlights:
 
 The repository deploys to Vercel with the default Next.js build detection — there is no custom rewrite or `vercel.json`, so every route is served by the App Router.
 
-Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY` and `NEXT_PUBLIC_SITE_URL` in the Vercel project's environment settings for Production and Preview, and apply the migrations before the first deploy that depends on them.
+Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY` and `NEXT_PUBLIC_SITE_URL` in the Vercel project's environment settings for Production and Preview, and apply the migrations before the first deploy that depends on them. Projects that still carry `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` keep working without renaming, since `next.config.mjs` maps them onto the `NEXT_PUBLIC_` names at build time.
 
 ## Quality checks
 
