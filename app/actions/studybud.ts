@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { AIUnavailableError, generateFlashcards } from '@/lib/ai'
 import { currentStreak, todayKey } from '@/lib/dates'
 import { hasSupabaseEnv, SUPABASE_SETUP_HINT } from '@/lib/env'
+import { SHOW_HOUSES } from '@/lib/features'
 import { focusPoints } from '@/lib/houses'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseServerClient } from '@/lib/session'
@@ -179,7 +180,8 @@ export async function toggleHabit(input: ToggleHabitInput): Promise<
   }
 
   // Only a fresh completion earns points; un-checking a day never subtracts.
-  const housePoints = wasCompletedToday ? null : await houseAward(auth.supabase, auth.userId, 1)
+  const housePoints =
+    !SHOW_HOUSES || wasCompletedToday ? null : await houseAward(auth.supabase, auth.userId, 1)
 
   revalidatePath('/dashboard/habits')
   revalidatePath('/dashboard')
@@ -216,7 +218,9 @@ export async function logFocusSession(
     return { ok: false, error: error.message }
   }
 
-  const housePoints = await houseAward(auth.supabase, auth.userId, focusPoints(minutes))
+  const housePoints = SHOW_HOUSES
+    ? await houseAward(auth.supabase, auth.userId, focusPoints(minutes))
+    : null
 
   revalidatePath('/dashboard/focus')
   revalidatePath('/dashboard')

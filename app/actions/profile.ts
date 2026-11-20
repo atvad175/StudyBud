@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { hasSupabaseEnv, SUPABASE_SETUP_HINT } from '@/lib/env'
@@ -8,11 +9,49 @@ import { createClient } from '@/lib/supabase/server'
 import { ensureProfile } from '@/lib/session'
 import type { ActionResult } from '@/lib/types'
 
+const gradeSectionSchema = z.object({
+  gradeSection: z.string().trim().max(60, 'Keep this under 60 characters.'),
+})
+
 const joinHouseSchema = z.object({
   house: z.string().trim().min(1, 'Pick a house first.').max(60),
 })
 
 export type JoinHouseInput = z.input<typeof joinHouseSchema>
+
+/**
+ * Lets a student correct the grade or section on their own profile.
+ *
+ * Every school names these differently, and a typo at sign-up should not be
+ * permanent, so this stays editable. It only ever writes the caller's row, and
+ * never touches `school_house` (which the database locks after selection).
+ */
+export async function updateGradeSection(formData: FormData): Promise<void> {
+  if (!hasSupabaseEnv()) redirect('/login?error=unconfigured')
+
+  const parsed = gradeSectionSchema.safeParse({
+    gradeSection: String(formData.get('grade_section') ?? ''),
+  })
+
+  if (!parsed.success) redirect('/dashboard/profile?grade=invalid')
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ grade_section: parsed.data.gradeSection || null })
+    .eq('id', user.id)
+
+  revalidatePath('/dashboard/profile')
+  revalidatePath('/dashboard', 'layout')
+
+  redirect(error ? '/dashboard/profile?grade=failed' : '/dashboard/profile?grade=saved')
+}
 
 /**
  * Assigns the caller to a school house exactly once.

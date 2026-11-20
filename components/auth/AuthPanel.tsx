@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Loader2, Lock, Mail, User } from 'lucide-react'
 
 import { signIn, signUp } from '@/app/actions/auth'
+import { SHOW_HOUSES } from '@/lib/features'
 import { cn } from '@/lib/utils'
 
 type Mode = 'signin' | 'signup'
@@ -147,26 +148,28 @@ export default function AuthPanel({
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="school-house" className="paper-label">
-                    School house
-                  </label>
-                  <select
-                    id="school-house"
-                    name="school_house"
-                    value={schoolHouse}
-                    onChange={(event) => setSchoolHouse(event.target.value)}
-                    className="paper-input appearance-none pr-8"
-                  >
-                    <option value="">Not assigned</option>
-                    {houses.map((house) => (
-                      <option key={house} value={house}>
-                        {house}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className={SHOW_HOUSES ? 'grid gap-4 sm:grid-cols-2' : 'grid gap-4'}>
+                {SHOW_HOUSES && (
+                  <div>
+                    <label htmlFor="school-house" className="paper-label">
+                      School house
+                    </label>
+                    <select
+                      id="school-house"
+                      name="school_house"
+                      value={schoolHouse}
+                      onChange={(event) => setSchoolHouse(event.target.value)}
+                      className="paper-input appearance-none pr-8"
+                    >
+                      <option value="">Not assigned</option>
+                      {houses.map((house) => (
+                        <option key={house} value={house}>
+                          {house}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label htmlFor="grade-section" className="paper-label">

@@ -23,7 +23,7 @@ export default async function HabitsPage() {
       <PageHeader
         eyebrow="Pillar 01 · Consistency"
         title="Habit tracker"
-        description="Check off the small things daily. Streaks are recalculated from your completion history, so they never lie — and each check is worth a house point."
+        description="Check off the small things daily. Streaks are recalculated from your completion history, so they never lie."
       />
 
       {error && (

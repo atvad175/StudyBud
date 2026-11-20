@@ -6,7 +6,7 @@ import AuthPanel from '@/components/auth/AuthPanel'
 import SetupNotice from '@/components/auth/SetupNotice'
 import { hasSupabaseEnv } from '@/lib/env'
 import { SHOW_HOUSES } from '@/lib/features'
-import { FALLBACK_HOUSES, fetchHouseNames } from '@/lib/houses'
+import { fetchHouseNames } from '@/lib/houses'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -51,8 +51,8 @@ export default async function LoginPage({
     ? (AUTH_ERRORS[params.error] ?? 'We could not finish that sign-in. Please try again.')
     : null
 
-  let houses: string[] = [...FALLBACK_HOUSES]
-  if (configured) {
+  let houses: string[] = []
+  if (configured && SHOW_HOUSES) {
     try {
       const supabase = await createClient()
       houses = await fetchHouseNames(supabase)

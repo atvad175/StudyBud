@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 
 import { signOut } from '@/app/actions/auth'
+import { SHOW_HOUSES } from '@/lib/features'
 import { cn } from '@/lib/utils'
 import type { StudyBudTier } from '@/types/database'
 
@@ -30,7 +31,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/habits', label: 'Habits', icon: Flame, hint: 'Daily' },
   { href: '/dashboard/focus', label: 'Focus', icon: Timer, hint: 'Timer' },
   { href: '/dashboard/study', label: 'Study', icon: Sparkles, hint: 'Recall' },
-  { href: '/dashboard/house-clash', label: 'House Clash', icon: Trophy, hint: 'League' },
+  ...(SHOW_HOUSES
+    ? [{ href: '/dashboard/house-clash', label: 'House Clash', icon: Trophy, hint: 'League' }]
+    : []),
   { href: '/dashboard/profile', label: 'Profile', icon: UserRound, hint: 'You' },
 ]
 
@@ -129,17 +132,21 @@ export default function Sidebar({ username, house, gradeSection, tier }: Sidebar
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-ink-100">{username}</p>
-                {house ? (
-                  <p className="truncate text-xs text-ink-500">
-                    {house} House{gradeSection ? ` · ${gradeSection}` : ''}
-                  </p>
+                {SHOW_HOUSES ? (
+                  house ? (
+                    <p className="truncate text-xs text-ink-500">
+                      {house} House{gradeSection ? ` · ${gradeSection}` : ''}
+                    </p>
+                  ) : (
+                    <Link
+                      href="/dashboard/profile"
+                      className="block truncate text-xs font-medium text-neon-amber hover:underline"
+                    >
+                      Choose your house
+                    </Link>
+                  )
                 ) : (
-                  <Link
-                    href="/dashboard/profile"
-                    className="block truncate text-xs font-medium text-neon-amber hover:underline"
-                  >
-                    Choose your house
-                  </Link>
+                  <p className="truncate text-xs text-ink-500">{gradeSection || 'Student account'}</p>
                 )}
               </div>
             </div>

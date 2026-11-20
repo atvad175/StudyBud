@@ -103,12 +103,7 @@ export default function FocusTimer({
 
         setStatus({
           tone: 'success',
-          message:
-            result.data.housePoints !== null
-              ? `Logged ${formatMinutes(minutes)}. +${
-                  Math.min(25, Math.max(1, Math.round(minutes / 5)))
-                } house points.`
-              : `Logged ${formatMinutes(minutes)} of focus time.`,
+          message: `Logged ${formatMinutes(minutes)} of focus time.`,
         })
         router.refresh()
       })

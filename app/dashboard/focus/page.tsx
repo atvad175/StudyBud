@@ -58,7 +58,7 @@ export default async function FocusPage() {
       <PageHeader
         eyebrow="Pillar 02 · Deep work"
         title="Focus timer"
-        description="One timer, no feeds, no notifications. Completed blocks are logged to your record and earn house points at a rate of one point per five focused minutes."
+        description="One timer, no feeds, no notifications. Every completed block is logged to your record, so your weekly focus minutes are always accurate."
       />
 
       {error && (

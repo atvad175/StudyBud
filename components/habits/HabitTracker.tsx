@@ -97,11 +97,7 @@ export default function HabitTracker({ habits }: HabitTrackerProps) {
       )
 
       if (result.data.completedToday) {
-        setFeedback(
-          result.data.housePoints !== null
-            ? `Checked off. +1 house point — ${habit.title}.`
-            : `Checked off. ${habit.title} is done for today.`,
-        )
+        setFeedback(`Checked off. ${habit.title} is done for today.`)
       }
 
       setPendingId(null)

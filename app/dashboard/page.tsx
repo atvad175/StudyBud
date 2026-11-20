@@ -4,6 +4,7 @@ import { ArrowUpRight, Brain, Flame, Timer, Trophy } from 'lucide-react'
 
 import PageHeader from '@/components/dashboard/PageHeader'
 import GlassCard from '@/components/ui/GlassCard'
+import { SHOW_HOUSES } from '@/lib/features'
 import {
   currentStreak,
   formatMinutes,
@@ -14,6 +15,7 @@ import {
   weekdayLabel,
 } from '@/lib/dates'
 import { ensureProfile, requireUser } from '@/lib/session'
+import type { SchoolHouseRow } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,13 +60,17 @@ export default async function DashboardOverviewPage() {
       .select('id, title, ai_summary, created_at')
       .order('created_at', { ascending: false })
       .limit(3),
-    supabase.from('school_houses').select('*').order('total_points', { ascending: false }),
+    // The house league is switched off for now: skip the query entirely so a
+    // school without houses never pays for it (or fails on a missing table).
+    SHOW_HOUSES
+      ? supabase.from('school_houses').select('*').order('total_points', { ascending: false })
+      : Promise.resolve({ data: [] as SchoolHouseRow[], error: null }),
   ])
 
   const habits = habitsResult.data ?? []
   const sessions = focusResult.data ?? []
   const materials = materialsResult.data ?? []
-  const houses = housesResult.data ?? []
+  const houses: SchoolHouseRow[] = housesResult.data ?? []
 
   const bestStreak = habits.reduce(
     (best, habit) => Math.max(best, currentStreak(habit.completed_dates ?? [], today)),
@@ -125,17 +131,21 @@ export default async function DashboardOverviewPage() {
       tone: 'text-neon-emerald',
       accent: 'from-neon-emerald/20',
     },
-    {
-      label: 'House standing',
-      value: houseRank > 0 ? `#${houseRank}` : '—',
-      unit: '',
-      detail: myHouse
-        ? `${myHouse.house_name} · ${myHouse.total_points} pts`
-        : 'Join a house to compete',
-      icon: Trophy,
-      tone: 'text-neon-amber',
-      accent: 'from-neon-amber/20',
-    },
+    ...(SHOW_HOUSES
+      ? [
+          {
+            label: 'House standing',
+            value: houseRank > 0 ? `#${houseRank}` : '—',
+            unit: '',
+            detail: myHouse
+              ? `${myHouse.house_name} · ${myHouse.total_points} pts`
+              : 'Join a house to compete',
+            icon: Trophy,
+            tone: 'text-neon-amber',
+            accent: 'from-neon-amber/20',
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -143,10 +153,10 @@ export default async function DashboardOverviewPage() {
       <PageHeader
         eyebrow={`${greeting()}, ${profile.username}`}
         title="Your study system at a glance"
-        description="Every habit check and focus block feeds your house. Pick the pillar that needs you most today."
+        description="Every habit check and focus block lands in your record. Pick the pillar that needs you most today."
       />
 
-      {!profile.school_house && (
+      {SHOW_HOUSES && !profile.school_house && (
         <GlassCard specular glow="amber" className="border-neon-amber/25 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-start gap-2 text-sm leading-relaxed text-ink-200">
@@ -160,7 +170,10 @@ export default async function DashboardOverviewPage() {
         </GlassCard>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Key statistics">
+      <section
+        className={`grid gap-3 sm:grid-cols-2 ${SHOW_HOUSES ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}
+        aria-label="Key statistics"
+      >
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
@@ -291,7 +304,7 @@ export default async function DashboardOverviewPage() {
         </GlassCard>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`grid gap-4 ${SHOW_HOUSES ? 'lg:grid-cols-2' : ''}`}>
         <GlassCard specular>
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-white">Recent recall decks</h2>
@@ -325,9 +338,10 @@ export default async function DashboardOverviewPage() {
           )}
         </GlassCard>
 
-        <GlassCard specular glow="amber">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-white">House Clash</h2>
+        {SHOW_HOUSES && (
+          <GlassCard specular glow="amber">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-white">House Clash</h2>
             <Link
               href="/dashboard/house-clash"
               className="inline-flex items-center gap-1 text-xs font-medium text-neon-amber hover:underline"
@@ -386,7 +400,8 @@ export default async function DashboardOverviewPage() {
               })}
             </ol>
           )}
-        </GlassCard>
+          </GlassCard>
+        )}
       </div>
     </div>
   )
