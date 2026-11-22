@@ -184,6 +184,160 @@ export async function signUp(
   return { ok: true, data: { requiresConfirmation: !data.session } }
 }
 
+const emailOnlySchema = z.object({ email: emailSchema })
+
+const newPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(8, 'Use at least 8 characters.')
+    .max(72, 'Passwords must be 72 characters or fewer.'),
+})
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password.'),
+  newPassword: newPasswordSchema.shape.password,
+})
+
+export type RequestPasswordResetInput = z.input<typeof emailOnlySchema>
+export type NewPasswordInput = z.input<typeof newPasswordSchema>
+export type ChangePasswordInput = z.input<typeof changePasswordSchema>
+
+/**
+ * Sends a password-reset link. The reply is deliberately identical whether or
+ * not the address has an account, so this form cannot be used to discover who
+ * studies here.
+ */
+export async function requestPasswordReset(
+  input: RequestPasswordResetInput,
+): Promise<ActionResult<{ sent: true }>> {
+  const parsed = emailOnlySchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Enter a valid email address.' }
+  }
+
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  const headerStore = await headers()
+  const origin =
+    headerStore.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  let supabase: SupabaseServerClient
+  try {
+    supabase = await createClient()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  })
+
+  // Rate limiting is the one failure worth telling the student about: silently
+  // pretending we sent another email would leave them waiting for nothing.
+  if (error && error.message.toLowerCase().includes('rate')) {
+    return {
+      ok: false,
+      error: 'A reset email was just sent. Wait a minute before requesting another one.',
+    }
+  }
+
+  return { ok: true, data: { sent: true } }
+}
+
+/**
+ * Sets a new password for the signed-in user. The reset email signs the student
+ * in through `/auth/callback`, so by the time this runs there is a real session.
+ */
+export async function setNewPassword(input: NewPasswordInput): Promise<ActionResult<{ updated: true }>> {
+  const parsed = newPasswordSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Choose a stronger password.' }
+  }
+
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  let supabase: SupabaseServerClient
+  try {
+    supabase = await createClient()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return {
+      ok: false,
+      error: 'That reset link has expired. Request a new one from the sign-in page.',
+    }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
+
+  if (error) {
+    return { ok: false, error: friendlyAuthError(error.message) }
+  }
+
+  revalidatePath('/', 'layout')
+
+  return { ok: true, data: { updated: true } }
+}
+
+/**
+ * Changes the password of the signed-in student after re-checking the current
+ * one, so a borrowed laptop cannot be used to lock the owner out.
+ */
+export async function changePassword(
+  input: ChangePasswordInput,
+): Promise<ActionResult<{ updated: true }>> {
+  const parsed = changePasswordSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Check both password fields.' }
+  }
+
+  if (!hasSupabaseEnv()) {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  let supabase: SupabaseServerClient
+  try {
+    supabase = await createClient()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user?.email) {
+    return { ok: false, error: 'Your session expired. Sign in again to change your password.' }
+  }
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: parsed.data.currentPassword,
+  })
+
+  if (verifyError) {
+    return { ok: false, error: 'That is not your current password.' }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.newPassword })
+
+  if (error) {
+    return { ok: false, error: friendlyAuthError(error.message) }
+  }
+
+  return { ok: true, data: { updated: true } }
+}
+
 export async function signOut(): Promise<void> {
   if (!hasSupabaseEnv()) {
     redirect('/login')

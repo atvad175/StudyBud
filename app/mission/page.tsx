@@ -22,7 +22,7 @@ import SiteHeader from '@/components/landing/SiteHeader'
 export const metadata: Metadata = {
   title: 'Our Mission',
   description:
-    'StudyBud exists to make learning feel human again: one calm workspace for habits, focus, time, mind and skill mastery.',
+    'StudyBud exists to make learning feel human again: one calm workspace for habits, focus and active recall, with an honest record of the work you actually did.',
 }
 
 interface Section {
@@ -61,11 +61,11 @@ const SECTIONS: Section[] = [
     iconWrap: 'border-brass-400/35 bg-brass-400/10 text-brass-500',
     title: 'One calm, intelligent workspace to forge an extraordinary life.',
     body: [
-      'StudyBud integrates everything you need to build discipline into a single, beautifully designed hub. Habits. Focus. Time. Mind. Skill Mastery. All in one dashboard.',
-      'Our AI coach, Bud, is built differently. Instead of giving you answers, Bud asks you questions. It challenges your limits, helps you break bad habits, and adapts its coaching style to your emotional state. Life design, not AI shortcuts.',
-      'And when the pursuit gets heavy — because transformation is hard — the mind module is right there. Mood tracking, breathing exercises, reflection prompts, and cognitive offloading.',
+      'StudyBud puts the pieces that actually move your work into one dashboard. Habits you can check off. Focus blocks that are timed and logged. Recall decks built from your own notes. A weekly view that tells you the truth about how the term is going.',
+      'Nothing is awarded for showing up in a feed. Streaks come from days you completed. Focus minutes come from sessions you finished. Decks come from material you pasted in. If a number is on your dashboard, it happened.',
+      'And because studying is not only a scheduling problem, the tools stay quiet: no notifications fighting for attention, no coins, no streak repairs to buy. Just the next useful action.',
     ],
-    highlight: 'One app. Five modules. Infinite clarity.',
+    highlight: 'One calm app. One honest record.',
     highlightClass: 'text-brass-500 border-brass-400',
   },
   {
@@ -77,23 +77,23 @@ const SECTIONS: Section[] = [
     cards: [
       {
         vs: 'Notion / To-do lists',
-        us: 'We combine planning with habits, focus, and emotional tracking — not just task lists.',
+        us: 'We combine habits, a working focus timer and active recall — not just task lists.',
       },
       {
-        vs: 'ChatGPT for shortcuts',
-        us: 'Bud coaches using inquiry-based coaching. It builds discipline, not dependency.',
+        vs: 'Chatbots that write your essay',
+        us: 'Our AI reads your own notes and turns them into questions you answer yourself.',
       },
       {
-        vs: 'Separate meditation apps',
-        us: 'Mental fortitude is built into the workflow. Not bolted on after.',
+        vs: 'Separate timer and flashcard apps',
+        us: 'Recall decks sit next to the focus timer that logged the session, in one account.',
       },
       {
         vs: 'Duolingo / gamification',
         us: 'Meaningful streaks tied to habit science, not artificial reward loops.',
       },
       {
-        vs: 'Generic AI life coaches',
-        us: 'Bud knows your schedule, your habits, your goals, and your emotional state.',
+        vs: 'Planners you stop opening',
+        us: 'One screen shows today and the last seven days — no second system to maintain.',
       },
     ],
   },
@@ -109,8 +109,8 @@ const SECTIONS: Section[] = [
     ],
     bullets: [
       'Free during the entire beta — no credit card required',
-      'Privacy-first: your reflections and mood data stay yours',
-      'Works offline with local profile, syncs when you sign in',
+      'Your notes, habits and decks belong to your account, not to us',
+      'Honest numbers: streaks and focus minutes are never repaired or invented',
       'No gamification gimmicks — just genuine learning science',
       'Continuously improved based on real student feedback',
     ],
@@ -129,16 +129,19 @@ const SECTIONS: Section[] = [
         label: 'Now',
         current: true,
         items: [
-          'AI Bud companion',
-          'Habits + streaks',
-          'Focus timer + Spotify beats',
-          'Mood & mind tools',
-          'Study tools & flashcards',
+          'Habits with honest streaks',
+          'Focus timer with a logged weekly record',
+          'Flashcards generated from your own notes',
+          'Overview dashboard tied to one account',
         ],
       },
       {
         label: 'Next',
-        items: ['Community study rooms (live)', 'Shared learning challenges', 'Discord integration'],
+        items: [
+          'Community study rooms',
+          'Shared learning challenges',
+          'Data export and account deletion',
+        ],
       },
       {
         label: 'Future',

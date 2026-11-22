@@ -23,6 +23,23 @@ export const metadata: Metadata = {
   description:
     'StudyBud keeps your habits, focus blocks, streaks and recall decks in one place — and turns your class notes into flashcards you can test yourself with.',
   applicationName: 'StudyBud',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://studybud-five-puce.vercel.app',
+  ),
+  openGraph: {
+    type: 'website',
+    siteName: 'StudyBud',
+    title: 'StudyBud — Build discipline. Excel in your studies.',
+    description:
+      'A focus timer that logs every block, habits with honest streaks, and flashcards generated from your own notes — in one calm dashboard.',
+    url: '/',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'StudyBud — Build discipline. Excel in your studies.',
+    description:
+      'A focus timer that logs every block, habits with honest streaks, and flashcards generated from your own notes.',
+  },
 }
 
 export const viewport: Viewport = {

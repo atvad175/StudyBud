@@ -9,7 +9,7 @@ import SiteHeader from '@/components/landing/SiteHeader'
 export const metadata: Metadata = {
   title: 'StudyBud — Build discipline. Excel in your studies.',
   description:
-    'Study, focus, and build better routines in one place. StudyBud brings together study strategies, flashcards, exam practice, focus tools and small habits — so you know what to work on next and can see your progress over time.',
+    'Study, focus, and build better routines in one place. StudyBud brings together a focus timer that logs every block, habits with honest streaks and flashcards generated from your own notes — so you can see your progress over time.',
 }
 
 export default function LandingPage() {
@@ -33,9 +33,9 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto mt-7 max-w-2xl text-[15px] leading-relaxed text-espresso-500 sm:text-[16px]">
-            Study, focus, and build better routines in one place. StudyBud brings together
-            subject-specific study strategies, flashcards, exam practice, focus tools, and small
-            habits — so you know what to work on next and can see your progress over time.
+            Study, focus, and build better routines in one place. StudyBud brings together a focus
+            timer that logs every completed block, habits with streaks you can trust, and
+            flashcards generated from your own notes.
           </p>
 
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -62,8 +62,8 @@ export default function LandingPage() {
                 Everything in one calm dashboard
               </h2>
               <p className="mt-5 text-[15px] leading-relaxed text-espresso-500">
-                Each part of StudyBud works together: your habits, your focus timer, your schedule,
-                your mood, and your subjects — so you spend less time juggling apps and more time
+                Each part of StudyBud works together: your habits, your focus timer, and the decks
+                you build from your notes — so you spend less time juggling apps and more time
                 learning.
               </p>
             </div>
@@ -76,23 +76,22 @@ export default function LandingPage() {
                       <Brain className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                     </span>
                     <h3 className="display mt-5 text-[1.8rem] leading-tight text-espresso">
-                      AI Life &amp; Skill Coach (Gemini)
+                      Your notes become recall cards
                     </h3>
                     <p className="mt-3 max-w-md text-[13.5px] leading-relaxed text-espresso-500">
-                      Chat with an AI that coaches you on discipline, habits, and skill mastery. It
-                      asks the right questions so you cultivate a growth mindset and overcome your
-                      limits.
+                      Paste a page of class notes and get six to twelve question-and-answer cards
+                      back, written from that material only. Flip to check yourself, then keep the
+                      deck for the next revision session.
                     </p>
                   </div>
 
                   <div className="w-full max-w-[19rem] space-y-2.5 rounded-xl border border-espresso/10 bg-paper p-4">
                     <p className="max-w-[92%] rounded-2xl rounded-bl-sm border border-brass-400/25 bg-brass-400/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-espresso-700">
-                      Can you say back the main idea of what you just read — without looking at the
-                      book?
+                      Why does a longer alkyl chain raise the boiling point of an alkane?
                     </p>
                     <p className="ml-auto max-w-[88%] rounded-2xl rounded-br-sm border border-espresso/10 bg-paper-200 px-3.5 py-2.5 text-[12px] leading-relaxed text-espresso-700">
-                      It is about how speed changes over time, so acceleration is the rate of that
-                      change.
+                      More electrons means stronger London dispersion forces, so more energy is
+                      needed to separate the molecules.
                     </p>
                   </div>
                 </div>
@@ -134,11 +133,12 @@ export default function LandingPage() {
                       <Activity className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                     </span>
                     <h3 className="display mt-5 text-[1.8rem] leading-tight text-espresso">
-                      Time and energy that fit you
+                      A week you can actually see
                     </h3>
                     <p className="mt-3 max-w-md text-[13.5px] leading-relaxed text-espresso-500">
-                      Note when you focus best. Plan harder work for those hours. StudyBud helps you
-                      match tasks to your real energy — not a perfect schedule you cannot keep.
+                      Every finished block is written to your account, so today&apos;s total, the
+                      last seven days and your current streak are a record of real work — not a
+                      plan you meant to keep.
                     </p>
                   </div>
 

@@ -7,6 +7,11 @@ const PAGES = [
   { href: '/community', label: 'Community' },
 ]
 
+const LEGAL = [
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
+]
+
 export default function MarketingFooter({ note }: { note?: string }) {
   return (
     <footer className="border-t border-espresso/10">
@@ -20,7 +25,7 @@ export default function MarketingFooter({ note }: { note?: string }) {
               <span className="text-[15px] font-semibold tracking-tight text-espresso">StudyBud</span>
             </Link>
             <p className="mt-3 text-[12px] leading-relaxed text-espresso-400">
-              {note ?? 'Life-design workspace for discipline, focus, and skill mastery.'}
+              {note ?? 'A calm workspace for habits, focus and active recall.'}
             </p>
           </div>
 
@@ -49,9 +54,20 @@ export default function MarketingFooter({ note }: { note?: string }) {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-1 border-t border-espresso/10 pt-5 text-[11.5px] text-espresso-400 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-2 border-t border-espresso/10 pt-5 text-[11.5px] text-espresso-400 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} StudyBud</span>
-          <span>Built for students who are done guessing.</span>
+          <nav aria-label="Legal" className="flex gap-4">
+            {LEGAL.map((page) => (
+              <Link
+                key={page.href}
+                href={page.href}
+                className="transition-colors hover:text-espresso-700"
+              >
+                {page.label}
+              </Link>
+            ))}
+            <span>Built for students who are done guessing.</span>
+          </nav>
         </div>
       </div>
     </footer>

@@ -5,11 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Loader2, Lock, Mail, User } from 'lucide-react'
 
-import { signIn, signUp } from '@/app/actions/auth'
+import { requestPasswordReset, signIn, signUp } from '@/app/actions/auth'
 import { SHOW_HOUSES } from '@/lib/features'
 import { cn } from '@/lib/utils'
 
-type Mode = 'signin' | 'signup'
+type Mode = 'signin' | 'signup' | 'reset'
 
 interface AuthPanelProps {
   houses: string[]
@@ -48,6 +48,16 @@ export default function AuthPanel({
 
     startTransition(async () => {
       try {
+        if (mode === 'reset') {
+          const reset = await requestPasswordReset({ email })
+          if (!reset.ok) {
+            setError(reset.error)
+            return
+          }
+          setNotice('If that email has a StudyBud account, a reset link is on its way. Check your inbox and spam folder.')
+          return
+        }
+
         const result =
           mode === 'signin'
             ? await signIn({ email, password })
@@ -85,15 +95,21 @@ export default function AuthPanel({
     <div className="w-full animate-fade-up">
       <div className="mb-6">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.2em] text-brass-500">
-          {mode === 'signin' ? 'Your account' : 'New account'}
+          {mode === 'signin' ? 'Your account' : mode === 'signup' ? 'New account' : 'Reset password'}
         </p>
         <h2 className="display mt-2 hidden text-[2.1rem] leading-tight text-espresso lg:block">
-          {mode === 'signin' ? 'Sign in to StudyBud' : 'Build your study system'}
+          {mode === 'signin'
+            ? 'Sign in to StudyBud'
+            : mode === 'signup'
+              ? 'Build your study system'
+              : 'Get back into your account'}
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-espresso-500">
           {mode === 'signin'
             ? 'Your streaks, sessions and decks are exactly where you left them.'
-            : 'One account for habits, focus and recall — ready in under a minute.'}
+            : mode === 'signup'
+              ? 'One account for habits, focus and recall — ready in under a minute.'
+              : 'Enter the email you signed up with and we will send a link to choose a new password.'}
         </p>
       </div>
 
@@ -213,6 +229,7 @@ export default function AuthPanel({
             </div>
           </div>
 
+          {mode !== 'reset' && (
           <div>
             <label htmlFor="password" className="paper-label">
               Password
@@ -234,7 +251,17 @@ export default function AuthPanel({
                 placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
               />
             </div>
+            {mode === 'signin' && (
+              <button
+                type="button"
+                onClick={() => switchMode('reset')}
+                className="mt-1.5 text-[11.5px] font-medium text-brass-600 hover:underline"
+              >
+                Forgot your password?
+              </button>
+            )}
           </div>
+          )}
 
           {error && (
             <p
@@ -258,13 +285,24 @@ export default function AuthPanel({
 
           <button type="submit" disabled={isPending} className="paper-submit">
             {isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
+            {mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
           </button>
         </form>
       </div>
 
       <p className="mt-5 text-center text-xs text-espresso-500">
-        {mode === 'signin' ? (
+        {mode === 'reset' ? (
+          <>
+            Remembered it?{' '}
+            <button
+              type="button"
+              onClick={() => switchMode('signin')}
+              className="font-medium text-brass-600 hover:underline"
+            >
+              Back to sign in
+            </button>
+          </>
+        ) : mode === 'signin' ? (
           <>
             New to StudyBud?{' '}
             <button

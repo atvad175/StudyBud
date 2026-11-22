@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
-import { ShieldCheck, Trophy, UserRound } from 'lucide-react'
+import { KeyRound, ShieldCheck, Trophy, UserRound } from 'lucide-react'
 
 import PageHeader from '@/components/dashboard/PageHeader'
+import PasswordForm from '@/components/profile/PasswordForm'
 import HousePicker from '@/components/profile/HousePicker'
 import { updateGradeSection } from '@/app/actions/profile'
 import GlassCard from '@/components/ui/GlassCard'
@@ -134,6 +135,20 @@ export default async function ProfilePage({
               you would rather not say.
             </p>
           </form>
+        </GlassCard>
+
+        <GlassCard glow="emerald">
+          <div className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-neon-emerald" aria-hidden />
+            <h2 className="text-sm font-semibold text-white">Password</h2>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-ink-400">
+            Change the password for this account. Your current one is required, so a shared device
+            cannot lock you out.
+          </p>
+          <div className="mt-4">
+            <PasswordForm />
+          </div>
         </GlassCard>
 
         {SHOW_HOUSES && (

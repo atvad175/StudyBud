@@ -36,6 +36,13 @@ const logFocusSchema = z.object({
   mode: z.enum(['pomodoro', 'deep']).optional(),
 })
 
+/**
+ * Every deck costs a paid model call, so a signed-in account gets a rolling
+ * 24-hour allowance. Counted from the decks actually saved to the account, so
+ * a failed generation does not use up someone's day.
+ */
+const DECKS_PER_DAY = 10
+
 const generateFlashcardsSchema = z.object({
   title: z
     .string()
@@ -239,6 +246,21 @@ export async function generateAIFlashcards(input: GenerateFlashcardsInput): Prom
 
   const auth = await authenticated()
   if (!auth.ok) return { ok: false, error: auth.error }
+
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { count, error: countError } = await auth.supabase
+    .from('study_materials')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', dayAgo)
+
+  // A failed count must not block a student from studying; the AI call itself
+  // is still metered by the provider.
+  if (!countError && (count ?? 0) >= DECKS_PER_DAY) {
+    return {
+      ok: false,
+      error: `You have generated ${DECKS_PER_DAY} decks in the last 24 hours. That is the daily limit — try again tomorrow, and revisit the decks you already have.`,
+    }
+  }
 
   let deck: { cards: Flashcard[]; model: string }
   try {

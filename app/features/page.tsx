@@ -4,15 +4,11 @@ import type { ReactNode } from 'react'
 import {
   ArrowRight,
   BookOpen,
-  Brain,
   CheckCircle2,
-  Clock,
   Flame,
-  Heart,
-  Music2,
-  Sparkles,
+  LayoutDashboard,
+  Timer,
   Users,
-  Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -22,7 +18,7 @@ import SiteHeader from '@/components/landing/SiteHeader'
 export const metadata: Metadata = {
   title: 'Features',
   description:
-    'Five modules, one dashboard: Bud the AI coach, focus timer with beats, atomic habits and streaks, mind and mood tools, and skill mastery with flashcards.',
+    'Four tools in one calm workspace: a focus timer that logs every block, habits with honest streaks, flashcards generated from your own notes, and an overview that shows the whole week.',
 }
 
 interface Feature {
@@ -40,62 +36,29 @@ interface Feature {
 
 const FEATURES: Feature[] = [
   {
-    id: 'ai',
-    badge: 'Live now',
-    live: true,
-    icon: Brain,
-    iconWrap: 'border-brass-400/30 bg-brass-400/10 text-brass-500',
-    title: 'Bud — Your AI Life & Discipline Coach',
-    tagline: 'Not Google. Not ChatGPT. Your personal mentor.',
-    description:
-      "Bud doesn't give you the answer. Bud asks you the right questions — so you actually grow. Ask for a habit breakdown, get a skill explained, or just vent when things get hard. Bud adapts to your mood: candid, ruthless, or warm.",
-    bullets: [
-      'Personalized to your skills & goals',
-      'Three coaching modes: Candid, Ruthless, Warm',
-      'Remembers your history & progress',
-    ],
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-end gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-brass-400/40 bg-brass-400/15 text-brass-500">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
-          </span>
-          <p className="max-w-[85%] rounded-2xl rounded-bl-sm border border-brass-400/25 bg-brass-400/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-espresso-700">
-            Can you explain Newton&apos;s 3rd law in your own words — without looking it up?
-          </p>
-        </div>
-        <div className="flex justify-end">
-          <p className="max-w-[80%] rounded-2xl rounded-br-sm border border-espresso/10 bg-paper px-3.5 py-2.5 text-[12.5px] leading-relaxed text-espresso-700">
-            For every action there&apos;s an equal and opposite reaction...
-          </p>
-        </div>
-        <div className="flex gap-1.5 pl-2" aria-hidden>
-          {[0, 1, 2].map((dot) => (
-            <span key={dot} className="h-1.5 w-1.5 rounded-full bg-brass-400/70" />
-          ))}
-        </div>
-      </div>
-    ),
-  },
-  {
     id: 'focus',
     badge: 'Live now',
     live: true,
-    icon: Zap,
-    iconWrap: 'border-[#B4593F]/25 bg-[#B4593F]/10 text-[#B4593F]',
-    title: 'Focus Timer + Sonic Landscapes',
-    tagline: 'Deep work mode, beautifully designed.',
+    icon: Timer,
+    iconWrap: 'border-brass-400/30 bg-brass-400/10 text-brass-500',
+    title: 'Focus timer that counts',
+    tagline: 'One timer. No feeds. No notifications.',
     description:
-      'Start a Pomodoro or deep-work session with one tap. Pair it with your Beats playlist — lo-fi, classical, ambient, nature sounds, or jazz — all streaming from Spotify directly inside the app.',
+      'Start a 25-minute Pomodoro or a 50-minute deep-work block, with short and long breaks built in. Each finished block is written to your account, so your focus minutes are a record instead of a guess.',
     bullets: [
-      '25/50/90 min Pomodoro or deep-work modes',
-      '5 handpicked Spotify playlists',
-      'Session history & streak tracking',
+      'Pomodoro and deep-work blocks with breaks',
+      'Log elapsed time without waiting for the full block',
+      'Today’s total and the last seven days, always accurate',
     ],
     visual: (
       <div className="flex flex-col items-center gap-4">
         <div className="relative h-32 w-32">
-          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" role="img" aria-label="A focus timer with 24 minutes 18 seconds remaining">
+          <svg
+            viewBox="0 0 100 100"
+            className="h-full w-full -rotate-90"
+            role="img"
+            aria-label="A focus timer with 24 minutes 18 seconds remaining"
+          >
             <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(26,23,18,0.08)" strokeWidth="6" />
             <circle
               cx="50"
@@ -111,13 +74,12 @@ const FEATURES: Feature[] = [
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="font-mono text-xl font-semibold tabular-nums text-espresso">24:18</span>
-            <span className="text-[9px] uppercase tracking-[0.14em] text-espresso-400">remaining</span>
+            <span className="text-[9px] uppercase tracking-[0.14em] text-espresso-400">
+              remaining
+            </span>
           </div>
         </div>
-        <p className="flex items-center gap-2 text-[12px] text-espresso-500">
-          <Music2 className="h-3.5 w-3.5 text-[#1DB954]" aria-hidden />
-          Lo-fi Study Beats · playing
-        </p>
+        <p className="text-[12px] text-espresso-500">25 min · Pomodoro</p>
       </div>
     ),
   },
@@ -127,14 +89,14 @@ const FEATURES: Feature[] = [
     live: true,
     icon: Flame,
     iconWrap: 'border-[#B4593F]/25 bg-[#B4593F]/10 text-[#B4593F]',
-    title: 'Atomic Habits & Streak Engine',
+    title: 'Habits with honest streaks',
     tagline: 'Small daily wins compound into identity change.',
     description:
-      "Based on James Clear's Atomic Habits — pick one tiny habit, mark it done each day, and watch your streak build. The Fission feature breaks big goals into micro-habits you can actually start tomorrow.",
+      'Pick one tiny habit, check it off each day, and watch the streak build. Streaks are counted from the days you actually completed — no repairs, no invented history — so the number means something.',
     bullets: [
-      'Streak tracking with momentum visualization',
-      'Fission: break goals into micro-habits',
-      'AI coaching when you miss a day (no shame)',
+      'One tap to check off a habit for today',
+      'Streaks counted from real completion dates',
+      'Last seven days visible on every habit',
     ],
     visual: (
       <div className="flex flex-col items-center gap-4">
@@ -147,9 +109,7 @@ const FEATURES: Feature[] = [
               <span
                 key={index}
                 style={{ height }}
-                className={`w-2.5 rounded-sm ${
-                  index === 6 ? 'bg-[#B4593F]/30' : 'bg-[#B4593F]'
-                }`}
+                className={`w-2.5 rounded-sm ${index === 6 ? 'bg-[#B4593F]/30' : 'bg-[#B4593F]'}`}
               />
             ))}
           </div>
@@ -168,110 +128,19 @@ const FEATURES: Feature[] = [
     ),
   },
   {
-    id: 'mind',
-    badge: 'Live now',
-    live: true,
-    icon: Heart,
-    iconWrap: 'border-[#3F5F9B]/25 bg-[#3F5F9B]/10 text-[#3F5F9B]',
-    title: 'Mind & Mood — The Mental Layer',
-    tagline: "Studying is emotional. Let's treat it that way.",
-    description:
-      "Track your mood over time, offload anxious thoughts, do a guided breathing session, write reflections, and grow through positive psychology exercises. No therapy-speak — just a quiet corner when you need it.",
-    bullets: [
-      'Mood timeline with pattern insights',
-      'Cognitive offload & brain dump tool',
-      'Guided meditation + breathing sessions',
-    ],
-    visual: (
-      <div>
-        <svg viewBox="0 0 220 80" className="w-full overflow-visible" role="img" aria-label="A mood curve across six days">
-          <defs>
-            <linearGradient id="moodGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#B4593F" />
-              <stop offset="50%" stopColor="#C2913F" />
-              <stop offset="100%" stopColor="#3F5F9B" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,60 Q20,50 40,45 T80,30 T120,40 T160,20 T220,25"
-            fill="none"
-            stroke="url(#moodGrad)"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          {[
-            [0, 60],
-            [40, 45],
-            [80, 30],
-            [120, 40],
-            [160, 20],
-            [220, 25],
-          ].map(([cx, cy]) => (
-            <circle key={`${cx}`} cx={cx} cy={cy} r="4.5" fill="url(#moodGrad)" />
-          ))}
-        </svg>
-        <div className="mt-2 flex justify-between text-[10.5px] text-espresso-400">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <span key={day}>{day}</span>
-          ))}
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: 'time',
-    badge: 'Live now',
-    live: true,
-    icon: Clock,
-    iconWrap: 'border-[#4C7A4C]/25 bg-[#4C7A4C]/10 text-[#4C7A4C]',
-    title: 'Time & Energy Matching',
-    tagline: 'Work with your biology, not against it.',
-    description:
-      'Not all hours are equal. StudyBud helps you discover your peak energy windows, then schedules hard cognitive work for those slots. Miss a deadline? The system adapts — no shame, just an adjusted plan.',
-    bullets: [
-      'Peak energy window discovery',
-      'Smart task-to-energy matching',
-      'Weekly review with reflection prompts',
-    ],
-    visual: (
-      <div className="flex h-24 items-end gap-2">
-        {[
-          { height: 34, label: '6am', active: false },
-          { height: 62, label: '9am', active: true },
-          { height: 74, label: '11am', active: true },
-          { height: 50, label: '2pm', active: false },
-          { height: 38, label: '4pm', active: false },
-          { height: 68, label: '8pm', active: true },
-        ].map((bar) => (
-          <div key={bar.label} className="flex flex-1 flex-col items-center gap-1.5">
-            <span
-              style={{ height: bar.height }}
-              className={`w-full rounded-t-md rounded-b-sm ${
-                bar.active
-                  ? 'bg-gradient-to-b from-[#6E9E6E] to-[#3F6B3F]'
-                  : 'bg-espresso/10'
-              }`}
-            />
-            <span className="text-[10px] text-espresso-400">{bar.label}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
     id: 'study',
     badge: 'Live now',
     live: true,
     icon: BookOpen,
     iconWrap: 'border-[#7A5A9B]/25 bg-[#7A5A9B]/10 text-[#7A5A9B]',
-    title: 'Skill Mastery — Flashcards & Active Recall',
+    title: 'Flashcards from your own notes',
     tagline: 'Master what matters. Stop passive re-reading.',
     description:
-      'Create flashcard decks, run AI-generated quizzes on any skill, break large goals into steps, and track macro progress. Real learning science, built in.',
+      'Paste a page of class notes and get six to twelve question-and-answer cards back, written from that material only. Flip to check yourself, then keep the deck on your account for the next revision session.',
     bullets: [
-      'Spaced repetition flashcard engine',
-      'AI quizzes on any topic in seconds',
-      'Goal breakdown + progress tracking',
+      'Six to twelve cards per deck, straight from your notes',
+      'Tap to reveal the answer, one card at a time',
+      'Every deck saved to your account and reopenable',
     ],
     visual: (
       <div className="rounded-2xl border border-[#7A5A9B]/30 bg-[#7A5A9B]/10 p-5 shadow-paper">
@@ -284,6 +153,43 @@ const FEATURES: Feature[] = [
         <p className="mt-4 border-t border-espresso/10 pt-3 text-[12.5px] italic text-[#7A5A9B]">
           Hexokinase (Glucokinase in liver)
         </p>
+      </div>
+    ),
+  },
+  {
+    id: 'overview',
+    badge: 'Live now',
+    live: true,
+    icon: LayoutDashboard,
+    iconWrap: 'border-[#3F5F9B]/25 bg-[#3F5F9B]/10 text-[#3F5F9B]',
+    title: 'One overview of your week',
+    tagline: 'Open the app and know where you stand.',
+    description:
+      'The dashboard shows the habits still unchecked today, the minutes you have actually focused this week, and the decks you built most recently. No separate planner to keep in sync.',
+    bullets: [
+      'Today’s habits and current streak at a glance',
+      'Weekly focus minutes from logged sessions',
+      'Your latest recall decks, one tap away',
+    ],
+    visual: (
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          { label: 'Focus', value: '1h 15m' },
+          { label: 'Streak', value: '12 days' },
+          { label: 'Decks', value: '6' },
+        ].map((metric) => (
+          <div
+            key={metric.label}
+            className="rounded-xl border border-[#3F5F9B]/20 bg-[#3F5F9B]/5 px-3 py-3"
+          >
+            <p className="text-[9.5px] uppercase tracking-[0.12em] text-espresso-400">
+              {metric.label}
+            </p>
+            <p className="mt-1.5 text-[15px] font-semibold tabular-nums text-[#3F5F9B]">
+              {metric.value}
+            </p>
+          </div>
+        ))}
       </div>
     ),
   },
@@ -335,16 +241,16 @@ export default function FeaturesPage() {
             <em className="italic text-brass-500">in one calm space.</em>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-espresso-500 sm:text-[16px]">
-            Five modules. One dashboard. No app-switching. StudyBud integrates your habits, focus,
-            time, mind, and skills into a single intelligent workspace.
+            Four tools. One dashboard. No app-switching. StudyBud puts your habits, your focus
+            blocks, your recall decks and your week in one place.
           </p>
 
           <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-y-6 rounded-2xl border border-espresso/10 bg-paper-50 px-6 py-7 shadow-paper sm:grid-cols-4">
             {[
-              { value: '7', label: 'Core features' },
-              { value: '5', label: 'Spotify playlists' },
-              { value: '3', label: 'AI personas' },
-              { value: '∞', label: 'Streaks possible' },
+              { value: '4', label: 'Tools in one app' },
+              { value: '6–12', label: 'Cards per deck' },
+              { value: '7', label: 'Days of focus history' },
+              { value: 'β', label: 'Free while in beta' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="display text-[2rem] leading-none text-brass-500">{stat.value}</p>
@@ -396,8 +302,14 @@ export default function FeaturesPage() {
 
                     <ul className="mt-6 space-y-2.5">
                       {feature.bullets.map((bullet) => (
-                        <li key={bullet} className="flex items-start gap-2.5 text-[13.5px] text-espresso-700">
-                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brass-500" aria-hidden />
+                        <li
+                          key={bullet}
+                          className="flex items-start gap-2.5 text-[13.5px] text-espresso-700"
+                        >
+                          <CheckCircle2
+                            className="mt-0.5 h-4 w-4 shrink-0 text-brass-500"
+                            aria-hidden
+                          />
                           {bullet}
                         </li>
                       ))}
@@ -423,7 +335,8 @@ export default function FeaturesPage() {
               Ready to <em className="italic text-brass-500">start?</em>
             </h2>
             <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-espresso-500">
-              Set up your profile in 2 minutes. No credit card. Free while we&apos;re in beta.
+              Create an account in a couple of minutes. No credit card. Free while we&apos;re in
+              beta.
             </p>
             <div className="mt-8">
               <Link href="/login?mode=signup" className="paper-btn">

@@ -9,14 +9,13 @@ import SiteHeader from '@/components/landing/SiteHeader'
 export const metadata: Metadata = {
   title: 'Community',
   description:
-    'Community is our next big venture: study rooms, shared wins and peer support. Virtual study rooms are live today.',
+    'Community is our next big venture: study rooms, shared wins and peer support. Nothing here is live yet — we will announce it when it is.',
 }
 
 interface Panel {
   icon: LucideIcon
   title: string
   body: string
-  live: boolean
 }
 
 const PANELS: Panel[] = [
@@ -24,31 +23,26 @@ const PANELS: Panel[] = [
     icon: Users,
     title: 'Virtual Study Rooms',
     body: 'Join a room, start a focus session, and feel the quiet energy of others working alongside you. No pressure to chat — just shared momentum.',
-    live: true,
   },
   {
     icon: MessagesSquare,
     title: 'Study Tips & Method Sharing',
     body: 'A space to swap proven techniques, flashcard strategies, and weekly plan breakdowns — peer wisdom at scale.',
-    live: false,
   },
   {
     icon: Globe,
     title: 'Discord Community',
     body: 'A dedicated Discord server for announcements, accountability check-ins, study sprints, and friendly help.',
-    live: false,
   },
   {
     icon: Sparkles,
     title: 'AI Group Sessions',
-    body: 'Study alongside others with Bud acting as a shared tutor — group inquiry-based sessions, collaborative mock exams.',
-    live: false,
+    body: 'Study alongside others with a shared tutor — group inquiry-based sessions and collaborative mock exams.',
   },
   {
     icon: Clock,
     title: 'StudyBud Calendar & Day Planner',
-    body: 'A comprehensive calendar and day planner to help you map out your long-term goals and daily actions in one beautiful interface.',
-    live: false,
+    body: 'A calendar and day planner to help you map out your long-term goals and daily actions in one interface.',
   },
 ]
 
@@ -110,50 +104,22 @@ export default function CommunityPage() {
               return (
                 <article
                   key={panel.title}
-                  className={`relative overflow-hidden rounded-2xl border border-espresso/10 p-7 ${
-                    panel.live ? 'bg-paper-50 shadow-paper' : 'bg-paper-100/60'
-                  }`}
+                  className="relative overflow-hidden rounded-2xl border border-espresso/10 bg-paper-100/60 p-7"
                 >
-                  {!panel.live && (
-                    <span className="absolute right-5 top-5 rounded-full border border-brass-400/40 bg-paper px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.12em] text-brass-600">
-                      Coming soon
-                    </span>
-                  )}
+                  <span className="absolute right-5 top-5 rounded-full border border-brass-400/40 bg-paper px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.12em] text-brass-600">
+                    Coming soon
+                  </span>
 
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl border ${
-                      panel.live
-                        ? 'border-brass-400/35 bg-brass-400/10 text-brass-500'
-                        : 'border-espresso/10 bg-paper text-espresso-400'
-                    }`}
-                  >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-espresso/10 bg-paper text-espresso-400">
                     <Icon className="h-5 w-5" strokeWidth={1.6} aria-hidden />
                   </span>
 
-                  <h2
-                    className={`display mt-5 text-[1.4rem] leading-tight ${
-                      panel.live ? 'text-espresso' : 'text-espresso-500'
-                    }`}
-                  >
+                  <h2 className="display mt-5 text-[1.4rem] leading-tight text-espresso-500">
                     {panel.title}
                   </h2>
-                  <p
-                    className={`mt-2.5 text-[13px] leading-relaxed ${
-                      panel.live ? 'text-espresso-500' : 'text-espresso-400'
-                    }`}
-                  >
+                  <p className="mt-2.5 text-[13px] leading-relaxed text-espresso-400">
                     {panel.body}
                   </p>
-
-                  {panel.live && (
-                    <Link
-                      href="/dashboard/focus"
-                      className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brass-600 transition-colors hover:text-espresso"
-                    >
-                      Try in app
-                      <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                    </Link>
-                  )}
                 </article>
               )
             })}
