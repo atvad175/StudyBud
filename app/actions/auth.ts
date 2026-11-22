@@ -10,6 +10,31 @@ import { createClient } from '@/lib/supabase/server'
 import type { SupabaseServerClient } from '@/lib/session'
 import type { ActionResult } from '@/lib/types'
 
+/** Shown when the request never reaches Supabase at all (offline, bad URL, DNS). */
+const REACHABILITY_HINT =
+  'We could not reach the StudyBud server just now. Check your connection and try again in a moment.'
+
+/**
+ * Supabase surfaces transport failures as raw text such as "fetch failed",
+ * which means nothing to a student. Anything that looks like a network problem
+ * becomes one plain sentence; real auth messages (wrong password, unconfirmed
+ * email) are passed through untouched.
+ */
+function friendlyAuthError(message: string): string {
+  const text = message.toLowerCase()
+  const looksLikeTransport = [
+    'fetch failed',
+    'failed to fetch',
+    'network',
+    'timeout',
+    'timed out',
+    'econnrefused',
+    'enotfound',
+  ].some((fragment) => text.includes(fragment))
+
+  return looksLikeTransport ? REACHABILITY_HINT : message
+}
+
 const emailSchema = z
   .string()
   .trim()
@@ -91,11 +116,17 @@ export async function signIn(
     return { ok: false, error: SUPABASE_SETUP_HINT }
   }
 
-  const supabase = await createClient()
+  let supabase: SupabaseServerClient
+  try {
+    supabase = await createClient()
+  } catch {
+    return { ok: false, error: SUPABASE_SETUP_HINT }
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error) {
-    return { ok: false, error: error.message }
+    return { ok: false, error: friendlyAuthError(error.message) }
   }
 
   revalidatePath('/', 'layout')
@@ -145,7 +176,7 @@ export async function signUp(
   })
 
   if (error) {
-    return { ok: false, error: error.message }
+    return { ok: false, error: friendlyAuthError(error.message) }
   }
 
   revalidatePath('/', 'layout')
