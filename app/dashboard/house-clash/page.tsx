@@ -9,7 +9,9 @@ import { ensureProfile, requireUser } from '@/lib/session'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'House Clash',
+  // While the league is switched off this URL only ever renders the 404 page,
+  // so its tab title must not advertise the hidden feature either.
+  title: SHOW_HOUSES ? 'House Clash' : 'Page not found',
 }
 
 export default async function HouseClashPage() {
