@@ -3,12 +3,12 @@ import { useLocation } from 'react-router-dom';
 import {
     ArrowRight,
     BookOpen,
+    Brain,
     Eye,
     EyeOff,
     Leaf,
     Target,
 } from 'lucide-react';
-import { BudMark } from '../../../components/brand/StudyBudLogo';
 import { supabase, diagnoseAuthService } from '../../../supabaseClient';
 import { useToast } from '../../../context/useToast';
 import styles from './Auth.module.css';
@@ -242,7 +242,7 @@ const LoginPage = () => {
         <aside className={styles.brandPanel}>
             <div className={styles.brandLockup}>
                 <span className={styles.logoMark} aria-hidden="true">
-                    <BudMark className={styles.logoGlyph} />
+                    <Brain size={24} strokeWidth={1.8} />
                 </span>
                 <span className={styles.logoText}>
                     <span className={styles.logoName}><span>Study</span><strong>Bud</strong></span>
@@ -285,7 +285,6 @@ const LoginPage = () => {
                 <div className={styles.formPanel}>
                     <div className={styles.formTopline}>
                         <span className={styles.formEyebrow}>{mode === 'login' ? 'YOUR SPACE IS READY' : 'LET’S GET YOU STARTED'}</span>
-                        <span className={styles.secureLabel}><span /> Secure account</span>
                     </div>
 
                     <header className={styles.headingBlock}>

@@ -1,4 +1,4 @@
-/* Recognizable mark: warm gold circle holding a sprout over an open book */
+/* Recognizable mark: warm gold “thought” circle + clear wordmark */
 .root {
     display: inline-flex;
     align-items: center;
@@ -46,22 +46,19 @@ button.root {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background:
-        radial-gradient(120% 120% at 28% 16%, rgba(246, 212, 155, 0.32) 0%, rgba(221, 168, 93, 0) 58%),
-        linear-gradient(150deg, #3b2c1e 0%, #241b14 58%, #191310 100%);
-    border: 1px solid rgba(221, 168, 93, 0.45);
+    background: linear-gradient(145deg, var(--color-gold) 0%, var(--color-gold-hover) 55%, #b8893a 100%);
     box-shadow:
-        0 6px 16px -8px rgba(48, 32, 18, 0.55),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    color: #f9efdd;
+        0 4px 14px rgba(221, 168, 93, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    color: #fff;
 }
 
 .mark::after {
     content: '';
     position: absolute;
-    inset: -4px;
+    inset: -3px;
     border-radius: 50%;
-    border: 1px solid rgba(221, 168, 93, 0.26);
+    border: 1px solid rgba(221, 168, 93, 0.35);
     pointer-events: none;
 }
 
