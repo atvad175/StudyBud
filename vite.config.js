@@ -1,12 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// The app reads VITE_SUPABASE_*. This deployment has also carried the newer
-// NEXT_PUBLIC_ names, so fall back to those at build time instead of shipping a
-// client with no connection details.
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+// The browser build needs the Supabase connection values.
+//
+// The original VITE_* pair in this Vercel project points at a Supabase project
+// that no longer resolves, so the newer NEXT_PUBLIC_* names are preferred and
+// the VITE_* names stay as a fallback for anyone running an older .env.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey =
-  process.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
 
 // https://vite.dev/config/
 export default defineConfig({
