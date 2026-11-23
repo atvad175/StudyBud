@@ -1,138 +1,109 @@
 # StudyBud
 
-A calm study workspace built with the Next.js App Router: a focus timer that logs every block,
-habits with honest streaks, flashcards generated from your own notes, and one overview of the week.
+StudyBud is a student-first learning workspace for planning study sessions, practicing recall, reviewing flashcards, managing assignments, building habits, and reflecting on progress.
 
-Live at <https://studybud-five-puce.vercel.app>.
+This repository contains the React web app and a Vercel serverless endpoint for AI features.
 
-## What actually ships
+## Current product areas
 
-| Area | Route | What it does |
-| --- | --- | --- |
-| Marketing | `/`, `/features`, `/mission`, `/about`, `/community` | Public pages that describe the shipped product. `/community` is explicitly under construction. |
-| Accounts | `/login`, `/reset-password`, `/auth/callback` | Email + password sign-up and sign-in, password reset by email, password change on the profile page. |
-| Overview | `/dashboard` | Today's habits, current streak, weekly focus minutes, latest decks. |
-| Habits | `/dashboard/habits` | Create habits, check them off, streaks counted from real completion dates. |
-| Focus | `/dashboard/focus` | Pomodoro / deep-work timer with breaks, logs completed and partially logged sessions. |
-| Study | `/dashboard/study` | Paste notes, generate 6–12 flashcards with Gemini, review saved decks. |
-| Profile | `/dashboard/profile` | Display name, email, plan, grade/section, password change. |
-
-The House league (houses, points, `/dashboard/house-clash`) is fully built but switched off in the
-UI by `SHOW_HOUSES` in `lib/features.ts`. The tables, triggers and actions stay in place so it can be
-turned back on without a rebuild.
-
-Not shipped, and not advertised anywhere: chat with an AI coach, mood/mind tracking, energy
-scheduling, Spotify playback, exam practice, community rooms, mobile apps.
+- **Study Hub** — subject strategies, learning methods, assignment breakdowns, Feynman explanations, AI practice exams, and flashcards.
+- **Focus** — timed focus sessions and saved session history.
+- **Habits** — small recurring habits and daily completion logs.
+- **Time** — tasks, energy-aware planning, and weekly reflection.
+- **Mind** — private reflections, cognitive offloading, gratitude, and the Bud companion.
+- **Accounts** — Supabase authentication, onboarding, personal settings, and account-scoped data.
 
 ## Technology
 
-- Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS
-- Supabase Auth + Postgres with Row Level Security, via `@supabase/ssr`
-- Google Gemini (`@google/genai`) for flashcard generation, called from a Server Action only
+- React 19 and Vite
+- React Router
+- Supabase Auth, Postgres, and Row Level Security (RLS)
+- Vercel for hosting and the `/api/ai` serverless endpoint
+- Google Gemini API for AI-supported study and companion features
 
-## Project layout
+## Local development
 
+Use Node.js 22 or a compatible supported Node.js version.
+
+```bash
+npm ci
 ```
-app/                 pages, layouts, Server Actions, route handlers, sitemap/robots
-components/         React components (landing, auth, dashboard, focus, habits, study, profile, ui)
-lib/                 Supabase clients, env helpers, AI client, date/streak and flashcard helpers
-types/               shared TypeScript types, including database row types
-supabase/migrations/ ordered SQL migrations — the only authoritative schema source
-tests/               unit tests run by `npm test` (node:test, TypeScript stripped by Node)
-```
 
-## Environment variables
+Create a local environment file from the example:
 
 ```bash
 cp .env.example .env.local
 ```
 
-| Variable | Scope | Required | Purpose |
-| --- | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | public | yes | Supabase project URL. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | yes | Supabase publishable/anon key. Never a service-role key. |
-| `VITE_SUPABASE_URL` | public | fallback | Older name, read only when the `NEXT_PUBLIC_` one is missing. |
-| `VITE_SUPABASE_ANON_KEY` | public | fallback | Older name, same rule. |
-| `GEMINI_API_KEY` | server only | for AI | Enables flashcard generation. Never prefix with `NEXT_PUBLIC_`. |
-| `NEXT_PUBLIC_SITE_URL` | public | optional | Absolute origin for email links and the sitemap. Defaults to the production URL. |
+Fill in the appropriate Supabase URL and publishable/anon key for a **development or test project**. Add the server-side Gemini key only to local serverless configuration; never put it in a browser variable.
 
-Anything prefixed `NEXT_PUBLIC_` is shipped to the browser bundle. The AI key is read only on the
-server.
-
-## Local development
+Run the frontend only:
 
 ```bash
-npm ci
 npm run dev
 ```
 
-The app runs at <http://localhost:3000>. AI generation runs inside the Next.js server process, so
-`npm run dev` is enough once `GEMINI_API_KEY` is set.
-
-## Scripts
-
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start the dev server. |
-| `npm run build` | Production build. |
-| `npm start` | Serve the production build. |
-| `npm run typecheck` | `tsc --noEmit`. |
-| `npm run lint` | ESLint over the repository. |
-| `npm test` | Unit tests for the date/streak and flashcard helpers. |
-
-## Database
-
-`supabase/migrations/` is the single source of truth, applied in filename order.
+The Vite dev server does **not** execute the Vercel `/api/ai` function. To test the full app, including AI, use the Vercel CLI:
 
 ```bash
-npx supabase login
-npx supabase link --project-ref <your-project-ref>
-npx supabase db push
+npx vercel dev
 ```
 
-Without the CLI, run each file in the Supabase SQL editor in timestamp order.
+Configure the server-side variables in the local environment used by the Vercel function:
 
-Before applying to a shared database: apply to a test project first, confirm the `handle_new_user`
-trigger and the RLS policies exist, then sign up two accounts and confirm neither can read the
-other's rows. `artifacts/apply_all_migrations.sql` is a generated concatenation of every migration
-for convenience; regenerate it if the migrations change.
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `GEMINI_API_KEY`
 
-Migration highlights:
+The browser build uses:
 
-- `20261017130000_onboarding_and_chat_history.sql` — onboarding profile fields and (legacy) chat history.
-- `20261017130100_private_data_rls.sql` — owner-only policies for private tables.
-- `20261017130200_flashcard_storage.sql` — account-owned flashcard decks and cards.
-- `20261117090000_studybud_core_reconciliation.sql` — reconciles the schema with the app.
-- `20261118090000_house_selection_guard.sql` — validates houses and locks house assignment.
-- `20261121120000_public_table_grants.sql` — standard API grants so signed-in queries work.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-## AI cost control
+Any variable prefixed with `VITE_` is public in the client bundle. **Never** use `VITE_GEMINI_API_KEY` or put service-role keys in frontend environment variables.
 
-`generateAIFlashcards` refuses after 10 saved decks per account in a rolling 24 hours. The count is
-based on saved decks, so a failed generation does not use up an allowance.
+## Database setup and migrations
 
-## Deployment
+Database setup is a critical deployment gate. The repository has legacy SQL bootstrap files under `src/*.sql` and incremental migrations under `supabase/migrations/`. These are not interchangeable, and not every file in `src/` is a safe, authoritative schema.
 
-Vercel builds with the default Next.js detection. Set the environment variables above for Production
-and Preview, then redeploy: changing a value in the Vercel dashboard does not affect an existing
-deployment until a new one is built.
+Before applying changes to any shared database:
+
+1. Identify the current Supabase project and inspect its tables, RLS policies, migration history, and data.
+2. Choose and verify one baseline schema for the project.
+3. Apply the incremental migrations to a separate test database first.
+4. Test two authenticated users and confirm they cannot read or modify each other's private rows.
+5. Back up existing data and review records without a valid `user_id` before considering production changes.
+
+The current draft pull request adds migrations for onboarding/chat history, owner-only private data policies, and account-owned flashcards. One migration replaces existing policies on selected private tables. Do not apply it to production without verifying the project's actual schema and policy requirements.
 
 ## Quality checks
 
+Run the same core checks locally:
+
 ```bash
 npm ci
-npm run typecheck
+node --check api/ai.js
 npm run lint
-npm test
 npm run build
 ```
 
-CI (`.github/workflows/quality.yml`) runs lint, typecheck and the production build on pull requests
-with placeholder Supabase values.
+The pull-request workflow requires serverless syntax, targeted lint, the full-repository ESLint suite, and a production build. It also scans the compiled browser bundle for Gemini SDK/key markers. Full lint currently passes; automated browser-flow and cross-account RLS regression tests are still on the roadmap.
 
 ## Delivery workflow
 
-- One small, reviewable change at a time on a branch.
-- CI passes and the Vercel preview is checked before merging.
-- Database changes are migrations, tested somewhere other than production first.
-- Authentication, data isolation and honest save/error feedback come before visual extras.
+- Report user problems in plain language, with a screenshot or screen recording when available.
+- Reproduce the problem and define the expected behavior.
+- Fix one small, reviewable unit at a time on a branch.
+- Require CI to pass and review a Vercel Preview before merging.
+- Test migrations against a non-production Supabase database before production rollout.
+- Keep authentication, data isolation, and honest save/error feedback ahead of visual extras.
+
+See [the product roadmap and release workflow](docs/PRODUCT_ROADMAP.md).
+
+## Draft implementation work
+
+The current implementation branch is reviewed through a draft pull request:
+
+[StudyBud hardening pull request](https://github.com/atvad175/StudyBud/pull/1)
+
+That PR is not a production release. Vercel environment configuration, safe Supabase migration/testing, and a real end-to-end preview check remain necessary before deployment.

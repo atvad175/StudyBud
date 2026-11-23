@@ -1,0 +1,233 @@
+.container {
+    height: 100vh;
+    padding: 2rem;
+    background: linear-gradient(135deg, #fdfbf7 0%, #fff 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.header h1 {
+    font-family: var(--font-serif);
+    font-size: 2.5rem;
+    color: var(--color-soft-black);
+    margin: 0;
+}
+
+.breadcrumb {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+    height: 100%;
+    overflow: hidden;
+}
+
+.sidebar {
+    background: white;
+    border-radius: 32px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+.sidebarTitle {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.mainArea {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow: hidden;
+}
+
+.energyGraph {
+    height: 180px;
+    background: white;
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.graphMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+
+.columns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.column {
+    background: white;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.2s;
+}
+
+.columnHeader {
+    padding: 1.25rem;
+    color: white;
+    font-weight: 600;
+}
+
+.highHeader {
+    background: linear-gradient(135deg, #FF9966 0%, #FF5E62 100%);
+}
+
+.medHeader {
+    background: linear-gradient(135deg, #F2994A 0%, #F2C94C 100%);
+}
+
+.lowHeader {
+    background: linear-gradient(135deg, #56CCF2 0%, #2F80ED 100%);
+}
+
+.taskList {
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.taskCard {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    padding: 1rem;
+    transition: all 0.2s;
+    cursor: grab;
+    position: relative;
+}
+
+.taskCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: transparent;
+}
+
+.cardTop {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.cardTitle {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--color-soft-black);
+}
+
+.cardTime {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-secondary);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.cardTags {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    border-top: 1px dashed var(--color-border);
+    padding-top: 0.75rem;
+}
+
+.moveBtn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--color-text-secondary);
+    background: white;
+    transition: all 0.2s;
+}
+
+.moveBtn:hover {
+    background: var(--color-soft-black);
+    color: white;
+    border-color: var(--color-soft-black);
+}
+
+.settingsPill {
+    background: white;
+    padding: 0.5rem 1rem;
+    padding-right: 0.5rem;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+.chronotypeSelect {
+    border: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    outline: none;
+    padding: 0.25rem;
+}

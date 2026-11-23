@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  /* Colors - Night Light Palette */
+  --color-cream: #FFFBF0;
+  /* Warm cream */
+  --color-beige: #F7F3E8;
+  /* Slightly darker cream for cards/sidebars */
+  --color-warm-gray: #5C5A53;
+  --color-soft-black: #1A1916;
+  --color-gold: #DDA85D;
+  /* Muted warm gold */
+  --color-gold-light: #F2E3C9;
+  --color-gold-hover: #C9964D;
+  --color-border: #EBE5D5;
+
+  --color-text-primary: var(--color-soft-black);
+  --color-text-secondary: var(--color-warm-gray);
+
+  /* Typography */
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Inter', sans-serif;
+
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+
+  /* Shadows & Radius */
+  --shadow-soft: 0 8px 30px rgba(100, 80, 50, 0.04);
+  --shadow-card: 0 4px 12px rgba(100, 80, 50, 0.03);
+  --radius-card: 24px;
+  --radius-squircle: 20px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-cream);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+  position: relative;
+}
+
+/* Night Light Overlay */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(255, 140, 0, var(--night-light-intensity, 0.15));
+  /* Orangey warm tint */
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: multiply;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+/* Marketing pages set their own colours on dark backgrounds */
+.landing-root h1,
+.landing-root h2,
+.landing-root h3 {
+  color: inherit;
+}
+
+button {
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #D9D2C0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #C0B8A5;
+}
+
+.page-container {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}

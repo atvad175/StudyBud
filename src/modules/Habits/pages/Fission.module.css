@@ -1,0 +1,306 @@
+/* Fission Growth System Styles */
+
+.header {
+    margin-bottom: 3rem;
+}
+
+.breadcrumb {
+    font-size: 0.8rem;
+    color: var(--color-gold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.mainLayout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 3rem;
+    align-items: start;
+}
+
+/* Curriculum Grid */
+.curriculumGrid {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 2rem;
+}
+
+.levelHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.levelBadge {
+    background: var(--color-gold);
+    color: var(--bg-dark);
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-weight: 800;
+    font-size: 0.75rem;
+}
+
+.lessonList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.lessonCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lessonCard:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(8px);
+    border-color: var(--color-gold);
+}
+
+.lessonIcon {
+    width: 44px;
+    height: 44px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-gold);
+}
+
+.lessonInfo {
+    flex: 1;
+}
+
+.lessonNumber {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.lessonInfo h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #eee;
+}
+
+.arrow {
+    color: #555;
+    transition: color 0.3s;
+}
+
+.lessonCard:hover .arrow {
+    color: var(--color-gold);
+}
+
+/* Lesson Reader */
+.backLink {
+    background: none;
+    border: none;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 2.5rem;
+    padding: 0;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+
+.backLink:hover {
+    color: var(--color-gold);
+}
+
+.lessonReader {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 24px;
+    padding: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lessonMeta {
+    margin-bottom: 3rem;
+}
+
+.levelTag {
+    color: var(--color-gold);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+.lessonReader h1 {
+    font-size: 2.5rem;
+    margin-top: 0.5rem;
+}
+
+.readingText p {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: #999;
+    margin-bottom: 1.5rem;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 3rem 0 1.5rem 0;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sectionHeader h3 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.reflectionList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.reflectionItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.reflectionItem label {
+    font-size: 1rem;
+    color: #aaa;
+}
+
+.reflectionItem textarea {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    color: white;
+    min-height: 100px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.challengeCard {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.02) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.challengeCard p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #eee;
+}
+
+.acceptBtn {
+    background: var(--color-gold);
+    color: var(--bg-dark);
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 30px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.acceptBtn:hover {
+    transform: scale(1.05);
+}
+
+/* Sidebar */
+.quickFission {
+    position: sticky;
+    top: 2rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 1.5rem;
+}
+
+.sidebarHint {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.fissionList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fissionCard {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.fissionInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.atomTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.entryPoint {
+    font-size: 0.75rem;
+    color: var(--color-gold);
+}
+
+.fissionBtn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.fissionBtn:hover {
+    background: var(--color-gold);
+    color: var(--bg-dark);
+}
+
+.emptyState {
+    text-align: center;
+    padding: 1rem 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 1024px) {
+    .mainLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .quickFission {
+        position: static;
+        order: -1;
+    }
+}
