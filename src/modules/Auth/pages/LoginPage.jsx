@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
     ArrowRight,
-    Brain,
     BookOpen,
     Eye,
     EyeOff,
     Leaf,
     Target,
 } from 'lucide-react';
+import { BudMark } from '../../../components/brand/StudyBudLogo';
 import { supabase, diagnoseAuthService } from '../../../supabaseClient';
 import { useToast } from '../../../context/useToast';
 import styles from './Auth.module.css';
@@ -242,7 +242,7 @@ const LoginPage = () => {
         <aside className={styles.brandPanel}>
             <div className={styles.brandLockup}>
                 <span className={styles.logoMark} aria-hidden="true">
-                    <Brain size={24} strokeWidth={1.8} />
+                    <BudMark className={styles.logoGlyph} />
                 </span>
                 <span className={styles.logoText}>
                     <span className={styles.logoName}><span>Study</span><strong>Bud</strong></span>

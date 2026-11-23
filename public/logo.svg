@@ -1,16 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="StudyBud">
   <defs>
-    <linearGradient id="bud-gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#E8BC77" />
-      <stop offset="0.55" stop-color="#DDA85D" />
-      <stop offset="1" stop-color="#BE8A3D" />
+    <radialGradient id="sb-badge" cx="0.3" cy="0.18" r="1">
+      <stop offset="0" stop-color="#3B2C1E" />
+      <stop offset="0.6" stop-color="#241B14" />
+      <stop offset="1" stop-color="#191310" />
+    </radialGradient>
+    <linearGradient id="sb-sprout" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6D49B" />
+      <stop offset="1" stop-color="#C08A35" />
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="8" fill="url(#bud-gold)" />
-  <g transform="translate(2.4 2.4) scale(0.85)" fill="#FFFBF2">
-    <path d="M16 9.6c.2-3.7 2.7-6.3 6.6-6.3 0 3.7-2.6 6.3-6.6 6.3Z" />
-    <rect x="15.3" y="6.6" width="1.4" height="6" rx="0.7" />
-    <path d="M3.8 12.2c4-1.9 8.6-1.8 11.3 0V26c-2.7-1.7-7.3-1.8-11.3.1Z" />
-    <path d="M28.2 12.2c-4-1.9-8.6-1.8-11.3 0V26c2.7-1.7 7.3-1.8 11.3.1Z" />
+  <rect width="32" height="32" rx="8" fill="url(#sb-badge)" />
+  <g transform="translate(2.4 2.4) scale(0.85)">
+    <path d="M16 9.6c.2-3.7 2.7-6.3 6.6-6.3 0 3.7-2.6 6.3-6.6 6.3Z" fill="url(#sb-sprout)" />
+    <rect x="15.3" y="6.6" width="1.4" height="6" rx="0.7" fill="url(#sb-sprout)" />
+    <path d="M3.8 12.2c4-1.9 8.6-1.8 11.3 0V26c-2.7-1.7-7.3-1.8-11.3.1Z" fill="#F9EFDD" />
+    <path d="M28.2 12.2c-4-1.9-8.6-1.8-11.3 0V26c2.7-1.7 7.3-1.8 11.3.1Z" fill="#F9EFDD" />
   </g>
 </svg>
