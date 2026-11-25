@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import {
     ACTIVE_FOCUS_SESSION_KEY,
     PENDING_FOCUS_SESSION_KEY,
+    accountScopedFocusStorageKey,
     hydrateActiveFocusSession,
     readPendingFocusSession,
     readStoredJson,
@@ -16,12 +17,21 @@ import {
 const DEFAULT_DURATION = 25 * 60;
 const MIN_SAVED_DURATION = 10;
 
+const getAccountScopedFocusKey = (baseKey) => {
+    try {
+        const ownerUserId = window.localStorage.getItem('studybud_active_user_id');
+        return accountScopedFocusStorageKey(baseKey, ownerUserId);
+    } catch {
+        return null;
+    }
+};
+
 const loadActiveRuntime = () =>
-    hydrateActiveFocusSession(readStoredJson(ACTIVE_FOCUS_SESSION_KEY), Date.now());
+    hydrateActiveFocusSession(readStoredJson(getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY)), Date.now());
 
 export const FocusProvider = ({ children }) => {
     const [restoredRuntime] = useState(loadActiveRuntime);
-    const [initialPendingSession] = useState(readPendingFocusSession);
+    const [initialPendingSession] = useState(() => readPendingFocusSession(getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY)));
     const [isActive, setIsActive] = useState(() => Boolean(restoredRuntime?.isActive));
     const [isPaused, setIsPaused] = useState(() => restoredRuntime?.isPaused ?? true);
     const [mode, setModeState] = useState(() =>
@@ -112,7 +122,7 @@ export const FocusProvider = ({ children }) => {
         setIsSavingSession(true);
         let retryDraft = draft;
         setPendingSession(draft);
-        writeStoredJson(PENDING_FOCUS_SESSION_KEY, draft);
+        writeStoredJson(getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY), draft);
 
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -130,7 +140,7 @@ export const FocusProvider = ({ children }) => {
             };
             retryDraft = ownedDraft;
             setPendingSession(ownedDraft);
-            writeStoredJson(PENDING_FOCUS_SESSION_KEY, ownedDraft);
+            writeStoredJson(getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY), ownedDraft);
 
             // If the database accepted an earlier insert but its response was lost,
             // the stable timestamp and session fields let a retry find that record.
@@ -169,14 +179,14 @@ export const FocusProvider = ({ children }) => {
             ].slice(0, 50));
             setCurrentUserId(user.id);
             setPendingSession(null);
-            removeStoredValue(PENDING_FOCUS_SESSION_KEY);
+            removeStoredValue(getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY));
             setSaveError('');
             setCompleted(ownedDraft.reason === 'completed');
             return true;
         } catch (error) {
             console.error('Unable to save focus session:', error);
             setPendingSession(retryDraft);
-            writeStoredJson(PENDING_FOCUS_SESSION_KEY, retryDraft);
+            writeStoredJson(getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY), retryDraft);
 
             if (error?.message === 'SIGN_IN_REQUIRED') {
                 setSaveError('Your focus session is kept in this tab, but saving requires you to sign in. Sign in to retry, or explicitly discard this session.');
@@ -200,7 +210,7 @@ export const FocusProvider = ({ children }) => {
     const discardPendingSession = useCallback(() => {
         if (savingRef.current) return false;
         setPendingSession(null);
-        removeStoredValue(PENDING_FOCUS_SESSION_KEY);
+        removeStoredValue(getAccountScopedFocusKey(PENDING_FOCUS_SESSION_KEY));
         setSaveError('');
         setCompleted(false);
         setTimeLeft(mode === 'TIMER' ? duration : 0);
@@ -226,7 +236,7 @@ export const FocusProvider = ({ children }) => {
         timerRef.current = null;
         deadlineRef.current = null;
         stopwatchStartedAtRef.current = null;
-        removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+        removeStoredValue(getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY));
 
         setIsActive(false);
         setIsPaused(true);
@@ -289,11 +299,11 @@ export const FocusProvider = ({ children }) => {
     // Keep a recoverable copy of an in-progress session across reloads in this tab.
     useEffect(() => {
         if (!isActive) {
-            removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+            removeStoredValue(getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY));
             return;
         }
 
-        writeStoredJson(ACTIVE_FOCUS_SESSION_KEY, {
+        writeStoredJson(getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY), {
             version: 1,
             isActive,
             isPaused,
@@ -334,7 +344,7 @@ export const FocusProvider = ({ children }) => {
 
         setIsActive(true);
         setIsPaused(false);
-        writeStoredJson(ACTIVE_FOCUS_SESSION_KEY, {
+        writeStoredJson(getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY), {
             version: 1,
             isActive: true,
             isPaused: false,
@@ -414,7 +424,7 @@ export const FocusProvider = ({ children }) => {
         timerRef.current = null;
         deadlineRef.current = null;
         stopwatchStartedAtRef.current = null;
-        removeStoredValue(ACTIVE_FOCUS_SESSION_KEY);
+        removeStoredValue(getAccountScopedFocusKey(ACTIVE_FOCUS_SESSION_KEY));
         setIsActive(false);
         setIsPaused(true);
         setCompleted(false);

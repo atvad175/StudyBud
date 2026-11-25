@@ -8,55 +8,50 @@ const ROOMS = [
         id: 'library',
         name: 'The Grand Library',
         icon: <Library size={22} />,
-        count: 142,
         purpose: 'Deep solo work',
-        desc: 'For when you need stillness. No chat, no noise — only the quiet signal that others are reading and writing beside you, somewhere in the world.',
+        desc: 'A quiet visual space for exams, essays, and proof-heavy subjects. This is a solo session, not a live shared room.',
         meaning:
-            'Psychologists call this “co-presence”: you focus better when you sense others are working too, even if you never speak. This room is for exams, essays, and proof-heavy subjects.',
+            'Choose this environment for uninterrupted work on demanding problems. Live participants and shared activity are not connected in the current version.',
         color: '#C9883A',
     },
     {
         id: 'cafe',
         name: 'Lo-fi Cafe',
         icon: <Coffee size={22} />,
-        count: 328,
         purpose: 'Gentle energy',
-        desc: 'A softer rhythm — like a corner café. Good for lighter tasks, creative notes, or when silence feels too heavy.',
+        desc: 'A softer visual theme for lighter tasks, creative notes, or review sessions.',
         meaning:
-            'Use this when you want accountability without pressure. The “cafe” idea nudges your brain toward a low-stakes but attentive state — ideal for review and ideation.',
+            'Use this café-inspired environment for low-pressure work and ideation. It does not connect you to other students or provide live accountability.',
         color: '#E65100',
     },
     {
         id: 'group',
         name: 'Study Group Space',
         icon: <Users size={22} />,
-        count: 56,
-        purpose: 'Shared momentum',
-        desc: 'Symbolic group energy: you are not performing for anyone; you are riding the same wave as people tackling hard problems.',
+        purpose: 'Group-style environment',
+        desc: 'A group-inspired visual theme for a challenging assignment or an exam-prep block.',
         meaning:
-            'Best before a test or deadline. The room stands for mutual effort — “we are all in the grind” — which can reduce loneliness and procrastination.',
+            'This is currently a solo focus space. Real shared rooms, participants, and group accountability are not available yet.',
         color: '#4CAF50',
     },
     {
         id: 'latenight',
         name: 'Late Night Grinders',
         icon: <Moon size={22} />,
-        count: 89,
         purpose: 'Off-hours focus',
-        desc: 'For night owls and odd schedules. Dim visual tone; the point is permission to work when the world is quiet.',
+        desc: 'A dim visual theme for late schedules or quiet individual work.',
         meaning:
-            'If your peak hours are late, this room aligns your environment with that reality instead of fighting it — less guilt, steadier sessions.',
+            'Choose this environment when you prefer a darker, quieter visual setting. It is local to your session; no other participants are present through StudyBud.',
         color: '#3F51B5',
     },
     {
         id: 'reading',
         name: 'Reading Room',
         icon: <BookOpen size={22} />,
-        count: 12,
         purpose: 'Long-form reading',
-        desc: 'Designed for chapters, papers, and slow absorption — not quick tasks.',
+        desc: 'A reading-focused visual environment for chapters, papers, and longer study blocks.',
         meaning:
-            'Commit to one book or paper per session. The room is a cue: “I am here to read with intention,” which cuts skim-scrolling habits.',
+            'Use the session clock to protect time for one chapter or paper. This room is a local study ritual, not a live reading group.',
         color: '#9C27B0',
     },
 ];
@@ -169,8 +164,7 @@ const StudyRooms = () => {
                             {running ? 'Pause' : 'Resume'}
                         </button>
                         <p className={styles.rhythmNote}>
-                            <strong>Why rooms exist:</strong> StudyBud rooms are not video calls. They are a ritual — you pick an environment, name your task, and let
-                            invisible peers anchor your attention. When you leave, you take only your progress, not performance pressure.
+                            <strong>Current limitation:</strong> this room runs locally in the current tab. It does not sync with other students or save the room clock to account history.
                         </p>
                     </div>
 
@@ -189,32 +183,9 @@ const StudyRooms = () => {
                     </div>
 
                     <div className={styles.panel} style={{ marginTop: '2rem' }}>
-                        <h4>Room rhythm (illustrative)</h4>
-                        {[
-                            { name: 'Alex M.', action: 'started a 50m block' },
-                            { name: 'Sarah K.', action: 'marked a task done' },
-                            { name: 'David L.', action: 'entered the room' },
-                        ].map((activity, i) => (
-                            <div key={i} className={styles.activityRow}>
-                                <div
-                                    style={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: '50%',
-                                        backgroundColor: activeRoom.color,
-                                        marginTop: 6,
-                                        flexShrink: 0,
-                                        opacity: 1 - i * 0.25,
-                                    }}
-                                />
-                                <div>
-                                    <span style={{ fontWeight: 600, color: 'var(--color-soft-black)' }}>{activity.name}</span>{' '}
-                                    <span style={{ color: 'var(--color-text-secondary)' }}>{activity.action}</span>
-                                </div>
-                            </div>
-                        ))}
-                        <p style={{ margin: '1rem 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                            Live feeds will connect to real data when multiplayer sync is enabled. For now, this shows the kind of ambient activity you are opting into.
+                        <h4>Room status</h4>
+                        <p style={{ margin: 0, color: 'var(--color-text-secondary)', lineHeight: 1.55 }}>
+                            Solo session only. StudyBud does not currently connect participants or show a live room feed.
                         </p>
                     </div>
                 </div>
@@ -228,20 +199,19 @@ const StudyRooms = () => {
                 <p className={styles.eyebrow}>Focus / Study rooms</p>
                 <h1 className={styles.title}>Study rooms</h1>
                 <p className={styles.lead}>
-                    Real focus is rarely solo in feeling — libraries, cafés, and exam halls all borrow energy from other people. These rooms recreate that <em>sense</em>{' '}
-                    of shared work without turning study into a performance.
+                    Choose a focus environment for a solo session. The room theme, intention note and clock run locally; live participants and shared room activity are not connected yet.
                 </p>
                 <div className={styles.principles}>
                     <h3>What you are choosing</h3>
                     <ul>
                         <li>
-                            <strong>Co-presence, not chat</strong> — you will not be judged or interrupted; the “others” are a gentle cue to stay on task.
+                            <strong>Solo by design</strong> — no other students are shown as present, and no live group feed is implied.
                         </li>
                         <li>
-                            <strong>A ritual start</strong> — pick a room that matches your mood, name your intention, then let the session clock mark your effort.
+                            <strong>A ritual start</strong> — pick an environment, name your intention and use the local session clock.
                         </li>
                         <li>
-                            <strong>Deeper work</strong> — pair a room with the focus timer or Pomodoro when you are ready for uninterrupted blocks.
+                            <strong>Deeper work</strong> — pair the room with the full focus timer when you are ready for an uninterrupted block.
                         </li>
                     </ul>
                 </div>
@@ -270,10 +240,7 @@ const StudyRooms = () => {
                             >
                                 {room.icon}
                             </div>
-                            <div className={styles.livePill}>
-                                <span className={styles.pulseDot} />
-                                {room.count} here now
-                            </div>
+                            <div className={styles.livePill}>Solo mode</div>
                         </div>
                         <div>
                             <p className={styles.purpose}>{room.purpose}</p>

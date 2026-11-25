@@ -40,6 +40,7 @@ const readInitialTimeSettings = () => {
 export const TimeProvider = ({ children }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
 
     useEffect(() => {
         fetchTasks();
@@ -47,6 +48,7 @@ export const TimeProvider = ({ children }) => {
 
     const fetchTasks = async () => {
         setLoading(true);
+        setLoadError('');
         try {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
             if (authError) throw authError;
@@ -65,7 +67,8 @@ export const TimeProvider = ({ children }) => {
             if (error) throw error;
             setTasks(data || []);
         } catch (error) {
-            console.error('Error fetching tasks:', error);
+            console.error('Error fetching tasks:', error?.code || 'unknown');
+            setLoadError('Your saved tasks could not be loaded. Your records have not been deleted. Check your connection and retry.');
             setTasks([]);
         } finally {
             setLoading(false);
@@ -251,6 +254,7 @@ export const TimeProvider = ({ children }) => {
             deleteTask,
             checkEnergyMismatch,
             loading,
+            loadError,
             settings,      // New
             updateSettings,// New
             batchTasks     // New

@@ -42,11 +42,19 @@ const extractScore = (text) => {
     return match ? parseInt(match[1], 10) : null;
 };
 
-const FEYNMAN_DRAFT_KEY = 'studybud_feynman_draft_v1';
-
-const readFeynmanDraft = () => {
+const getFeynmanDraftKey = () => {
     try {
-        const raw = window.sessionStorage.getItem(FEYNMAN_DRAFT_KEY);
+        const ownerId = window.localStorage.getItem('studybud_active_user_id');
+        return ownerId ? `studybud_feynman_draft_v1_${ownerId}` : null;
+    } catch {
+        return null;
+    }
+};
+
+const readFeynmanDraft = (draftKey) => {
+    try {
+        if (!draftKey) return null;
+        const raw = window.sessionStorage.getItem(draftKey);
         if (!raw) return null;
         const draft = JSON.parse(raw);
         if (draft?.version !== 1 || ![1, 2, 3, 4].includes(draft.stage)) return null;
@@ -68,9 +76,10 @@ const readFeynmanDraft = () => {
     }
 };
 
-const clearFeynmanDraft = () => {
+const clearFeynmanDraft = (draftKey) => {
+    if (!draftKey) return;
     try {
-        window.sessionStorage.removeItem(FEYNMAN_DRAFT_KEY);
+        window.sessionStorage.removeItem(draftKey);
     } catch {
         // Private browsing may block storage; the current form remains usable.
     }
@@ -79,7 +88,8 @@ const clearFeynmanDraft = () => {
 const FeynmanSandbox = () => {
     const { toast } = useToast();
     const { practiceLogs, logPractice } = useStudy();
-    const [draftAtLoad] = useState(() => readFeynmanDraft());
+    const [draftKey] = useState(() => getFeynmanDraftKey());
+    const [draftAtLoad] = useState(() => readFeynmanDraft(draftKey));
     const [stage, setStage] = useState(() => draftAtLoad?.stage ?? 1);
     const [topic, setTopic] = useState(() => draftAtLoad?.topic ?? '');
     const [difficulty, setDifficulty] = useState(() => draftAtLoad?.difficulty ?? 'intermediate');
@@ -97,7 +107,7 @@ const FeynmanSandbox = () => {
     useEffect(() => {
         const hasContent = Boolean(topic.trim() || explanation.trim() || refinedExplanation.trim() || critique || masteryResult);
         if (!hasContent) {
-            clearFeynmanDraft();
+            clearFeynmanDraft(draftKey);
             setHasLocalDraft(false);
             setDraftSavedAt(null);
             return undefined;
@@ -120,7 +130,8 @@ const FeynmanSandbox = () => {
                 savedAt: new Date().toISOString(),
             };
             try {
-                window.sessionStorage.setItem(FEYNMAN_DRAFT_KEY, JSON.stringify(draft));
+                if (!draftKey) throw new Error('No account-scoped draft storage is available.');
+                window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
                 setHasLocalDraft(true);
                 setDraftSavedAt(draft.savedAt);
             } catch {
@@ -129,7 +140,7 @@ const FeynmanSandbox = () => {
         }, 350);
 
         return () => window.clearTimeout(timeoutId);
-    }, [topic, difficulty, explanation, refinedExplanation, stage, critique, masteryResult, masteryScore]);
+    }, [draftKey, topic, difficulty, explanation, refinedExplanation, stage, critique, masteryResult, masteryScore]);
 
     const wordCount = useMemo(
         () => explanation.trim().split(/\s+/).filter(Boolean).length,

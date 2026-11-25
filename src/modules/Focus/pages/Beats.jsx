@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Music2, ChevronRight, Headphones, Waves, Play, Pause } from 'lucide-react';
+import { Music2, ChevronRight, Waves, Play } from 'lucide-react';
 import { useMusic } from '../../../context/useMusic';
 
 const SPOTIFY_PLAYLISTS = [
@@ -102,6 +102,7 @@ const Beats = () => {
                 </p>
             </header>
 
+            {/* Selecting a card loads the single persistent player in Focus Hub. */}
             {/* Playlist Grid */}
             <div style={{
                 display: 'grid',
@@ -172,17 +173,9 @@ const Beats = () => {
                                 </div>
 
                                 {isActive ? (
-                                    <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 24 }}>
-                                        {[1, 2, 3, 2, 1].map((h, i) => (
-                                            <div key={i} style={{
-                                                width: 4,
-                                                borderRadius: 2,
-                                                backgroundColor: playlist.accentColor,
-                                                animation: `beatBar ${0.5 + i * 0.15}s ease-in-out infinite alternate`,
-                                                height: `${h * 6}px`,
-                                            }} />
-                                        ))}
-                                    </div>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: playlist.accentColor }}>
+                                        <Play size={16} aria-hidden="true" /> Selected
+                                    </span>
                                 ) : (
                                     <ChevronRight size={18} color="var(--color-text-secondary)" style={{ opacity: isHov ? 1 : 0, transition: 'opacity 0.2s' }} />
                                 )}
@@ -245,7 +238,7 @@ const Beats = () => {
                                         alignItems: 'center',
                                         gap: 4,
                                     }}>
-                                        <span style={{ fontSize: '1rem' }}>🎵</span> Playing on Spotify
+                                        <span style={{ fontSize: '1rem' }}>🎵</span> Playlist selected
                                     </span>
                                 )}
                             </div>
@@ -254,58 +247,18 @@ const Beats = () => {
                 })}
             </div>
 
-            {/* Spotify Embed Player (Persists in Overlay, but shown here too for immediate control) */}
             {activePlaylist && (
-                <div
-                    id="spotify-player"
-                    style={{
-                        borderRadius: '28px',
-                        overflow: 'hidden',
-                        boxShadow: `0 24px 64px ${activePlaylist.accentColor}25, 0 8px 24px rgba(0,0,0,0.12)`,
-                        border: `1px solid ${activePlaylist.accentColor}20`,
-                        transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-                        marginTop: '2rem'
-                    }}
-                >
-                    <div style={{
-                        background: activePlaylist.gradient,
-                        padding: '1.5rem 2rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                    }}>
-                        <div style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: '12px',
-                            background: `${activePlaylist.accentColor}25`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.4rem',
-                            border: `1px solid ${activePlaylist.accentColor}30`,
-                        }}>
-                            {activePlaylist.icon}
-                        </div>
-                        <div>
-                            <div style={{ fontWeight: 700, color: '#fff', fontSize: '1rem' }}>{activePlaylist.title}</div>
-                            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
-                                <Headphones size={11} style={{ display: 'inline', marginRight: 4 }} />
-                                Streaming via Spotify
-                            </div>
-                        </div>
-                    </div>
-
-                    <iframe
-                        title={`Spotify — ${activePlaylist.title}`}
-                        src={`https://open.spotify.com/embed/playlist/${activePlaylist.spotifyId}?utm_source=generator&theme=0`}
-                        width="100%"
-                        height="380"
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        loading="lazy"
-                        style={{ display: 'block' }}
-                    />
+                <div role="status" style={{
+                    marginTop: '2rem',
+                    padding: '1.1rem 1.25rem',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '16px',
+                    background: 'white',
+                    color: 'var(--color-text-secondary)',
+                    lineHeight: 1.55,
+                }}>
+                    <strong style={{ color: 'var(--color-soft-black)' }}>{activePlaylist.title} selected.</strong>{' '}
+                    Use the Spotify player in the floating Focus Hub to start or stop playback. Spotify controls the audio; StudyBud does not infer playback state.
                 </div>
             )}
 

@@ -74,7 +74,7 @@ Before applying changes to any shared database:
 4. Test two authenticated users and confirm they cannot read or modify each other's private rows.
 5. Back up existing data and review records without a valid `user_id` before considering production changes.
 
-The current draft pull request adds migrations for onboarding/chat history, owner-only private data policies, and account-owned flashcards. One migration replaces existing policies on selected private tables. Do not apply it to production without verifying the project's actual schema and policy requirements.
+The stabilization pull request (#14) adds a migration to re-enable owner-level row security, protect the task table, and preserve the shared read-only study catalogues. It also adds task deadline/priority columns required by the existing Time dashboard, and tests that guard these migration files. The SQL has not been applied to production; validate both migrations on a separate test database and verify two-account isolation first.
 
 ## Quality checks
 
@@ -87,7 +87,7 @@ npm run lint
 npm run build
 ```
 
-The pull-request workflow requires serverless syntax, targeted lint, the full-repository ESLint suite, and a production build. It also scans the compiled browser bundle for Gemini SDK/key markers. Full lint currently passes; automated browser-flow and cross-account RLS regression tests are still on the roadmap.
+The pull-request workflow checks API syntax, runs the Node regression suite, performs focused and full ESLint checks, builds the production bundle, and scans that bundle for Gemini SDK/key markers. The suite includes deterministic timer, focus analytics, habit-streak, and migration guardrail tests. These tests do not replace signed-in browser testing or live cross-account RLS verification.
 
 ## Delivery workflow
 
@@ -100,10 +100,8 @@ The pull-request workflow requires serverless syntax, targeted lint, the full-re
 
 See [the product roadmap and release workflow](docs/PRODUCT_ROADMAP.md).
 
-## Draft implementation work
+## Current stabilization work
 
-The current implementation branch is reviewed through a draft pull request:
+The current work is tracked in [StudyBud stabilization pull request #14](https://github.com/atvad175/StudyBud/pull/14).
 
-[StudyBud hardening pull request](https://github.com/atvad175/StudyBud/pull/1)
-
-That PR is not a production release. Vercel environment configuration, safe Supabase migration/testing, and a real end-to-end preview check remain necessary before deployment.
+That PR is not a production release. Before merging, test the migrations against a non-production Supabase database, verify that two authenticated users cannot access each other's private rows, and exercise the core student flows in a Vercel Preview. Production has not been updated with this stabilization batch.

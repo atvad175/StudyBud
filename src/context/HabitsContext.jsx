@@ -7,6 +7,7 @@ export const HabitsProvider = ({ children }) => {
     const [atoms, setAtoms] = useState([]);
     const [logs, setLogs] = useState({});
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
 
     // Refresh provider state when onboarding creates its optional starter habit.
     useEffect(() => {
@@ -37,6 +38,7 @@ export const HabitsProvider = ({ children }) => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                setLoadError('');
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (authError) throw authError;
                 if (!user) {
@@ -85,7 +87,10 @@ export const HabitsProvider = ({ children }) => {
                 });
                 setLogs(logsDict);
             } catch (error) {
-                if (active) console.error('Error fetching habits data:', error?.code || 'unknown');
+                if (active) {
+                    console.error('Error fetching habits data:', error?.code || 'unknown');
+                    setLoadError('Your saved habits could not be loaded. Your records have not been deleted. Check your connection and retry.');
+                }
             } finally {
                 if (active) setLoading(false);
             }
@@ -209,7 +214,7 @@ export const HabitsProvider = ({ children }) => {
     };
 
     return (
-        <HabitsContext.Provider value={{ atoms, logs, addAtom, removeAtom, getTodayLog, updateLog, getTotalWins, loading }}>
+        <HabitsContext.Provider value={{ atoms, logs, addAtom, removeAtom, getTodayLog, updateLog, getTotalWins, loading, loadError }}>
             {children}
         </HabitsContext.Provider>
     );

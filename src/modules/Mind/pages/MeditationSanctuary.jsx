@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from '../MindShared.module.css';
 import { Wind, Play, Pause, Square, Info, Anchor, Brain, Heart, ChevronDown } from 'lucide-react';
 import { useMind } from '../../../context/useMind';
+import { useToast } from '../../../context/useToast';
 
 const SESSIONS = [
     {
@@ -44,12 +45,33 @@ const SESSIONS = [
 
 const MeditationSanctuary = () => {
     const { addLog } = useMind();
+    const { toast } = useToast();
+    const [isSavingSessionLog, setIsSavingSessionLog] = useState(false);
     const [activeSession, setActiveSession] = useState(null);
     const [timer, setTimer] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
+    const [meditationStorageKey] = useState(() => {
+        try {
+            const ownerId = localStorage.getItem('studybud_active_user_id');
+            return ownerId ? `studybud_meditations_${ownerId}` : null;
+        } catch {
+            return null;
+        }
+    });
     const [meditationLogs, setMeditationLogs] = useState(() => {
-        const saved = localStorage.getItem('studybud_meditations');
-        return saved ? JSON.parse(saved) : [];
+        if (!meditationStorageKey) return [];
+        try {
+            const saved = localStorage.getItem(meditationStorageKey);
+            const parsed = saved ? JSON.parse(saved) : [];
+            return Array.isArray(parsed) ? parsed.filter(entry =>
+                entry && typeof entry.session === 'string' &&
+                Number.isFinite(Number(entry.duration)) &&
+                typeof entry.date === 'string'
+            ).slice(0, 100) : [];
+        } catch {
+            // A damaged or blocked browser cache must not break Meditation.
+            return [];
+        }
     });
 
     useEffect(() => {
@@ -64,30 +86,64 @@ const MeditationSanctuary = () => {
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
-    const handleStop = () => {
-        if (timer > 0) {
-            const newLog = {
-                id: Date.now(),
-                session: activeSession.label,
-                duration: timer,
-                date: new Date().toISOString()
-            };
-            const updatedLogs = [newLog, ...meditationLogs];
-            setMeditationLogs(updatedLogs);
-            localStorage.setItem('studybud_meditations', JSON.stringify(updatedLogs));
-            
-            // Also save to MindContext if needed
-            if (addLog) {
-                addLog({
-                    type: 'meditation',
-                    content: `Completed ${activeSession.label} for ${formatTime(timer)}`,
-                    mood_score: 5 // Default high mood after meditation
-                });
-            }
+    const handleStop = async () => {
+        if (isSavingSessionLog || !activeSession) return;
+
+        const completedSession = activeSession;
+        const completedDuration = timer;
+        if (completedDuration <= 0) {
+            setActiveSession(null);
+            setIsRunning(false);
+            setTimer(0);
+            return;
         }
-        setActiveSession(null);
+
+        setIsSavingSessionLog(true);
         setIsRunning(false);
-        setTimer(0);
+
+        const newLog = {
+            id: Date.now(),
+            session: completedSession.label,
+            duration: completedDuration,
+            date: new Date().toISOString(),
+        };
+        // Keep a bounded, device-local history even when cloud saving fails.
+        const updatedLogs = [newLog, ...meditationLogs].slice(0, 100);
+        setMeditationLogs(updatedLogs);
+
+        let localHistorySaved = Boolean(meditationStorageKey);
+        try {
+            if (!meditationStorageKey) throw new Error('No account-scoped browser storage is available.');
+            localStorage.setItem(meditationStorageKey, JSON.stringify(updatedLogs));
+        } catch {
+            localHistorySaved = false;
+        }
+
+        try {
+            // mind_logs stores a JSONB content object and text[] tags.
+            await addLog({
+                type: 'meditation',
+                content: {
+                    session: completedSession.label,
+                    duration_seconds: completedDuration,
+                    duration_label: formatTime(completedDuration),
+                },
+                tags: ['meditation', completedSession.id],
+            });
+            toast.success(localHistorySaved
+                ? 'Meditation saved to your private Mind history.'
+                : 'Meditation saved to your Mind history, but browser history could not be updated.');
+        } catch (error) {
+            console.warn('Meditation history could not be saved to Mind:', error?.code || 'unknown');
+            toast.error(localHistorySaved
+                ? 'Session stopped and kept on this device, but cloud history could not be saved. Check your connection.'
+                : 'Session stopped, but neither browser nor cloud history could be saved.');
+        } finally {
+            setActiveSession(null);
+            setIsRunning(false);
+            setTimer(0);
+            setIsSavingSessionLog(false);
+        }
     };
 
     if (activeSession) {
@@ -113,8 +169,15 @@ const MeditationSanctuary = () => {
                         <button onClick={() => setIsRunning(!isRunning)} className={styles.sendBtn} style={{ padding: '1rem 3rem', borderRadius: '100px' }}>
                             {isRunning ? <Pause /> : (timer === 0 ? 'Start Session' : <Play />)}
                         </button>
-                        <button onClick={handleStop} className={styles.sendBtn} style={{ padding: '1rem', background: '#333' }}>
-                            <Square />
+                        <button
+                            type="button"
+                            onClick={handleStop}
+                            disabled={isSavingSessionLog}
+                            aria-label={isSavingSessionLog ? 'Saving meditation session' : 'Stop and save meditation session'}
+                            className={styles.sendBtn}
+                            style={{ padding: '1rem', background: '#333', opacity: isSavingSessionLog ? 0.65 : 1, cursor: isSavingSessionLog ? 'wait' : 'pointer' }}
+                        >
+                            {isSavingSessionLog ? 'Saving…' : <Square />}
                         </button>
                     </div>
                 </div>
